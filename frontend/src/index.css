@@ -1,0 +1,275 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --radius: 0.5rem;
+  }
+
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: hsl(217.2 32.6% 12%); }
+::-webkit-scrollbar-thumb { background: hsl(217.2 32.6% 30%); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(217.2 32.6% 40%); }
+
+/* ── Light theme overrides ─────────────────────────────────────────── */
+.light { color-scheme: light; }
+
+/* Scrollbar */
+.light ::-webkit-scrollbar-track { background: #f1f5f9; }
+.light ::-webkit-scrollbar-thumb { background: #cbd5e1; }
+.light ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Page / sidebar backgrounds */
+.light .bg-slate-950, .light .bg-background { background-color: #f8fafc; }
+.light .bg-slate-900  { background-color: #ffffff; }
+.light .bg-slate-800  { background-color: #f1f5f9; }
+.light .bg-slate-700  { background-color: #e2e8f0; }
+
+/* Opacity variants */
+.light .bg-slate-900\/40 { background-color: rgb(255 255 255 / 0.4); }
+.light .bg-slate-800\/30 { background-color: rgb(241 245 249 / 0.3); }
+.light .bg-slate-800\/40 { background-color: rgb(241 245 249 / 0.4); }
+.light .bg-slate-800\/60 { background-color: rgb(241 245 249 / 0.6); }
+
+/* Borders */
+.light .border-slate-800 { border-color: #e2e8f0; }
+.light .border-slate-700 { border-color: #cbd5e1; }
+.light .border-slate-600 { border-color: #94a3b8; }
+
+/* Text */
+.light .text-slate-100 { color: #0f172a; }
+.light .text-slate-200 { color: #1e293b; }
+.light .text-slate-300 { color: #334155; }
+.light .text-slate-400 { color: #475569; }
+.light .text-slate-500 { color: #64748b; }
+.light .text-slate-600 { color: #94a3b8; }
+
+/* Hover overrides */
+.light .hover\:bg-slate-800:hover  { background-color: #e2e8f0; }
+.light .hover\:bg-slate-700:hover  { background-color: #cbd5e1; }
+.light .hover\:bg-slate-800\/40:hover { background-color: rgb(226 232 240 / 0.4); }
+.light .hover\:text-slate-200:hover { color: #1e293b; }
+
+/* Inputs & form controls */
+.light input, .light select, .light textarea {
+  background-color: #ffffff;
+  color: #1e293b;
+  border-color: #cbd5e1;
+}
+.light input::placeholder, .light textarea::placeholder { color: #94a3b8; }
+
+/* Table rows */
+.light .border-b { border-color: #e2e8f0; }
+
+/* Status badge tweaks for readability on light bg */
+.light .bg-green-900\/60 { background-color: rgb(220 252 231 / 0.8); }
+.light .bg-yellow-900\/40 { background-color: rgb(254 249 195 / 0.8); }
+.light .bg-red-900\/40   { background-color: rgb(254 226 226 / 0.8); }
+.light .bg-blue-900\/20  { background-color: rgb(219 234 254 / 0.6); }
+.light .bg-blue-900\/40  { background-color: rgb(219 234 254 / 0.8); }
+.light .bg-green-900\/20 { background-color: rgb(220 252 231 / 0.6); }
+
+/* Drag handle */
+.light .bg-slate-800[class*="cursor-col-resize"] { background-color: #e2e8f0; }
+
+/* ── Security Fabric theme ─────────────────────────────────────────── */
+.security-fabric { color-scheme: light; }
+
+/* No rounded corners */
+.security-fabric *,
+.security-fabric *::before,
+.security-fabric *::after {
+  border-radius: 0 !important;
+}
+
+/* Keep toggle switches round */
+.security-fabric .rounded-full,
+.security-fabric .rounded-full::before,
+.security-fabric .rounded-full::after {
+  border-radius: 9999px !important;
+}
+
+/* Full-width nav items — bleed out of the px-3 nav container */
+.security-fabric aside nav a,
+.security-fabric aside div > a {
+  margin-left: -12px;
+  margin-right: -12px;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+/* Sidebar text — always rgb(217, 224, 235) */
+.security-fabric aside,
+.security-fabric aside nav a,
+.security-fabric aside div > a,
+.security-fabric aside nav a svg,
+.security-fabric aside div > a svg {
+  color: rgb(217, 224, 235) !important;
+}
+.security-fabric aside .text-slate-600 { color: #909090; }
+
+/* Scrollbar */
+.security-fabric ::-webkit-scrollbar-track { background: #f1f1f1; }
+.security-fabric ::-webkit-scrollbar-thumb { background: #c0c0c0; }
+.security-fabric ::-webkit-scrollbar-thumb:hover { background: #999; }
+
+/* Page title red underline */
+.security-fabric main h1 + p {
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #db291c;
+  margin-bottom: 0;
+}
+.security-fabric main .page-title-row {
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #db291c;
+}
+.security-fabric main .page-title-row h1 + p {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+/* Main content background */
+.security-fabric .bg-background { background-color: #ffffff; }
+.security-fabric main { background-color: #ffffff; }
+
+/* Widget card shadow — no border */
+.security-fabric main .rounded-xl {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.18), 0 4px 6px rgba(0,0,0,0.28);
+  border-color: transparent !important;
+}
+
+/* Cards / panels */
+.security-fabric .bg-slate-800\/30 { background-color: #ffffff; }
+.security-fabric .bg-slate-800\/40 { background-color: #f9f9f9; }
+.security-fabric .bg-slate-800\/60 { background-color: #f5f5f5; }
+.security-fabric .bg-slate-900\/40 { background-color: rgba(255,255,255,0.9); }
+.security-fabric .bg-slate-900    { background-color: #ffffff; }
+.security-fabric .bg-slate-800    { background-color: #ffffff; }
+.security-fabric .bg-slate-700    { background-color: #e8e8e8; }
+
+/* Borders */
+.security-fabric .border-slate-800 { border-color: #e0e0e0; }
+.security-fabric .border-slate-700 { border-color: #d0d0d0; }
+.security-fabric .border-slate-600 { border-color: #b0b0b0; }
+
+/* Text */
+.security-fabric .text-slate-100 { color: #1a1a1a; }
+.security-fabric .text-slate-200 { color: #2d2d2d; }
+.security-fabric .text-slate-300 { color: #444444; }
+.security-fabric .text-slate-400 { color: #666666; }
+.security-fabric .text-slate-500 { color: #888888; }
+.security-fabric .text-slate-600 { color: #aaaaaa; }
+
+/* Hover states */
+.security-fabric .hover\:bg-slate-800:hover  { background-color: #eeeeee; }
+.security-fabric .hover\:bg-slate-700:hover  { background-color: #e0e0e0; }
+.security-fabric .hover\:bg-slate-800\/40:hover { background-color: rgba(0,0,0,0.04); }
+.security-fabric .hover\:text-slate-200:hover { color: #1a1a1a; }
+
+/* Inputs & form controls */
+.security-fabric input, .security-fabric select, .security-fabric textarea {
+  background-color: #ffffff !important;
+  color: #1a1a1a;
+  border-color: #d0d0d0;
+}
+.security-fabric input::placeholder, .security-fabric textarea::placeholder { color: #aaaaaa; }
+
+/* Log output area — keep dark with white text */
+.security-fabric .bg-slate-950 { background-color: #1e1e1e !important; }
+.security-fabric .bg-slate-950 .bg-slate-900 { background-color: #2a2a2a !important; }
+.security-fabric .bg-slate-950 .border-slate-800 { border-color: #333333 !important; }
+.security-fabric .bg-slate-950 .text-slate-300 { color: #e0e0e0 !important; }
+.security-fabric .bg-slate-950 .text-slate-400 { color: #bbbbbb !important; }
+.security-fabric .bg-slate-950 .text-slate-500 { color: #aaaaaa !important; }
+.security-fabric .bg-slate-950 .text-slate-600 { color: #888888 !important; }
+
+/* Buttons — primary blue → Fortinet red */
+.security-fabric .bg-blue-600  { background-color: #db291c; }
+.security-fabric .hover\:bg-blue-500:hover { background-color: #c02218; }
+.security-fabric .bg-blue-900\/20 { background-color: rgba(218,41,28,0.08); }
+.security-fabric .bg-blue-900\/40 { background-color: rgba(218,41,28,0.15); }
+.security-fabric .border-blue-600 { border-color: #db291c; }
+.security-fabric .border-blue-800\/60 { border-color: rgba(218,41,28,0.4); }
+.security-fabric .text-blue-400 { color: #db291c; }
+.security-fabric .text-blue-300 { color: #db291c; }
+.security-fabric .text-blue-200 { color: #b02015; }
+.security-fabric .focus\:ring-blue-500:focus { --tw-ring-color: #db291c; }
+
+/* Tables */
+.security-fabric .border-b { border-color: #e8e8e8; }
+
+/* Status badges */
+.security-fabric .bg-green-900\/60 { background-color: rgb(220 252 231 / 0.8); }
+.security-fabric .bg-yellow-900\/40 { background-color: rgb(254 249 195 / 0.8); }
+.security-fabric .bg-red-900\/40   { background-color: rgb(254 226 226 / 0.8); }
+.security-fabric .bg-green-900\/20 { background-color: rgb(220 252 231 / 0.6); }
