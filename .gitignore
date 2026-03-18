@@ -23,6 +23,9 @@ frontend/dist/
 # Vite
 frontend/.vite/
 
+# Runtime
+.fabricstudio.pids
+
 # macOS
 .DS_Store
 
