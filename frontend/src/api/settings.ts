@@ -37,6 +37,17 @@ export function useUploadKeyFile() {
   })
 }
 
+export function useDeleteKeyFile() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiDelete('/settings/keyfile'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] })
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+    },
+  })
+}
+
 export function useResetSettings() {
   const queryClient = useQueryClient()
   return useMutation({

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Upload, Loader2, Trash2, Key, Settings2, Palette } from 'lucide-react'
-import { useSettings, useUpdateSettings, useUploadKeyFile, useResetSettings } from '@/api/settings'
+import { useSettings, useUpdateSettings, useUploadKeyFile, useDeleteKeyFile, useResetSettings } from '@/api/settings'
 import { useTheme, type AppTheme } from '@/context/ThemeContext'
 import type { Settings } from '@/lib/types'
 import { CustomSelect } from '@/components/CustomSelect'
@@ -47,6 +47,7 @@ export default function SettingsPage() {
   const { data: settings, isLoading } = useSettings()
   const updateSettings = useUpdateSettings()
   const uploadKeyFile = useUploadKeyFile()
+  const deleteKeyFile = useDeleteKeyFile()
   const resetSettings = useResetSettings()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -154,7 +155,21 @@ export default function SettingsPage() {
         {settings?.service_account_key_path && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-900/20 border border-green-800/60 text-xs text-green-400">
             <Key className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate font-mono">{settings.service_account_key_path}</span>
+            <span className="truncate font-mono flex-1">{settings.service_account_key_path}</span>
+            <button
+              onClick={async () => {
+                try {
+                  await deleteKeyFile.mutateAsync()
+                  toast.success('Key file removed')
+                } catch {
+                  toast.error('Failed to remove key file')
+                }
+              }}
+              className="ml-1 text-green-600 hover:text-red-400 transition-colors shrink-0"
+              title="Remove key file"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
           </div>
         )}
 

@@ -44,6 +44,20 @@ async def upload_keyfile(file: UploadFile = File(...)):
     return {"detail": "Key file uploaded", "path": str(dest)}
 
 
+@router.delete("/keyfile")
+async def delete_keyfile():
+    key_path = cfg.settings.service_account_key_path
+    if key_path:
+        try:
+            Path(key_path).unlink(missing_ok=True)
+        except Exception:
+            pass
+    updated = cfg.settings.model_copy(update={"service_account_key_path": None})
+    cfg.settings = updated
+    cfg.save_settings(updated)
+    return {"detail": "Key file removed"}
+
+
 @router.delete("")
 async def reset_settings():
     cfg.settings = cfg.AppSettings()

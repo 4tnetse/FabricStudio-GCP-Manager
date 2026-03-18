@@ -2,6 +2,7 @@ import { useProjects, useSelectProject } from '@/api/projects'
 import { useSettings } from '@/api/settings'
 import { ChevronDown, FolderOpen, Loader2, AlertTriangle } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -12,6 +13,7 @@ export function ProjectSelector() {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
+  const navigate = useNavigate()
   const noKey = !settings?.service_account_key_path
 
   const currentProject = projects?.find((p) => p.is_selected) ?? projects?.[0]
@@ -38,10 +40,13 @@ export function ProjectSelector() {
 
   if (noKey) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-yellow-800/60 bg-yellow-900/20 text-yellow-400 text-xs">
+      <button
+        onClick={() => navigate('/settings')}
+        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-yellow-800/60 bg-yellow-900/20 text-yellow-400 text-xs w-full hover:bg-yellow-900/40 transition-colors"
+      >
         <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
         <span>No key configured</span>
-      </div>
+      </button>
     )
   }
 
@@ -51,8 +56,8 @@ export function ProjectSelector() {
         onClick={() => setOpen((o) => !o)}
         title={currentProject?.name ?? currentProject?.id}
         className={cn(
-          'flex items-center gap-2 w-full pl-6 pr-3 py-2 rounded-lg border text-sm transition-colors',
-          'border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200',
+          'flex items-center gap-2 w-full pl-6 pr-3 py-2 rounded-lg text-sm transition-colors',
+          'bg-slate-800 hover:bg-slate-700 text-slate-200',
           open && 'border-slate-600',
         )}
       >
