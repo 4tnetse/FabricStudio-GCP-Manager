@@ -14,6 +14,16 @@ def _strip_ansi(text: str) -> str:
     return re.sub(r'\x1b\[[0-9;]*[A-Za-z]|\x1b\][^\x07]*\x07|\r', '', text)
 
 
+_SLEEP_RE = re.compile(r'^(.*?)\s*;\s*sleep\s+(\d+(?:\.\d+)?)\s*$', re.IGNORECASE)
+
+def _parse_sleep(cmd: str) -> tuple[str, float]:
+    """Return (command_without_sleep, sleep_seconds). Sleep is 0 if not specified."""
+    m = _SLEEP_RE.match(cmd)
+    if m:
+        return m.group(1).strip(), float(m.group(2))
+    return cmd, 0.0
+
+
 async def _read_until_prompt(stdout, timeout: float) -> str:
     """Read from stdout until '# ' is seen or timeout expires."""
     buf = ""
@@ -78,20 +88,25 @@ async def _run_on_host(
                             await log(line.rstrip())
 
                 # Run each command
-                for cmd in commands:
+                for raw_cmd in commands:
+                    cmd, sleep_secs = _parse_sleep(raw_cmd)
+                    await log(f">> {cmd}")
                     proc.stdin.write(cmd + "\n")
                     raw = await _read_until_prompt(proc.stdout, timeout=COMMAND_TIMEOUT)
                     if not raw:
                         await log(f"No response to: {cmd}")
-                        continue
+                    else:
+                        clean = _strip_ansi(raw)
+                        for line in clean.split("\n"):
+                            stripped = line.strip()
+                            # Skip echoed command and prompt line
+                            if not stripped or stripped == cmd.strip() or stripped.endswith(" #") or stripped == "#":
+                                continue
+                            await log(line.rstrip())
 
-                    clean = _strip_ansi(raw)
-                    for line in clean.split("\n"):
-                        stripped = line.strip()
-                        # Skip echoed command and prompt line
-                        if not stripped or stripped == cmd.strip() or stripped.endswith(" #") or stripped == "#":
-                            continue
-                        await log(line.rstrip())
+                    if sleep_secs > 0:
+                        await log(f"Sleeping {sleep_secs:.0f}s...")
+                        await asyncio.sleep(sleep_secs)
 
                 try:
                     proc.stdin.write("exit\n")
@@ -154,9 +169,9 @@ async def run_ssh_commands(
 ) -> dict[str, list[str]]:
     results: dict[str, list[str]] = {}
 
-    if parallel:
-        # Run all hosts concurrently without streaming to avoid interleaved output,
-        # then write each host's block + separator to the queue as hosts complete.
+    if parallel and len(addresses) > 1:
+        # Multiple hosts: buffer per host to avoid interleaved output,
+        # then flush each host's block as it completes.
         async def _run_and_tag(host: str):
             lines = await _run_on_host_with_timeout(
                 host, commands, username, ssh_key_path, None, timeout,
@@ -168,7 +183,6 @@ async def run_ssh_commands(
             try:
                 host, lines = await coro
             except Exception as exc:
-                # Shouldn't happen, but guard anyway
                 lines = [f"Unexpected error: {exc}"]
                 host = "unknown"
             results[host] = lines
@@ -178,6 +192,7 @@ async def run_ssh_commands(
                 await log_queue.put(SEP)
                 await log_queue.put(SEP)
     else:
+        # Sequential mode OR single host in parallel mode — stream output live
         for host in addresses:
             results[host] = await _run_on_host_with_timeout(
                 host, commands, username, ssh_key_path, log_queue, timeout,

@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import { Loader2, Download, Wifi, Search, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { useExecuteSsh, useTestSsh } from '@/api/ssh'
 import { useInstances, usePublicIps } from '@/api/instances'
-import { useConfigs } from '@/api/configs'
+import { useConfigs, useConfig } from '@/api/configs'
 import { LogStream } from '@/components/LogStream'
 import { CustomSelect } from '@/components/CustomSelect'
 
@@ -25,6 +25,15 @@ export default function SSH() {
   const { data: publicIps, isLoading: ipsLoading } = usePublicIps()
   const { data: instances = [], isLoading: instancesLoading } = useInstances()
   const { data: configFiles = [] } = useConfigs()
+  const { data: configDetail } = useConfig(selectedConfig || null)
+
+  const configCommands = configDetail
+    ? configDetail.content
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l && !l.startsWith('#'))
+        .join('\n')
+    : ''
 
   const withIp = useMemo(() => instances.filter((i) => i.public_ip), [instances])
 
@@ -97,14 +106,14 @@ export default function SSH() {
   }
 
   function handleLoadIps() {
-    if (!publicIps?.instances?.length) {
+    if (!publicIps?.length) {
       toast.error('No public IPs available')
       return
     }
-    const ips = publicIps.instances.map((i) => i.public_ip).join('\n')
+    const ips = publicIps.map((i) => i.ip).join('\n')
     setAddresses(ips)
     setSelectedNames(new Set())
-    toast.success(`Loaded ${publicIps.instances.length} IPs`)
+    toast.success(`Loaded ${publicIps.length} IPs`)
   }
 
   async function handleTest() {
@@ -382,7 +391,7 @@ export default function SSH() {
               rows={4}
               className={textareaClass + (selectedConfig ? ' opacity-40 cursor-not-allowed' : '')}
               placeholder="e.g. get system status"
-              value={command}
+              value={selectedConfig ? configCommands : command}
               onChange={(e) => setCommand(e.target.value)}
               disabled={!!selectedConfig}
             />

@@ -1,7 +1,8 @@
-0.76
+0.77
 
 # Version history
 # ---------------
+# 0.77  Fix SSH live streaming for single host, add command logging, fix sleep position visibility, fix Load all IPs type mismatch
 # 0.76  Add Configurations screen with file editor, config-based SSH execution, menu reordering and UX improvements
 # 0.75  Merge Dependabot PR #2: upgrade vite 5→8, fix SSH.tsx public IPs type error
 # 0.74  Rename 'Select by range' to 'Select instances by range...' in SSH screen

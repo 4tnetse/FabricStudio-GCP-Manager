@@ -70,10 +70,7 @@ export interface JobStatus {
   message?: string
 }
 
-export interface PublicIpsResponse {
-  instances: Array<{
-    name: string
-    zone: string
-    public_ip: string
-  }>
-}
+export type PublicIpsResponse = Array<{
+  name: string
+  ip: string
+}>
