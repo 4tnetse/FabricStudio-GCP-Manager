@@ -11,6 +11,7 @@ import {
   Tag,
   Terminal,
   HardDrive,
+  FileCode,
   Settings,
   ChevronRight,
 } from 'lucide-react'
@@ -25,15 +26,17 @@ import Firewall from '@/pages/Firewall'
 import Labels from '@/pages/Labels'
 import SSH from '@/pages/SSH'
 import Images from '@/pages/Images'
+import Configurations from '@/pages/Configurations'
 import SettingsPage from '@/pages/Settings'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Instances', icon: LayoutDashboard, exact: true },
-  { to: '/build', label: 'Build', icon: Hammer },
   { to: '/clone', label: 'Clone', icon: Copy },
   { to: '/firewall', label: 'Firewall', icon: Shield },
   { to: '/labels', label: 'Labels', icon: Tag },
+  { to: '/configurations', label: 'Configurations', icon: FileCode },
   { to: '/ssh', label: 'SSH', icon: Terminal },
+  { to: '/build', label: 'Build', icon: Hammer },
   { to: '/images', label: 'Images', icon: HardDrive },
 ]
 
@@ -177,6 +180,7 @@ export default function App() {
             <Route path="/labels" element={<Labels />} />
             <Route path="/ssh" element={<SSH />} />
             <Route path="/images" element={<Images />} />
+            <Route path="/configurations" element={<Configurations />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </div>

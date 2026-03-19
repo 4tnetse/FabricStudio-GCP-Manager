@@ -10,12 +10,28 @@ import config as cfg
 from services.parallel_runner import job_manager
 from services.ssh_runner import run_ssh_commands
 
+
+def _load_commands_from_config(config_name: str) -> list[str]:
+    safe = Path(config_name).name
+    if not safe.endswith(".conf"):
+        safe += ".conf"
+    path = cfg.CONF_DIR / safe
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"Config file '{safe}' not found")
+    commands = []
+    for line in path.read_text().splitlines():
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#"):
+            commands.append(stripped)
+    return commands
+
 router = APIRouter(prefix="/ssh", tags=["ssh"])
 
 
 class SshExecuteRequest(BaseModel):
     addresses: list[str]
-    commands: list[str]
+    commands: list[str] = []
+    config_name: str | None = None
     parallel: bool = True
 
 
@@ -74,13 +90,19 @@ async def _ssh_job(
 async def execute_ssh(body: SshExecuteRequest, background_tasks: BackgroundTasks):
     if not body.addresses:
         raise HTTPException(status_code=400, detail="No addresses provided")
-    if not body.commands:
+
+    if body.config_name:
+        commands = _load_commands_from_config(body.config_name)
+    else:
+        commands = body.commands
+
+    if not commands:
         raise HTTPException(status_code=400, detail="No commands provided")
 
     job_id = str(uuid.uuid4())
     job_manager.create_job(job_id)
     background_tasks.add_task(
-        _ssh_job, job_id, body.addresses, body.commands, body.parallel
+        _ssh_job, job_id, body.addresses, commands, body.parallel
     )
     return {"job_id": job_id}
 

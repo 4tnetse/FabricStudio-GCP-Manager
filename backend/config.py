@@ -11,6 +11,7 @@ _DNS_PREFIX_RE = re.compile(r'^[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?$')
 
 SETTINGS_DIR = Path.home() / ".fabricstudio"
 SETTINGS_FILE = SETTINGS_DIR / "settings.json"
+CONF_DIR = Path(__file__).parent.parent / "conf"
 
 
 class AppSettings(BaseModel):

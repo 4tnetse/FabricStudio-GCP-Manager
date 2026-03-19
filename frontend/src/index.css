@@ -246,6 +246,12 @@
 .security-fabric aside .text-slate-400  { color: #a0a8b0; }
 .security-fabric aside .border-slate-700 { border-color: transparent; }
 
+/* Code editor — always dark regardless of theme */
+.code-editor, .security-fabric .code-editor {
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+}
+
 /* Inputs & form controls */
 .security-fabric input, .security-fabric select, .security-fabric textarea {
   background-color: #ffffff !important;
