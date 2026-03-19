@@ -68,5 +68,5 @@ _VERSION_FILE = Path(__file__).parent.parent / "VERSION"
 
 @app.get("/api/health")
 async def health():
-    version = _VERSION_FILE.read_text().strip() if _VERSION_FILE.exists() else "0.000"
+    version = _VERSION_FILE.read_text().splitlines()[0].strip() if _VERSION_FILE.exists() else "0.000"
     return {"status": "ok", "active_project": cfg.settings.active_project_id, "version": version}

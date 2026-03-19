@@ -1,7 +1,8 @@
-0.72
+0.73
 
 # Version history
 # ---------------
+# 0.73  Fix version display showing full VERSION file content instead of just the version number
 # 0.72  Add version history tracking to VERSION file
 # 0.71  Add key file delete button, clickable 'No key configured' link, fix project selector colors in Security Fabric theme
 # 0.70  Fix backend security vulnerabilities (fastapi, python-multipart, google-cloud packages) and remove obsolete start.sh
