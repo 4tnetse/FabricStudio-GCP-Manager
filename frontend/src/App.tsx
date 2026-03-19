@@ -110,6 +110,7 @@ export default function App() {
 
   const { theme } = useTheme()
   const isSF = theme === 'security-fabric'
+  const [aboutOpen, setAboutOpen] = useState(false)
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -158,10 +159,77 @@ export default function App() {
         </div>
 
         {/* Version */}
-        <div className="px-4 py-2.5 text-xs text-slate-600 select-none">
+        <button
+          onClick={() => setAboutOpen(true)}
+          className="px-4 py-2.5 text-xs text-slate-600 hover:text-slate-400 transition-colors text-left select-none"
+        >
           v{health?.version ?? '…'}
-        </div>
+        </button>
       </aside>
+
+      {/* About dialog */}
+      {aboutOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 shrink-0 text-[#db291c]" fill="currentColor">
+                <g transform="matrix(1.86193 0 0 1.86193 -2134.636 -12994.814)">
+                  <circle cx="1151.6" cy="6983.5" r=".1"/>
+                  <circle cx="1151.5" cy="6982.6" r=".1"/>
+                  <circle cx="1152.5" cy="6983.1" r=".1"/>
+                  <circle cx="1151.7" cy="6984.5" r=".1"/>
+                  <path d="m1151.5 6982.8-1.1 1.9c.1 0 .2.1.2.1l.7-1.2v-.1c0-.1 0-.3.2-.3h.1l.8-1.4c-.1-.1-.1-.1-.2-.1l-.4.7c0 .3-.1.4-.3.4zM1152.4 6982.9l.4-.6c-.1-.1-.1-.2-.2-.2l-.8 1.4c0 .1 0 .3-.2.3l-.7 1.2h.3l.2-.4c0-.1 0-.3.2-.3l.6-1c0-.2 0-.4.2-.4zM1151.3 6982.7c-.1-.1-.1-.3.1-.4h.2l.4-.7c-.9-.3-1.9.1-2.2 1-.3.7 0 1.5.5 2l1-1.9zM1152.7 6983c.1.2 0 .4-.1.4h-.1l-.5.9v.1c0 .1 0 .3-.2.3h-.1l-.1.2c1-.1 1.6-1 1.5-2 0-.2-.1-.3-.1-.5l-.3.6z"/>
+                </g>
+                <path d="M15.667 1.889H2.333C1.623 1.889 1 2.51 1 3.222v8.89c0 .71.622 1.332 1.333 1.332h5.334l-.445 1.334H5.178c-.356 0-.711.266-.711.622.089.444.355.711.71.711h7.556a.608.608 0 0 0 .623-.622.608.608 0 0 0-.623-.622h-1.955l-.445-1.423h5.334c.71 0 1.333-.622 1.333-1.333V3.222c0-.71-.622-1.333-1.333-1.333zm-.445 9.778H2.778v-8h12.444v8z"/>
+              </svg>
+              <div>
+                <h2 className="text-base font-semibold text-slate-100">Fabric Studio GCP Manager</h2>
+                <p className="text-sm text-slate-400">Version {health?.version ?? '…'}</p>
+              </div>
+            </div>
+
+            <hr className="border-slate-700" />
+
+            <div className="space-y-1 text-sm text-slate-300">
+              <p>Created by <span className="font-medium text-slate-100">Tijl Vermant</span></p>
+              <p>
+                <a
+                  href="https://github.com/4tnetse/FabricStudio-GCP-Manager/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 hover:underline break-all"
+                >
+                  github.com/4tnetse/FabricStudio-GCP-Manager
+                </a>
+              </p>
+            </div>
+
+            <hr className="border-slate-700" />
+
+            <div className="space-y-1 text-sm text-slate-400">
+              <p>Inspired by <span className="italic">FabricStudio-Toolkit-for-GCP</span></p>
+              <p>by <span className="text-slate-300">Ferry Kemps</span></p>
+              <p>
+                <a
+                  href="https://github.com/fkemps/FabricStudio-Toolkit-for-GCP"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 hover:underline break-all"
+                >
+                  github.com/fkemps/FabricStudio-Toolkit-for-GCP
+                </a>
+              </p>
+            </div>
+
+            <button
+              onClick={() => setAboutOpen(false)}
+              className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Resize handle */}
       <div
