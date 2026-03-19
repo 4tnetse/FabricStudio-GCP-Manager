@@ -94,14 +94,14 @@ export default function SSH() {
   }
 
   function handleLoadIps() {
-    if (!publicIps?.length) {
+    if (!publicIps?.instances?.length) {
       toast.error('No public IPs available')
       return
     }
-    const ips = publicIps.map((i: { ip: string }) => i.ip).join('\n')
+    const ips = publicIps.instances.map((i) => i.public_ip).join('\n')
     setAddresses(ips)
     setSelectedNames(new Set())
-    toast.success(`Loaded ${publicIps.length} IPs`)
+    toast.success(`Loaded ${publicIps.instances.length} IPs`)
   }
 
   async function handleTest() {
