@@ -287,7 +287,7 @@ export default function SSH() {
               onClick={() => setRangeOpen((o) => !o)}
               className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm hover:bg-slate-700 transition-colors"
             >
-              <span className="text-slate-500">Select by range…</span>
+              <span className="text-slate-500">Select instances by range...</span>
               {rangeOpen ? <ChevronUp className="w-3.5 h-3.5 text-slate-400" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
             </button>
 

@@ -1,7 +1,8 @@
-0.73
+0.74
 
 # Version history
 # ---------------
+# 0.74  Rename 'Select by range' to 'Select instances by range...' in SSH screen
 # 0.73  Fix version display showing full VERSION file content instead of just the version number
 # 0.72  Add version history tracking to VERSION file
 # 0.71  Add key file delete button, clickable 'No key configured' link, fix project selector colors in Security Fabric theme
