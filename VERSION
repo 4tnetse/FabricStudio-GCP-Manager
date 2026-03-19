@@ -1,7 +1,8 @@
-0.80
+0.81
 
 # Version history
 # ---------------
+# 0.81  Auto-fit sidebar width to project name, close About dialog by clicking outside
 # 0.80  Small UX change: use Fortinet red highlight for Security Fabric theme selection in Appearance widget
 # 0.79  Fill zone field only after source instance is selected in Clone screen
 # 0.78  Add clickable version number that opens About dialog with credits
