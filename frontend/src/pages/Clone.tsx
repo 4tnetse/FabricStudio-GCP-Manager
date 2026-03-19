@@ -6,7 +6,6 @@ import { useSettings } from '@/api/settings'
 import { useInstances } from '@/api/instances'
 import { LogStream } from '@/components/LogStream'
 
-const ZONES = ['europe-west4-a', 'asia-southeast1-b', 'us-central1-c']
 
 function InstanceCombobox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const { data: instances = [] } = useInstances()
@@ -61,12 +60,12 @@ export default function Clone() {
   const { data: instances = [] } = useInstances()
 
   const [source, setSource] = useState('')
-  const [zone, setZone] = useState(settings?.default_zone ?? ZONES[0])
+  const [zone, setZone] = useState('')
 
   function handleSourceChange(name: string) {
     setSource(name)
     const match = instances.find((i) => i.name === name)
-    if (match) setZone(match.zone)
+    setZone(match ? match.zone : '')
   }
   const [rangeFrom, setRangeFrom] = useState(1)
   const [rangeTo, setRangeTo] = useState(5)

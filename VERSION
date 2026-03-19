@@ -1,7 +1,8 @@
-0.78
+0.79
 
 # Version history
 # ---------------
+# 0.79  Fill zone field only after source instance is selected in Clone screen
 # 0.78  Add clickable version number that opens About dialog with credits
 # 0.77  Fix SSH live streaming for single host, add command logging, fix sleep position visibility, fix Load all IPs type mismatch
 # 0.76  Add Configurations screen with file editor, config-based SSH execution, menu reordering and UX improvements
