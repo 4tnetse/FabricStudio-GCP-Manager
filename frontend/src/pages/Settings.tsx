@@ -17,6 +17,7 @@ const THEMES: { value: AppTheme; label: string; description: string }[] = [
 
 function ThemeSelector() {
   const { theme, setTheme } = useTheme()
+  const isSF = theme === 'security-fabric'
   return (
     <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
       <div className="flex items-center gap-2">
@@ -24,20 +25,31 @@ function ThemeSelector() {
         <h2 className="text-sm font-semibold text-slate-200">Appearance</h2>
       </div>
       <div className="flex gap-3">
-        {THEMES.map((t) => (
-          <button
-            key={t.value}
-            onClick={() => setTheme(t.value)}
-            className={`flex-1 flex flex-col items-start px-4 py-3 rounded-lg border text-left transition-colors ${
-              theme === t.value
-                ? 'border-blue-500 bg-blue-900/20 text-blue-300'
-                : 'border-slate-700 hover:border-slate-500 text-slate-300 hover:bg-slate-800/40'
-            }`}
-          >
-            <span className="text-sm font-medium">{t.label}</span>
-            <span className="text-xs text-slate-500 mt-0.5">{t.description}</span>
-          </button>
-        ))}
+        {THEMES.map((t) => {
+          const isActive = theme === t.value
+          const activeStyle = isActive
+            ? t.value === 'security-fabric'
+              ? { borderColor: '#db291c', backgroundColor: 'rgba(219,41,28,0.1)', color: '#db291c' }
+              : undefined
+            : undefined
+          return (
+            <button
+              key={t.value}
+              onClick={() => setTheme(t.value)}
+              style={activeStyle}
+              className={`flex-1 flex flex-col items-start px-4 py-3 rounded-lg border text-left transition-colors ${
+                isActive
+                  ? t.value === 'security-fabric'
+                    ? ''
+                    : 'border-blue-500 bg-blue-900/20 text-blue-300'
+                  : 'border-slate-700 hover:border-slate-500 text-slate-300 hover:bg-slate-800/40'
+              }`}
+            >
+              <span className="text-sm font-medium">{t.label}</span>
+              <span className={`text-xs mt-0.5 ${isActive && isSF ? 'text-[#db291c]/70' : 'text-slate-500'}`}>{t.description}</span>
+            </button>
+          )
+        })}
       </div>
     </div>
   )
