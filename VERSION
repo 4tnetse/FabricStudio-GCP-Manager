@@ -1,1 +1,9 @@
-0.71
+0.72
+
+# Version history
+# ---------------
+# 0.72  Add version history tracking to VERSION file
+# 0.71  Add key file delete button, clickable 'No key configured' link, fix project selector colors in Security Fabric theme
+# 0.70  Fix backend security vulnerabilities (fastapi, python-multipart, google-cloud packages) and remove obsolete start.sh
+# 0.69  Security Fabric theme refinements, FQDN in instances, custom dropdowns, cross-platform setup/start/stop scripts
+# 0.68  Initial release
