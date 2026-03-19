@@ -4,16 +4,18 @@ import type { JobStatus } from '@/lib/types'
 
 export interface SshExecuteParams {
   addresses: string[]
-  command: string
   mode: 'parallel' | 'sequential'
+  command?: string
+  configName?: string
 }
 
 export function useExecuteSsh() {
   return useMutation({
-    mutationFn: ({ addresses, command, mode }: SshExecuteParams) =>
+    mutationFn: ({ addresses, command, configName, mode }: SshExecuteParams) =>
       apiPost<JobStatus>('/ssh/execute', {
         addresses,
-        commands: [command],
+        commands: command ? [command] : [],
+        config_name: configName ?? null,
         parallel: mode === 'parallel',
       }),
   })

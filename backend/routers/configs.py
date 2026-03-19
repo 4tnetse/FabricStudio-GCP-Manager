@@ -4,9 +4,11 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+import config as cfg
+
 router = APIRouter(prefix="/configs", tags=["configs"])
 
-CONF_DIR = Path("/Users/tijlvermant/fabricstudio-gcp/FortiPoC-Toolkit-for-GCP/conf")
+CONF_DIR = cfg.CONF_DIR
 
 # Matches KEY="value" or KEY='value' or KEY=value (no quotes)
 _KV_RE = re.compile(
@@ -94,6 +96,8 @@ async def update_config(name: str, body: ConfigUpdateRequest):
 @router.delete("/{name}")
 async def delete_config(name: str):
     path = _safe_name(name)
+    if path.name == "example.conf":
+        raise HTTPException(status_code=403, detail="example.conf cannot be deleted")
     if not path.exists():
         raise HTTPException(status_code=404, detail=f"Config file '{name}' not found")
     path.unlink()

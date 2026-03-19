@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { Loader2, Download, Wifi, Search, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { useExecuteSsh, useTestSsh } from '@/api/ssh'
 import { useInstances, usePublicIps } from '@/api/instances'
+import { useConfigs } from '@/api/configs'
 import { LogStream } from '@/components/LogStream'
 import { CustomSelect } from '@/components/CustomSelect'
 
@@ -17,11 +18,13 @@ export default function SSH() {
   const [rangeOpen, setRangeOpen] = useState(false)
   const [rangeFrom, setRangeFrom] = useState('')
   const [rangeTo, setRangeTo] = useState<number | ''>('')
+  const [selectedConfig, setSelectedConfig] = useState<string>('')
 
   const executeSsh = useExecuteSsh()
   const testSsh = useTestSsh()
   const { data: publicIps, isLoading: ipsLoading } = usePublicIps()
   const { data: instances = [], isLoading: instancesLoading } = useInstances()
+  const { data: configFiles = [] } = useConfigs()
 
   const withIp = useMemo(() => instances.filter((i) => i.public_ip), [instances])
 
@@ -128,13 +131,17 @@ export default function SSH() {
       toast.error('Enter at least one IP address')
       return
     }
-    if (!command.trim()) {
-      toast.error('Enter a command to execute')
+    if (!selectedConfig && !command.trim()) {
+      toast.error('Enter a command or select a configuration file')
       return
     }
     setStreamUrl(null)
     try {
-      const result = await executeSsh.mutateAsync({ addresses: lines, command: command.trim(), mode })
+      const result = await executeSsh.mutateAsync({
+        addresses: lines,
+        mode,
+        ...(selectedConfig ? { configName: selectedConfig } : { command: command.trim() }),
+      })
       if (result.job_id) {
         setStreamUrl(`/api/ssh/${result.job_id}/stream`)
         toast.success(`SSH execution started on ${lines.length} host${lines.length !== 1 ? 's' : ''}`)
@@ -349,15 +356,35 @@ export default function SSH() {
             </p>
           </div>
 
+          {/* Configuration file */}
+          <div>
+            <label className={labelClass}>Configuration file</label>
+            <CustomSelect
+              value={selectedConfig}
+              onChange={setSelectedConfig}
+              options={[
+                { value: '', label: 'Manual (no config)' },
+                ...configFiles.map((f) => ({ value: f.name, label: f.name })),
+              ]}
+              className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm"
+            />
+            {selectedConfig && (
+              <p className="text-xs text-blue-400 mt-1">
+                Commands from <span className="font-medium">{selectedConfig}</span> will be executed. Manual command is disabled.
+              </p>
+            )}
+          </div>
+
           {/* Command */}
           <div>
-            <label className={labelClass}>Command</label>
+            <label className={labelClass + (selectedConfig ? ' opacity-40' : '')}>Command</label>
             <textarea
               rows={4}
-              className={textareaClass}
+              className={textareaClass + (selectedConfig ? ' opacity-40 cursor-not-allowed' : '')}
               placeholder="e.g. get system status"
               value={command}
               onChange={(e) => setCommand(e.target.value)}
+              disabled={!!selectedConfig}
             />
           </div>
 

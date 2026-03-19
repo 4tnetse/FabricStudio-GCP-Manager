@@ -1,7 +1,8 @@
-0.75
+0.76
 
 # Version history
 # ---------------
+# 0.76  Add Configurations screen with file editor, config-based SSH execution, menu reordering and UX improvements
 # 0.75  Merge Dependabot PR #2: upgrade vite 5→8, fix SSH.tsx public IPs type error
 # 0.74  Rename 'Select by range' to 'Select instances by range...' in SSH screen
 # 0.73  Fix version display showing full VERSION file content instead of just the version number
