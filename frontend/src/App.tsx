@@ -1,8 +1,9 @@
 import type { ElementType } from 'react'
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import { apiGet } from '@/api/client'
+import { useProjects } from '@/api/projects'
 import {
   LayoutDashboard,
   Hammer,
@@ -108,6 +109,22 @@ export default function App() {
     document.addEventListener('mouseup', onMouseUp)
   }, [])
 
+  const { data: projects } = useProjects()
+  const currentProject = projects?.find((p) => p.is_selected) ?? projects?.[0]
+  const projectLabel = currentProject?.name ?? currentProject?.id ?? ''
+
+  useEffect(() => {
+    if (!projectLabel) return
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.font = '500 14px Inter, system-ui, -apple-system, sans-serif'
+    const textWidth = ctx.measureText(projectLabel).width
+    // pl-6(24) + icon(16) + gap(8) + text + gap(8) + chevron(14) + pr-3(12) + breathing room(12)
+    const needed = Math.ceil(textWidth) + 94
+    setSidebarWidth(Math.max(224, needed))
+  }, [projectLabel])
+
   const { theme } = useTheme()
   const isSF = theme === 'security-fabric'
   const [aboutOpen, setAboutOpen] = useState(false)
@@ -169,8 +186,8 @@ export default function App() {
 
       {/* About dialog */}
       {aboutOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-6 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setAboutOpen(false)}>
+          <div className="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3">
               <svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 shrink-0 text-[#db291c]" fill="currentColor">
                 <g transform="matrix(1.86193 0 0 1.86193 -2134.636 -12994.814)">
@@ -221,12 +238,6 @@ export default function App() {
               </p>
             </div>
 
-            <button
-              onClick={() => setAboutOpen(false)}
-              className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
-            >
-              OK
-            </button>
           </div>
         </div>
       )}
