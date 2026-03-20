@@ -202,7 +202,10 @@ async def _clone_job(job_id: str, clone_req: CloneRequest) -> None:
                     machine_image=img_name,
                     zone=target_zone,
                 )
-                await svc.add_labels(zone=target_zone, name=inst_name, labels={"delete": "yes"})
+                labels = {"delete": "yes"}
+                if clone_req.purpose:
+                    labels["purpose"] = clone_req.purpose
+                await svc.add_labels(zone=target_zone, name=inst_name, labels=labels)
                 await q.put(f"Instance {inst_name} created")
 
                 # Create DNS A record if configured

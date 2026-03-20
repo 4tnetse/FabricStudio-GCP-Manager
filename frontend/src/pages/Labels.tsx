@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { toast } from 'sonner'
 import { Plus, Trash2, Loader2, Search } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 import { useInstances } from '@/api/instances'
 import { apiGet, apiPost, apiDelete } from '@/api/client'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -33,7 +34,8 @@ function useRemoveLabel(zone: string, name: string) {
 
 export default function Labels() {
   const { data: instances = [], isLoading: instancesLoading } = useInstances()
-  const [selectedKey, setSelectedKey] = useState('')
+  const [searchParams] = useSearchParams()
+  const [selectedKey, setSelectedKey] = useState(() => searchParams.get('select') ?? '')
   const [search, setSearch] = useState('')
   const [newKey, setNewKey] = useState('')
   const [newValue, setNewValue] = useState('')
@@ -82,8 +84,16 @@ export default function Labels() {
     }
   }
 
+  const LABEL_RE = /^[a-z0-9_-]{0,63}$/
+  const keyError = newKey && !LABEL_RE.test(newKey)
+    ? 'Lowercase letters, numbers, underscores and dashes only (max 63 chars)' : null
+  const valueError = newValue && !LABEL_RE.test(newValue)
+    ? 'Lowercase letters, numbers, underscores and dashes only (max 63 chars)' : null
+
   const inputClass =
     'w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500'
+  const inputErrorClass =
+    'w-full px-3 py-2 rounded-lg border border-red-500 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-red-500 placeholder:text-slate-500'
 
   return (
     <div className="space-y-6">
@@ -193,26 +203,32 @@ export default function Labels() {
           {/* Add label form */}
           <div className="pt-2 border-t border-slate-800">
             <h3 className="text-xs font-medium text-slate-400 mb-2">Add label</h3>
-            <div className="flex items-center gap-2">
-              <input
-                className={inputClass}
-                placeholder="key"
-                value={newKey}
-                onChange={(e) => setNewKey(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-              />
-              <span className="text-slate-600">=</span>
-              <input
-                className={inputClass}
-                placeholder="value"
-                value={newValue}
-                onChange={(e) => setNewValue(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-              />
+            <div className="flex items-start gap-2">
+              <div className="flex-1">
+                <input
+                  className={keyError ? inputErrorClass : inputClass}
+                  placeholder="key"
+                  value={newKey}
+                  onChange={(e) => setNewKey(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+                />
+                {keyError && <p className="text-xs text-red-400 mt-1">{keyError}</p>}
+              </div>
+              <span className="text-slate-600 mt-2.5">=</span>
+              <div className="flex-1">
+                <input
+                  className={valueError ? inputErrorClass : inputClass}
+                  placeholder="value"
+                  value={newValue}
+                  onChange={(e) => setNewValue(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+                />
+                {valueError && <p className="text-xs text-red-400 mt-1">{valueError}</p>}
+              </div>
               <button
                 onClick={handleAdd}
-                disabled={!newKey.trim() || addLabel.isPending}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm shrink-0"
+                disabled={!newKey.trim() || !!keyError || !!valueError || addLabel.isPending}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm shrink-0 mt-0.5"
               >
                 {addLabel.isPending ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />

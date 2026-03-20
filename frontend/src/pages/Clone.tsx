@@ -85,6 +85,13 @@ export default function Clone() {
     setCloneName(match ? base : '')
   }
 
+  const [purpose, setPurpose] = useState('')
+
+  // GCP label value: lowercase letters, digits, underscores, dashes, max 63 chars
+  const LABEL_RE = /^[a-z0-9_-]{0,63}$/
+  const purposeError = purpose && !LABEL_RE.test(purpose)
+    ? 'Lowercase letters, digits, underscores and dashes only (max 63 chars)' : null
+
   // GCP instance name: lowercase letters/digits/hyphens, starts with letter, no trailing hyphen, max 59 chars
   const NAME_RE = /^[a-z][a-z0-9-]*$/
   const nameError = cloneName
@@ -123,6 +130,7 @@ export default function Clone() {
         zone: sourceZone,
         target_zone: destZone,
         clone_base_name: cloneName || undefined,
+        purpose: purpose || undefined,
         count_start: rangeFrom,
         count_end: rangeTo,
         overwrite,
@@ -195,6 +203,22 @@ export default function Clone() {
             {nameError
               ? <p className="text-xs text-red-400 mt-1">{nameError}</p>
               : <p className="text-xs text-slate-500 mt-1">Base name for clones — number will be appended (e.g. {cloneName || 'name'}-001)</p>
+            }
+          </div>
+
+          <div>
+            <label className={labelClass}>Customer, Partner or Event</label>
+            <input
+              className={purposeError
+                ? inputClass.replace('border-slate-700', 'border-red-500').replace('focus:ring-blue-500', 'focus:ring-red-500')
+                : inputClass}
+              value={purpose}
+              onChange={(e) => setPurpose(e.target.value)}
+              placeholder="e.g. fortinet-workshop"
+            />
+            {purposeError
+              ? <p className="text-xs text-red-400 mt-1">{purposeError}</p>
+              : <p className="text-xs text-slate-500 mt-1">Applied as purpose label on all cloned instances</p>
             }
           </div>
 
@@ -275,7 +299,7 @@ export default function Clone() {
 
           <button
             onClick={handleClone}
-            disabled={cloning || streaming || count === 0 || !cloneName || !!nameError}
+            disabled={cloning || streaming || count === 0 || !cloneName || !!nameError || !!purposeError}
             className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors"
           >
             {cloning ? (
