@@ -16,6 +16,12 @@ def _get_service() -> GCPComputeService:
     return GCPComputeService(creds, cfg.settings.active_project_id)
 
 
+@router.get("/zones")
+async def list_zones():
+    svc = _get_service()
+    return await svc.list_zones()
+
+
 @router.get("")
 async def list_instances(
     zone: str | None = Query(default=None),

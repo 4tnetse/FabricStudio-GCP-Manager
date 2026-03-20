@@ -123,7 +123,7 @@ async def _clone_job(job_id: str, clone_req: CloneRequest) -> None:
             await job_manager.mark_done(job_id, failed=True)
             return
 
-        base_name = source_inst.base_name
+        base_name = clone_req.clone_base_name or source_inst.base_name
         count_start = clone_req.count_start
         count_end = clone_req.count_end
 
@@ -136,8 +136,12 @@ async def _clone_job(job_id: str, clone_req: CloneRequest) -> None:
         numbers = list(range(count_start, count_end + 1))
         total = len(numbers)
 
+        target_zone = clone_req.target_zone or clone_req.zone
+        cross_zone = target_zone != clone_req.zone
+
         await q.put(
-            f"Cloning {total} instance(s) from {clone_req.source_name} in zone {clone_req.zone}"
+            f"Cloning {total} instance(s) from {clone_req.source_name} "
+            f"({'cross-zone: ' + clone_req.zone + ' → ' + target_zone if cross_zone else 'zone: ' + clone_req.zone})"
         )
 
         # Process in batches of 5
@@ -162,7 +166,7 @@ async def _clone_job(job_id: str, clone_req: CloneRequest) -> None:
                 await svc.create_machine_image(
                     name=machine_image_name,
                     source_instance=clone_req.source_name,
-                    source_zone=clone_req.zone,
+                    source_zone=clone_req.zone,  # always the source zone
                 )
                 await q.put(f"Machine image '{machine_image_name}' created")
             except Exception as exc:
@@ -172,16 +176,11 @@ async def _clone_job(job_id: str, clone_req: CloneRequest) -> None:
 
             # Create all instances in this batch in parallel
             async def create_one(number: int, img_name: str = machine_image_name) -> None:
-                inst_name = InstanceName.from_parts(
-                    type=source_inst.type,
-                    prepend=source_inst.prepend,
-                    product=source_inst.product,
-                    number=number,
-                ).to_string()
-                # Check if instance already exists
+                inst_name = f"{base_name}-{number:03d}"
+                # Check if instance already exists in target zone
                 existing = None
                 try:
-                    existing = await svc.get_instance(zone=clone_req.zone, name=inst_name)
+                    existing = await svc.get_instance(zone=target_zone, name=inst_name)
                 except Exception:
                     pass
 
@@ -191,8 +190,8 @@ async def _clone_job(job_id: str, clone_req: CloneRequest) -> None:
                         return
                     if clone_req.overwrite:
                         await q.put(f"Deleting existing instance {inst_name}")
-                        await svc.delete_instance(zone=clone_req.zone, name=inst_name)
-                        await svc.wait_until_deleted(zone=clone_req.zone, name=inst_name)
+                        await svc.delete_instance(zone=target_zone, name=inst_name)
+                        await svc.wait_until_deleted(zone=target_zone, name=inst_name)
                     else:
                         await q.put(f"Skipping {inst_name} — already exists")
                         return
@@ -201,25 +200,19 @@ async def _clone_job(job_id: str, clone_req: CloneRequest) -> None:
                 await svc.create_instance_from_machine_image(
                     name=inst_name,
                     machine_image=img_name,
-                    zone=clone_req.zone,
+                    zone=target_zone,
                 )
-                await svc.add_labels(zone=clone_req.zone, name=inst_name, labels={"delete": "yes"})
+                await svc.add_labels(zone=target_zone, name=inst_name, labels={"delete": "yes"})
                 await q.put(f"Instance {inst_name} created")
 
                 # Create DNS A record if configured
-                await create_dns_for_instance(inst_name, clone_req.zone, log=q.put)
+                await create_dns_for_instance(inst_name, target_zone, log=q.put)
 
             tasks = [create_one(n) for n in batch_numbers]
             results = await asyncio.gather(*tasks, return_exceptions=True)
             for n, result in zip(batch_numbers, results):
                 if isinstance(result, Exception):
-                    inst_name = InstanceName.from_parts(
-                        type=source_inst.type,
-                        prepend=source_inst.prepend,
-                        product=source_inst.product,
-                        number=n,
-                    ).to_string()
-                    await q.put(f"ERROR creating {inst_name}: {result}")
+                    await q.put(f"ERROR creating {base_name}-{n:03d}: {result}")
                     failed = True
 
             # Clean up the machine image after the batch

@@ -43,7 +43,9 @@ class BuildConfig(BaseModel):
 
 class CloneRequest(BaseModel):
     source_name: str  # the 000 instance name e.g. "fs-tve-fwb-000"
-    zone: str
+    zone: str         # zone of the source instance
+    target_zone: str | None = None   # destination zone; defaults to zone if None
+    clone_base_name: str | None = None  # custom base name for clones e.g. "my-workshop"; defaults to source base name
     count_start: int = 1
     count_end: int = 1
     overwrite: bool = False  # if True, delete existing instance before cloning; if False, skip

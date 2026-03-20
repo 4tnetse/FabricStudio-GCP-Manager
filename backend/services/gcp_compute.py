@@ -417,6 +417,16 @@ class GCPComputeService:
         return result
 
     # ------------------------------------------------------------------ #
+    #  Zones                                                               #
+    # ------------------------------------------------------------------ #
+
+    async def list_zones(self) -> list[str]:
+        def _list():
+            client = compute_v1.ZonesClient(credentials=self._credentials)
+            return [z.name for z in client.list(project=self._project_id) if z.status == "UP"]
+        return sorted(await self._run(_list))
+
+    # ------------------------------------------------------------------ #
     #  Machine Images                                                      #
     # ------------------------------------------------------------------ #
 

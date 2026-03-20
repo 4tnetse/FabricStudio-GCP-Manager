@@ -12,9 +12,11 @@ interface CustomSelectProps {
   onChange: (value: string) => void
   options: Option[]
   className?: string
+  disabled?: boolean
+  placeholder?: string
 }
 
-export function CustomSelect({ value, onChange, options, className }: CustomSelectProps) {
+export function CustomSelect({ value, onChange, options, className, disabled, placeholder }: CustomSelectProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -33,13 +35,17 @@ export function CustomSelect({ value, onChange, options, className }: CustomSele
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => !disabled && setOpen((o) => !o)}
+        disabled={disabled}
         className={cn(
           'flex items-center w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500',
+          disabled && 'opacity-50 cursor-not-allowed',
           className,
         )}
       >
-        <span className="flex-1 text-left">{selected?.label ?? value}</span>
+        <span className={cn('flex-1 text-left', !value && 'text-slate-500')}>
+          {selected?.label ?? value ?? placeholder ?? ''}
+        </span>
         <ChevronDown className={cn('w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform', open && 'rotate-180')} />
       </button>
 
