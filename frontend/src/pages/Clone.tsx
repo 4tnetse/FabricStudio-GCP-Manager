@@ -3,18 +3,20 @@ import { toast } from 'sonner'
 import { Loader2, Info } from 'lucide-react'
 import { apiPost } from '@/api/client'
 import { useSettings } from '@/api/settings'
-import { useInstances } from '@/api/instances'
+import { useInstances, useZones } from '@/api/instances'
 import { LogStream } from '@/components/LogStream'
+import { CustomSelect } from '@/components/CustomSelect'
 
 
 function InstanceCombobox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const { data: instances = [] } = useInstances()
   const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
   const ref = useRef<HTMLDivElement>(null)
 
   const names = instances.map((i) => i.name).sort()
-  const filtered = value
-    ? names.filter((n) => n.toLowerCase().includes(value.toLowerCase()))
+  const filtered = search
+    ? names.filter((n) => n.toLowerCase().includes(search.toLowerCase()))
     : names
 
   useEffect(() => {
@@ -26,13 +28,19 @@ function InstanceCombobox({ value, onChange }: { value: string; onChange: (v: st
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [open])
 
+  function handleFocus() {
+    setSearch('')
+    setOpen(true)
+  }
+
   return (
     <div ref={ref} className="relative">
       <input
         className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
-        value={value}
-        onChange={(e) => { onChange(e.target.value); setOpen(true) }}
-        onFocus={() => setOpen(true)}
+        value={open ? search : value}
+        onChange={(e) => { setSearch(e.target.value); setOpen(true) }}
+        onFocus={handleFocus}
+        onBlur={() => { if (!open) setSearch('') }}
         placeholder="e.g. fs-tve-fwb-000"
         autoComplete="off"
       />
@@ -44,7 +52,7 @@ function InstanceCombobox({ value, onChange }: { value: string; onChange: (v: st
               type="button"
               className="flex w-full items-center px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 text-left"
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => { onChange(name); setOpen(false) }}
+              onClick={() => { onChange(name); setSearch(''); setOpen(false) }}
             >
               {name}
             </button>
@@ -58,15 +66,37 @@ function InstanceCombobox({ value, onChange }: { value: string; onChange: (v: st
 export default function Clone() {
   const { data: settings } = useSettings()
   const { data: instances = [] } = useInstances()
+  const { data: zones = [] } = useZones()
 
   const [source, setSource] = useState('')
-  const [zone, setZone] = useState('')
+  const [sourceZone, setSourceZone] = useState('')
+  const [destZone, setDestZone] = useState('')
+  const [cloneName, setCloneName] = useState('')
+
+  const sourceSelected = !!sourceZone
 
   function handleSourceChange(name: string) {
     setSource(name)
     const match = instances.find((i) => i.name === name)
-    setZone(match ? match.zone : '')
+    const z = match ? match.zone : ''
+    setSourceZone(z)
+    setDestZone(z)
+    const base = name.match(/^(.+)-\d{3}$/) ? name.replace(/-\d{3}$/, '') : name
+    setCloneName(match ? base : '')
   }
+
+  // GCP instance name: lowercase letters/digits/hyphens, starts with letter, no trailing hyphen, max 59 chars
+  const NAME_RE = /^[a-z][a-z0-9-]*$/
+  const nameError = cloneName
+    ? !NAME_RE.test(cloneName)
+      ? 'Must start with a letter; only lowercase letters, digits and hyphens allowed'
+      : cloneName.endsWith('-')
+        ? 'Cannot end with a hyphen'
+        : cloneName.length > 59
+          ? 'Too long — max 59 characters (leaves room for -NNN suffix)'
+          : null
+    : null
+
   const [rangeFrom, setRangeFrom] = useState(1)
   const [rangeTo, setRangeTo] = useState(5)
   const [overwrite, setOverwrite] = useState(false)
@@ -78,11 +108,9 @@ export default function Clone() {
   const count = rangeTo >= rangeFrom ? rangeTo - rangeFrom + 1 : 0
   const batches = Math.ceil(count / 5)
 
-  // Derive base name and preview from source (strip last -NNN segment)
-  const baseName = source.match(/^(.+)-\d{3}$/) ? source.replace(/-\d{3}$/, '') : source
   const pad = (n: number) => String(n).padStart(3, '0')
-  const namePreview = baseName && count > 0
-    ? `${baseName}-${pad(rangeFrom)}${count > 1 ? ` to ${baseName}-${pad(rangeTo)}` : ''}`
+  const namePreview = cloneName && !nameError && count > 0
+    ? `${cloneName}-${pad(rangeFrom)}${count > 1 ? ` to ${cloneName}-${pad(rangeTo)}` : ''}`
     : null
 
   async function startClone() {
@@ -92,7 +120,9 @@ export default function Clone() {
     try {
       const result = await apiPost<{ job_id: string }>('/ops/clone', {
         source_name: source,
-        zone,
+        zone: sourceZone,
+        target_zone: destZone,
+        clone_base_name: cloneName || undefined,
         count_start: rangeFrom,
         count_end: rangeTo,
         overwrite,
@@ -152,14 +182,32 @@ export default function Clone() {
           </div>
 
           <div>
-            <label className={labelClass}>Zone</label>
+            <label className={labelClass}>Clone name</label>
             <input
-              className={inputClass}
-              value={zone}
-              onChange={(e) => setZone(e.target.value)}
-              placeholder="e.g. europe-west1-b"
+              className={nameError
+                ? inputClass.replace('border-slate-700', 'border-red-500').replace('focus:ring-blue-500', 'focus:ring-red-500')
+                : !sourceSelected ? inputClass + ' opacity-50 cursor-not-allowed' : inputClass}
+              value={cloneName}
+              onChange={(e) => setCloneName(e.target.value)}
+              placeholder="Auto-filled from source instance"
+              disabled={!sourceSelected}
             />
-            <p className="text-xs text-slate-500 mt-1">Auto-filled from source instance</p>
+            {nameError
+              ? <p className="text-xs text-red-400 mt-1">{nameError}</p>
+              : <p className="text-xs text-slate-500 mt-1">Base name for clones — number will be appended (e.g. {cloneName || 'name'}-001)</p>
+            }
+          </div>
+
+          <div>
+            <label className={labelClass}>Destination zone</label>
+            <CustomSelect
+              className={inputClass}
+              value={destZone}
+              onChange={setDestZone}
+              disabled={!destZone}
+              options={zones.map((z) => ({ value: z, label: z }))}
+              placeholder="Auto-filled from source instance"
+            />
           </div>
 
           <div>
@@ -227,7 +275,7 @@ export default function Clone() {
 
           <button
             onClick={handleClone}
-            disabled={cloning || streaming || count === 0}
+            disabled={cloning || streaming || count === 0 || !cloneName || !!nameError}
             className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors"
           >
             {cloning ? (

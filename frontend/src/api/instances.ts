@@ -9,6 +9,14 @@ export interface InstanceFilters {
   prepend?: string
 }
 
+export function useZones() {
+  return useQuery({
+    queryKey: ['zones'],
+    queryFn: () => apiGet<string[]>('/instances/zones'),
+    staleTime: 5 * 60_000, // zones don't change often
+  })
+}
+
 export function useInstances(filters?: InstanceFilters) {
   return useQuery({
     queryKey: ['instances', filters],
