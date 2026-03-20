@@ -87,15 +87,13 @@ export default function Configurations() {
   const isSaving = createConfig.isPending || updateConfig.isPending
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-start justify-between page-title-row">
-        <div>
-          <h1 className="text-lg font-semibold text-slate-100">Configurations</h1>
-          <p className="text-sm text-slate-400 mt-0.5">Manage and edit configuration files</p>
-        </div>
+    <div className="flex flex-col h-full gap-4">
+      <div>
+        <h1 className="text-xl font-semibold text-slate-100">Configurations</h1>
+        <p className="text-sm text-slate-400 mt-0.5">Manage and edit configuration files</p>
       </div>
 
-      <div className="flex gap-4 h-[calc(100vh-160px)]">
+      <div className="flex gap-4 flex-1 min-h-0">
         {/* File list */}
         <div className="w-56 shrink-0 rounded-xl bg-slate-800/30 border border-slate-700 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">

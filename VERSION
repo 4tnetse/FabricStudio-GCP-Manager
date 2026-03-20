@@ -1,7 +1,8 @@
-0.83
+0.84
 
 # Version history
 # ---------------
+# 0.84  Fix Configurations screen padding and layout to match other screens
 # 0.83  Instances: purpose filter, SF theme styling, Edit Labels shortcut, Clone: purpose label, name field, cross-zone, zones dropdown
 # 0.82  Clone screen: custom name field, cross-zone support, destination zone dropdown, fix source dropdown re-open
 # 0.81  Auto-fit sidebar width to project name, close About dialog by clicking outside
