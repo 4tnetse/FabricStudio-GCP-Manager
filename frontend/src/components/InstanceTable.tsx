@@ -13,6 +13,7 @@ import {
   Pencil,
   Cpu,
   ArrowRightLeft,
+  Tag,
   Loader2,
 } from 'lucide-react'
 import {
@@ -25,7 +26,9 @@ import {
   useMoveInstance,
   useBulkOperation,
 } from '@/api/instances'
+import { useNavigate } from 'react-router-dom'
 import { useSettings } from '@/api/settings'
+import { useTheme } from '@/context/ThemeContext'
 import { StatusBadge } from './StatusBadge'
 import { cn } from '@/lib/utils'
 import type { Instance } from '@/lib/types'
@@ -316,6 +319,7 @@ function RowActions({ instance }: RowActionsProps) {
   const [open, setOpen] = useState(false)
   const [dialog, setDialog] = useState<'rename' | 'machine-type' | 'move' | 'delete' | null>(null)
   const ref = useRef<HTMLDivElement>(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (!open) return
@@ -414,7 +418,7 @@ function RowActions({ instance }: RowActionsProps) {
 
         {open && (
           <div
-            className="absolute right-0 top-full mt-1 z-40 w-48 rounded-lg border border-slate-700 bg-slate-900 shadow-xl overflow-hidden"
+            className="absolute right-0 top-full mt-1 z-40 w-56 rounded-lg border border-slate-700 bg-slate-900 shadow-xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {instance.status === 'TERMINATED' && (
@@ -455,6 +459,13 @@ function RowActions({ instance }: RowActionsProps) {
             >
               <ArrowRightLeft className="w-3.5 h-3.5 text-slate-400" />
               Move Zone
+            </button>
+            <button
+              onClick={() => { setOpen(false); navigate(`/labels?select=${encodeURIComponent(`${instance.zone}|||${instance.name}`)}`) }}
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"
+            >
+              <Tag className="w-3.5 h-3.5 text-slate-400" />
+              Edit Labels
             </button>
             <div className="border-t border-slate-800" />
             <button
@@ -509,10 +520,14 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>(defaultStatus ?? '')
   const [zoneFilter, setZoneFilter] = useState<string>('')
+  const [purposeFilter, setPurposeFilter] = useState<string>('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [detailInstance, setDetailInstance] = useState<Instance | null>(null)
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false)
   const [bulkJobId, setBulkJobId] = useState<string | null>(null)
+
+  const { theme } = useTheme()
+  const isSF = theme === 'security-fabric'
 
   const queryClient = useQueryClient()
   const { data: instances = [], isLoading, isFetching, refetch } = useInstances()
@@ -529,12 +544,19 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
       if (search && !inst.name.toLowerCase().includes(search.toLowerCase())) return false
       if (statusFilter && inst.status !== statusFilter) return false
       if (zoneFilter && inst.zone !== zoneFilter) return false
+      if (purposeFilter && inst.labels?.purpose !== purposeFilter) return false
       return true
     })
-  }, [instances, search, statusFilter, zoneFilter])
+  }, [instances, search, statusFilter, zoneFilter, purposeFilter])
 
   const zones = useMemo(() => {
     return Array.from(new Set(instances.map((i) => i.zone))).sort()
+  }, [instances])
+
+  const purposes = useMemo(() => {
+    return Array.from(new Set(
+      instances.map((i) => i.labels?.purpose).filter(Boolean) as string[]
+    )).sort()
   }, [instances])
 
   function toggleSelect(key: string) {
@@ -651,6 +673,14 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
           className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
           options={[{ value: '', label: 'All zones' }, ...zones.map((z) => ({ value: z, label: z }))]}
         />
+        {purposes.length > 0 && (
+          <CustomSelect
+            value={purposeFilter}
+            onChange={setPurposeFilter}
+            className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            options={[{ value: '', label: 'All purposes' }, ...purposes.map((p) => ({ value: p, label: p }))]}
+          />
+        )}
         <button
           onClick={() => refetch()}
           className="p-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors"
@@ -662,13 +692,13 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
 
       {/* Bulk action bar */}
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-blue-800 bg-blue-900/20">
-          <span className="text-sm text-blue-300">{selected.size} selected</span>
+        <div className={cn('flex items-center gap-3 px-4 py-2.5 rounded-lg', isSF ? 'bg-slate-800 border border-slate-700' : 'border border-blue-800 bg-blue-900/20')}>
+          <span className={cn('text-sm', isSF ? 'text-slate-300' : 'text-blue-300')}>{selected.size} selected</span>
           <div className="flex gap-2 ml-auto">
             <button
               onClick={handleBulkStart}
               disabled={bulkOp.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-green-800/60 hover:bg-green-700/60 text-green-300 border border-green-800 disabled:opacity-50"
+              className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm disabled:opacity-50', isSF ? 'bg-slate-700 hover:bg-slate-600 text-green-400' : 'bg-green-800/60 hover:bg-green-700/60 text-green-300 border border-green-800')}
             >
               <Play className="w-3.5 h-3.5" />
               Start
@@ -676,7 +706,7 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
             <button
               onClick={handleBulkStop}
               disabled={bulkOp.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-yellow-900/40 hover:bg-yellow-800/40 text-yellow-300 border border-yellow-800 disabled:opacity-50"
+              className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm disabled:opacity-50', isSF ? 'bg-slate-700 hover:bg-slate-600 text-yellow-400' : 'bg-yellow-900/40 hover:bg-yellow-800/40 text-yellow-300 border border-yellow-800')}
             >
               <Square className="w-3.5 h-3.5" />
               Stop
@@ -684,7 +714,7 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
             <button
               onClick={() => setBulkDeleteConfirm(true)}
               disabled={bulkOp.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-red-900/40 hover:bg-red-800/40 text-red-300 border border-red-800 disabled:opacity-50"
+              className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm disabled:opacity-50', isSF ? 'bg-slate-700 hover:bg-slate-600 text-[#db291c]' : 'bg-red-900/40 hover:bg-red-800/40 text-red-300 border border-red-800')}
             >
               <Trash2 className="w-3.5 h-3.5" />
               Delete
@@ -710,7 +740,7 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
                     type="checkbox"
                     checked={filtered.length > 0 && selected.size === filtered.length}
                     onChange={toggleAll}
-                    className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500"
+                    className={cn('rounded border-slate-600 bg-slate-700', isSF ? 'focus:ring-red-500' : 'text-blue-500 focus:ring-blue-500')} style={isSF ? { accentColor: '#db291c' } : undefined}
                   />
                 </th>
                 <th className="text-left px-3 py-2.5 font-medium text-slate-300">Name</th>
@@ -748,7 +778,7 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
                       onClick={() => setDetailInstance(instance)}
                       className={cn(
                         'border-b border-slate-800 cursor-pointer transition-colors',
-                        isSelected ? 'bg-blue-900/10' : 'hover:bg-slate-800/40',
+                        isSelected ? (isSF ? 'bg-slate-800/40' : 'bg-blue-900/10') : 'hover:bg-slate-800/40',
                       )}
                     >
                       <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
@@ -756,7 +786,7 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => toggleSelect(key)}
-                          className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500"
+                          className={cn('rounded border-slate-600 bg-slate-700', isSF ? 'focus:ring-red-500' : 'text-blue-500 focus:ring-blue-500')} style={isSF ? { accentColor: '#db291c' } : undefined}
                         />
                       </td>
                       <td className="px-3 py-2.5 text-slate-200 text-xs">{instance.name}</td>
@@ -812,7 +842,7 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
         <div className="px-3 py-2 border-t border-slate-800 bg-slate-900/40 text-xs text-slate-500 flex items-center justify-between">
           <span>
             {filtered.length} of {instances.length} instances
-            {(search || statusFilter || zoneFilter) && ' (filtered)'}
+            {(search || statusFilter || zoneFilter || purposeFilter) && ' (filtered)'}
           </span>
           {isFetching && !isLoading && (
             <span className="flex items-center gap-1">
