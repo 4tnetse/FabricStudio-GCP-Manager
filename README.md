@@ -144,9 +144,3 @@ FabricStudio-GCP-Manager/
 **Backend:** FastAPI, Uvicorn, Pydantic, AsyncSSH
 
 **GCP:** Compute Engine, Cloud DNS, Cloud Storage, Resource Manager (via `google-cloud-*` Python libraries)
-
----
-
-## Credits
-
-Inspired by [Ferry Kemps'](https://github.com/fnkemps) FabricStudio-Toolkit-for-GCP. Rebuilt as a modern web UI by Tijl Vermant.
