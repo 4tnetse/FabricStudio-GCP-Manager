@@ -1,7 +1,8 @@
-0.84
+0.85
 
 # Version history
 # ---------------
+# 0.85  SSH and Build output panels wrapped in widget boxes, output area fills full panel height
 # 0.84  Fix Configurations screen padding and layout to match other screens
 # 0.83  Instances: purpose filter, SF theme styling, Edit Labels shortcut, Clone: purpose label, name field, cross-zone, zones dropdown
 # 0.82  Clone screen: custom name field, cross-zone support, destination zone dropdown, fix source dropdown re-open

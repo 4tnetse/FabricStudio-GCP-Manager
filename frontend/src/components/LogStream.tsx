@@ -39,8 +39,8 @@ export function LogStream({ url, className, minHeight = 'min-h-64', onStreamingC
   }
 
   return (
-    <div className={cn('rounded-lg border border-slate-700 bg-slate-950 overflow-hidden', className)}>
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-800 bg-slate-900">
+    <div className={cn('rounded-lg border border-slate-700 bg-slate-950 overflow-hidden flex flex-col', className)}>
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-800 bg-slate-900 shrink-0">
         {isStreaming ? (
           <>
             <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" />
@@ -63,9 +63,8 @@ export function LogStream({ url, className, minHeight = 'min-h-64', onStreamingC
       </div>
       <pre
         className={cn(
-          'p-3 text-xs font-mono text-slate-300 overflow-auto',
+          'p-3 text-xs font-mono text-slate-300 overflow-auto flex-1',
           minHeight,
-          'max-h-[600px]',
         )}
       >
         {lines.length === 0 && !isStreaming ? (
