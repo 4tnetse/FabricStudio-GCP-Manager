@@ -318,9 +318,9 @@ export default function Build() {
         </div>
 
         {/* Right: Log output */}
-        <div className="space-y-3">
-          <h2 className="text-sm font-medium text-slate-300">Build output</h2>
-          <LogStream url={streamUrl} minHeight="min-h-96" />
+        <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 flex flex-col gap-3">
+          <h2 className="text-sm font-medium text-slate-300 shrink-0">Build output</h2>
+          <LogStream url={streamUrl} minHeight="min-h-96" className="flex-1 min-h-0" />
         </div>
       </div>
     </div>
