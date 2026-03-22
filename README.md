@@ -97,7 +97,7 @@ On first launch, go to **Settings** and configure:
 
 1. **Service account key** — Upload your GCP service account JSON key file. This is required before any GCP operations will work.
 2. **GCP Project** — Select the active project from the sidebar project selector after the key is loaded.
-3. **SSH public key** — Paste your public key to enable SSH command execution on instances.
+3. **SSH public key** — Paste your public key to enable SSH command execution on instances. This public SSH key should be installed on your golden image or any instance you want to access.
 4. **Default zone** — Set your preferred GCP zone (e.g. `europe-west4-a`).
 5. **DNS settings** *(optional)* — DNS domain, FQDN prefix, and Cloud DNS zone name for automatic DNS record creation during cloning.
 6. **License server** *(optional)* — IP of your Fabric Studio license server.
