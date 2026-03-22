@@ -1,7 +1,8 @@
-0.86
+0.87
 
 # Version history
 # ---------------
+# 0.87  README updates
 # 0.86  Add README
 # 0.85  SSH and Build output panels wrapped in widget boxes, output area fills full panel height
 # 0.84  Fix Configurations screen padding and layout to match other screens
