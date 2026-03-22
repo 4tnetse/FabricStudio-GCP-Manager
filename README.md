@@ -1,6 +1,6 @@
 # Fabric Studio GCP Manager
 
-A web-based management interface for deploying, configuring, and managing [Fabric Studio](https://fpoc.fortilab.be) instances on Google Cloud Platform.
+A web-based management interface for deploying, configuring, and managing Fabric Studio instances on Google Cloud Platform.
 
 Built with a React/TypeScript frontend and a FastAPI Python backend.
 
