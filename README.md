@@ -95,7 +95,7 @@ This will cleanly terminate both the backend and frontend processes.
 
 On first launch, go to **Settings** and configure:
 
-1. **Service account key** — Upload or set the path to your GCP service account JSON key file. This is required before any GCP operations will work.
+1. **Service account key** — Upload your GCP service account JSON key file. This is required before any GCP operations will work.
 2. **GCP Project** — Select the active project from the sidebar project selector after the key is loaded.
 3. **SSH public key** — Paste your public key to enable SSH command execution on instances.
 4. **Default zone** — Set your preferred GCP zone (e.g. `europe-west4-a`).
