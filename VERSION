@@ -1,7 +1,8 @@
-0.89
+0.90
 
 # Version history
 # ---------------
+# 0.90  Fix live SKU pricing (E2 family), auto-select project on key upload, clear project on key delete, invalidate caches on key change
 # 0.89  Grey out nav items when no service account key is configured, fix React Router future flag warning
 # 0.88  Add Costs page, estimated hourly cost and instance specs in detail popup, dynamic machine type/zone dropdowns
 # 0.87  README updates

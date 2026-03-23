@@ -1,6 +1,5 @@
-from datetime import date
-
 from fastapi import APIRouter, HTTPException, Query
+from google.auth.transport.requests import AuthorizedSession
 
 import config as cfg
 from auth import get_credentials
@@ -42,10 +41,10 @@ async def debug_machine_type_price(
     region = "-".join(zone.split("-")[:-1])
     prefix = _get_sku_desc_prefix(machine_type)
 
-    # Fetch SKUs directly (public API, no auth needed)
-    import httpx as _httpx
+    # Fetch SKUs using authenticated session
     try:
-        r = _httpx.get(
+        s = AuthorizedSession(get_credentials())
+        r = s.get(
             f"https://cloudbilling.googleapis.com/v1/services/{_COMPUTE_ENGINE_SERVICE_ID}/skus",
             params={"pageSize": 50, "currencyCode": "USD"},
             timeout=30,
@@ -133,28 +132,125 @@ async def get_cost_summary():
     except Exception:
         pass
 
-    # Step 3: get cost data for current month
-    today = date.today()
-    start = date(today.year, today.month, 1)
-
-    costs_data = None
-    costs_error = None
-    try:
-        costs_data = await svc.get_costs(billing_account_id, start, today)
-    except Exception as exc:
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        if status == 403:
-            costs_error = "permission_denied"
-        else:
-            costs_error = str(exc)
-
     return {
         "billing_enabled": True,
         "billing_account_id": billing_account_id,
         "billing_account_name": billing_account_name,
         "display_name": display_name,
-        "start_date": start.isoformat(),
-        "end_date": today.isoformat(),
-        "costs": costs_data,
-        "costs_error": costs_error,
     }
+
+
+@router.get("/billing-debug")
+async def billing_debug():
+    """Step-by-step test of every available billing API endpoint."""
+    creds = get_credentials()
+    s = AuthorizedSession(creds)
+    project_id = cfg.settings.active_project_id
+    results = {}
+
+    # Step 1: billing info for the project
+    try:
+        r = s.get(f"https://cloudbilling.googleapis.com/v1/projects/{project_id}/billingInfo")
+        results["step1_project_billing_info"] = {"status": r.status_code, "body": r.json()}
+    except Exception as e:
+        results["step1_project_billing_info"] = {"error": str(e)}
+
+    # Extract billing account id for subsequent steps
+    billing_account_id = None
+    try:
+        name = results["step1_project_billing_info"]["body"].get("billingAccountName", "")
+        billing_account_id = name.split("/")[-1] if "/" in name else None
+    except Exception:
+        pass
+
+    if not billing_account_id:
+        results["note"] = "Could not extract billing account ID — stopping here"
+        return results
+
+    # Step 2: billing account details
+    try:
+        r = s.get(f"https://cloudbilling.googleapis.com/v1/billingAccounts/{billing_account_id}")
+        results["step2_billing_account"] = {"status": r.status_code, "body": r.json()}
+    except Exception as e:
+        results["step2_billing_account"] = {"error": str(e)}
+
+    # Step 3: projects linked to billing account
+    try:
+        r = s.get(f"https://cloudbilling.googleapis.com/v1/billingAccounts/{billing_account_id}/projects")
+        results["step3_billing_account_projects"] = {"status": r.status_code, "body": r.json()}
+    except Exception as e:
+        results["step3_billing_account_projects"] = {"error": str(e)}
+
+    # Step 4: budgets API
+    try:
+        r = s.get(f"https://billingbudgets.googleapis.com/v1/billingAccounts/{billing_account_id}/budgets")
+        results["step4_budgets"] = {"status": r.status_code, "body": r.json()}
+    except Exception as e:
+        results["step4_budgets"] = {"error": str(e)}
+
+    # Step 5: v1beta reports endpoint
+    try:
+        r = s.get(f"https://cloudbilling.googleapis.com/v1beta/billingAccounts/{billing_account_id}/reports",
+                  params={"pageSize": 1})
+        results["step5_v1beta_reports"] = {"status": r.status_code, "body": r.json()}
+    except Exception as e:
+        results["step5_v1beta_reports"] = {"error": str(e)}
+
+    # Step 6: SKU catalog (unauthenticated test)
+    try:
+        import httpx
+        r = httpx.get(
+            "https://cloudbilling.googleapis.com/v1/services/6F81-5844-456A/skus",
+            params={"pageSize": 1},
+            timeout=10,
+        )
+        results["step6_sku_catalog_unauth"] = {"status": r.status_code}
+    except Exception as e:
+        results["step6_sku_catalog_unauth"] = {"error": str(e)}
+
+    # Step 7: SKU catalog authenticated
+    try:
+        r = s.get(
+            "https://cloudbilling.googleapis.com/v1/services/6F81-5844-456A/skus",
+            params={"pageSize": 1},
+        )
+        results["step7_sku_catalog_auth"] = {"status": r.status_code}
+    except Exception as e:
+        results["step7_sku_catalog_auth"] = {"error": str(e)}
+
+    # Step 8: fetch all SKUs (paginated) and look for E2 on-demand in europe-west1
+    try:
+        all_skus, token = [], None
+        while True:
+            params = {"pageSize": 5000, "currencyCode": "USD"}
+            if token:
+                params["pageToken"] = token
+            r = s.get("https://cloudbilling.googleapis.com/v1/services/6F81-5844-456A/skus", params=params, timeout=30)
+            r.raise_for_status()
+            data = r.json()
+            all_skus.extend(data.get("skus", []))
+            token = data.get("nextPageToken")
+            if not token:
+                break
+
+        results["step8_sku_fetch"] = {"total_skus": len(all_skus)}
+
+        # Find E2 SKUs in europe-west1
+        e2_matches = []
+        for sku in all_skus:
+            cat = sku.get("category", {})
+            desc = sku.get("description", "")
+            regions = sku.get("serviceRegions", [])
+            if "europe-west1" in regions and "e2" in desc.lower():
+                e2_matches.append({
+                    "description": desc,
+                    "resourceGroup": cat.get("resourceGroup"),
+                    "usageType": cat.get("usageType"),
+                    "resourceFamily": cat.get("resourceFamily"),
+                })
+        results["step8_e2_europe_west1_skus"] = e2_matches[:20]
+
+    except Exception as e:
+        results["step8_sku_fetch"] = {"error": str(e)}
+
+    return results

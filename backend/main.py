@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 import config as cfg
+from auth import get_credentials
 from services.gcp_billing import refresh_fallback_prices
 from routers import (
     configs,
@@ -26,7 +27,11 @@ from routers import (
 async def _daily_price_refresh():
     """Background task: refresh fallback pricing table immediately, then every 24 hours."""
     while True:
-        await refresh_fallback_prices()
+        try:
+            creds = get_credentials()
+        except Exception:
+            creds = None
+        await refresh_fallback_prices(creds)
         await asyncio.sleep(24 * 3600)
 
 

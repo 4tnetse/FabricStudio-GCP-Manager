@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, UploadFile, File
@@ -35,13 +36,19 @@ async def upload_keyfile(file: UploadFile = File(...)):
     contents = await file.read()
     dest.write_bytes(contents)
 
-    # Update settings with the new path
+    # Extract project_id from the key file to auto-select the correct project
+    project_id = None
+    try:
+        project_id = json.loads(contents).get("project_id")
+    except Exception:
+        pass
+
     updated = cfg.settings.model_copy(
-        update={"service_account_key_path": str(dest)}
+        update={"service_account_key_path": str(dest), "active_project_id": project_id}
     )
     cfg.settings = updated
     cfg.save_settings(updated)
-    return {"detail": "Key file uploaded", "path": str(dest)}
+    return {"detail": "Key file uploaded", "path": str(dest), "project_id": project_id}
 
 
 @router.delete("/keyfile")
@@ -52,7 +59,7 @@ async def delete_keyfile():
             Path(key_path).unlink(missing_ok=True)
         except Exception:
             pass
-    updated = cfg.settings.model_copy(update={"service_account_key_path": None})
+    updated = cfg.settings.model_copy(update={"service_account_key_path": None, "active_project_id": None})
     cfg.settings = updated
     cfg.save_settings(updated)
     return {"detail": "Key file removed"}

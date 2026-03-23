@@ -30,6 +30,7 @@ export interface Settings {
   instance_fqdn_prefix: string | null
   dns_zone_name: string | null
   selected_project: string | null
+  active_project_id?: string | null
 }
 
 export interface FirewallRule {
