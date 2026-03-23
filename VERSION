@@ -1,7 +1,8 @@
-0.87
+0.88
 
 # Version history
 # ---------------
+# 0.88  Add Costs page, estimated hourly cost and instance specs in detail popup, dynamic machine type/zone dropdowns
 # 0.87  README updates
 # 0.86  Add README
 # 0.85  SSH and Build output panels wrapped in widget boxes, output area fills full panel height

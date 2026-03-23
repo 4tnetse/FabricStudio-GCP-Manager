@@ -25,7 +25,10 @@ import {
   useRenameInstance,
   useMoveInstance,
   useBulkOperation,
+  useZones,
+  useMachineTypes,
 } from '@/api/instances'
+import { useMachineTypePrice } from '@/api/costs'
 import { useNavigate } from 'react-router-dom'
 import { useSettings } from '@/api/settings'
 import { useTheme } from '@/context/ThemeContext'
@@ -41,19 +44,6 @@ function buildFqdn(name: string, prefix: string, domain: string): string | null 
   return `${prefix}${number}.${domain}`
 }
 
-const MACHINE_TYPES = [
-  'n1-standard-1',
-  'n1-standard-2',
-  'n1-standard-4',
-  'n1-standard-8',
-  'n1-standard-16',
-  'e2-medium',
-  'e2-standard-2',
-  'e2-standard-4',
-]
-
-const ZONES = ['europe-west4-a', 'asia-southeast1-b', 'us-central1-c']
-
 const ALL_STATUSES = ['RUNNING', 'TERMINATED', 'STAGING', 'PROVISIONING', 'STOPPING', 'UNKNOWN'] as const
 
 interface InstanceDetailDialogProps {
@@ -67,6 +57,7 @@ function InstanceDetailDialog({ instance, onClose, dnsPrefix, dnsDomain }: Insta
   const fqdn = instance.public_ip && dnsPrefix && dnsDomain
     ? buildFqdn(instance.name, dnsPrefix, dnsDomain)
     : null
+  const { data: priceData } = useMachineTypePrice(instance.machine_type, instance.zone)
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
@@ -76,7 +67,6 @@ function InstanceDetailDialog({ instance, onClose, dnsPrefix, dnsDomain }: Insta
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-lg font-semibold text-slate-100">{instance.name}</h2>
-            <p className="text-sm text-slate-400">{instance.zone}</p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-200">
             <X className="w-5 h-5" />
@@ -88,8 +78,40 @@ function InstanceDetailDialog({ instance, onClose, dnsPrefix, dnsDomain }: Insta
             <StatusBadge status={instance.status} />
           </div>
           <div className="flex justify-between py-2 border-b border-slate-800">
+            <span className="text-sm text-slate-400">Zone</span>
+            <span className="text-sm text-slate-200">{instance.zone}</span>
+          </div>
+          <div className="flex justify-between py-2 border-b border-slate-800">
             <span className="text-sm text-slate-400">Machine type</span>
             <span className="text-sm text-slate-200">{instance.machine_type}</span>
+          </div>
+          <div className="flex justify-between py-2 border-b border-slate-800">
+            <span className="text-sm text-slate-400">vCPUs</span>
+            <span className="text-sm text-slate-200">
+              {priceData?.vcpus != null ? priceData.vcpus : '...'}
+            </span>
+          </div>
+          <div className="flex justify-between py-2 border-b border-slate-800">
+            <span className="text-sm text-slate-400">Memory</span>
+            <span className="text-sm text-slate-200">
+              {priceData?.memory_gib != null ? `${priceData.memory_gib} GB` : '...'}
+            </span>
+          </div>
+          <div className="flex justify-between py-2 border-b border-slate-800">
+            <span className="text-sm text-slate-400">Boot disk</span>
+            <span className="text-sm text-slate-200">
+              {instance.boot_disk_gb != null ? `${instance.boot_disk_gb} GB` : '—'}
+            </span>
+          </div>
+          <div className="flex justify-between py-2 border-b border-slate-800">
+            <span className="text-sm text-slate-400">Estimated hourly cost</span>
+            <span className="text-sm text-slate-200">
+              {priceData === undefined
+                ? '...'
+                : priceData.price_usd != null
+                  ? `${priceData.source === 'fallback' ? '~' : ''}$${priceData.price_usd.toFixed(4)} / hr`
+                  : '—'}
+            </span>
           </div>
           <div className="flex justify-between py-2 border-b border-slate-800">
             <span className="text-sm text-slate-400">Public IP</span>
@@ -195,6 +217,10 @@ interface MachineTypeDialogProps {
 
 function MachineTypeDialog({ instance, onClose, onConfirm }: MachineTypeDialogProps) {
   const [value, setValue] = useState(instance.machine_type)
+  const { data: machineTypes = [], isLoading } = useMachineTypes(instance.zone)
+  const options = isLoading
+    ? [{ value: instance.machine_type, label: instance.machine_type }]
+    : machineTypes.map((mt) => ({ value: mt, label: mt }))
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
@@ -202,12 +228,13 @@ function MachineTypeDialog({ instance, onClose, onConfirm }: MachineTypeDialogPr
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-base font-semibold text-slate-100 mb-4">Change Machine Type</h2>
-        <p className="text-xs text-slate-400 mb-3">Instance must be stopped first.</p>
+        <p className="text-xs text-slate-400 mb-1">Instance must be stopped first.</p>
+        <p className="text-xs mb-3"><a href="https://cloud.google.com/compute/vm-instance-pricing" target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-300 hover:underline">Machine Cost Calculator</a></p>
         <CustomSelect
           className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 mb-4"
           value={value}
           onChange={setValue}
-          options={MACHINE_TYPES.map((mt) => ({ value: mt, label: mt }))}
+          options={options}
         />
         <div className="flex justify-end gap-2">
           <button
@@ -235,7 +262,10 @@ interface MoveZoneDialogProps {
 }
 
 function MoveZoneDialog({ instance, onClose, onConfirm }: MoveZoneDialogProps) {
-  const [value, setValue] = useState(ZONES[0])
+  const { data: zones = [] } = useZones()
+  const otherZones = zones.filter((z) => z !== instance.zone)
+  const [value, setValue] = useState('')
+  useEffect(() => { if (!value && otherZones.length) setValue(otherZones[0]) }, [otherZones.length])
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
@@ -248,7 +278,8 @@ function MoveZoneDialog({ instance, onClose, onConfirm }: MoveZoneDialogProps) {
           className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 mb-4"
           value={value}
           onChange={setValue}
-          options={ZONES.filter((z) => z !== instance.zone).map((z) => ({ value: z, label: z }))}
+          placeholder="Select a zone..."
+          options={otherZones.map((z) => ({ value: z, label: z }))}
         />
         <div className="flex justify-end gap-2">
           <button
@@ -259,7 +290,8 @@ function MoveZoneDialog({ instance, onClose, onConfirm }: MoveZoneDialogProps) {
           </button>
           <button
             onClick={() => onConfirm(value)}
-            className="px-3 py-1.5 rounded-lg text-sm bg-blue-600 hover:bg-blue-500 text-white"
+            disabled={!value}
+            className="px-3 py-1.5 rounded-lg text-sm bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white"
           >
             Move
           </button>
@@ -640,7 +672,7 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
 
 
   return (
-    <div className="flex flex-col h-full gap-3">
+    <div className="flex flex-col h-full gap-3 rounded-xl border border-slate-700 bg-slate-800/30 p-4">
       {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative flex-1 min-w-48">

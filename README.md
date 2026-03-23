@@ -8,10 +8,11 @@ A web-based management interface for deploying, configuring, and managing Fabric
 
 | Screen | Description |
 |---|---|
-| **Instances** | List all GCP instances with filtering by status, purpose label, and name search. Bulk start, stop and delete. |
+| **Instances** | List all GCP instances with filtering by status, purpose label, and name search. Bulk start, stop and delete. Click an instance for full details: zone, machine type, vCPUs, memory, boot disk, IPs, labels, and estimated hourly cost. |
 | **Clone** | Bulk-clone a golden image to multiple instances with custom naming, destination zone selection, and batch processing. |
 | **SSH** | Execute commands across multiple instances simultaneously with live streaming output. Supports configuration file-based execution. |
 | **Configurations** | Create and edit `.conf` files containing Fabric Studio CLI commands for reuse in the SSH screen. |
+| **Costs** | View billing account information and current-month cost summary for the active GCP project. |
 | **Labels** | Add and remove GCP labels on any instance. |
 | **Firewall** | View and manage GCP firewall rules. |
 | **Images** | Browse available VM machine images. |
