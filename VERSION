@@ -1,7 +1,8 @@
-0.88
+0.89
 
 # Version history
 # ---------------
+# 0.89  Grey out nav items when no service account key is configured, fix React Router future flag warning
 # 0.88  Add Costs page, estimated hourly cost and instance specs in detail popup, dynamic machine type/zone dropdowns
 # 0.87  README updates
 # 0.86  Add README
