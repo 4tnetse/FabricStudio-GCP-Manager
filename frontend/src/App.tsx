@@ -13,12 +13,14 @@ import {
   Terminal,
   HardDrive,
   FileCode,
+  Receipt,
   Settings,
   ChevronRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ProjectSelector } from '@/components/ProjectSelector'
 import { useTheme } from '@/context/ThemeContext'
+import { useSettings } from '@/api/settings'
 
 import Dashboard from '@/pages/Dashboard'
 import Build from '@/pages/Build'
@@ -29,6 +31,7 @@ import SSH from '@/pages/SSH'
 import Images from '@/pages/Images'
 import Configurations from '@/pages/Configurations'
 import SettingsPage from '@/pages/Settings'
+import Costs from '@/pages/Costs'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Instances', icon: LayoutDashboard, exact: true },
@@ -39,6 +42,7 @@ const NAV_ITEMS = [
   { to: '/ssh', label: 'SSH', icon: Terminal },
   { to: '/build', label: 'Build', icon: Hammer },
   { to: '/images', label: 'Images', icon: HardDrive },
+  { to: '/costs', label: 'Costs', icon: Receipt },
 ]
 
 function SidebarLink({
@@ -46,16 +50,27 @@ function SidebarLink({
   label,
   icon: Icon,
   exact,
+  disabled,
 }: {
   to: string
   label: string
   icon: ElementType
   exact?: boolean
+  disabled?: boolean
 }) {
   const location = useLocation()
   const { theme } = useTheme()
   const isActive = exact ? location.pathname === to : location.pathname.startsWith(to)
   const isSF = theme === 'security-fabric'
+
+  if (disabled) {
+    return (
+      <div className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm opacity-30 cursor-not-allowed select-none">
+        <Icon className="w-4 h-4 shrink-0 text-slate-500" />
+        <span className="text-slate-500">{label}</span>
+      </div>
+    )
+  }
 
   return (
     <NavLink
@@ -108,6 +123,9 @@ export default function App() {
     document.addEventListener('mousemove', onMouseMove)
     document.addEventListener('mouseup', onMouseUp)
   }, [])
+
+  const { data: settings } = useSettings()
+  const hasKey = !!settings?.service_account_key_path
 
   const { data: projects } = useProjects()
   const currentProject = projects?.find((p) => p.is_selected) ?? projects?.[0]
@@ -166,7 +184,7 @@ export default function App() {
         {/* Nav links */}
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
           {NAV_ITEMS.map((item) => (
-            <SidebarLink key={item.to} {...item} />
+            <SidebarLink key={item.to} {...item} disabled={!hasKey} />
           ))}
         </nav>
 
@@ -261,6 +279,7 @@ export default function App() {
             <Route path="/images" element={<Images />} />
             <Route path="/configurations" element={<Configurations />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/costs" element={<Costs />} />
           </Routes>
         </div>
       </main>
