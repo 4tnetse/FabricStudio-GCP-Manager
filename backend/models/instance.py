@@ -22,6 +22,7 @@ class Instance(BaseModel):
     labels: dict[str, str]
     tags: list[str]
     creation_timestamp: str | None
+    boot_disk_gb: int | None = None
 
 
 class BuildConfig(BaseModel):

@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -6,8 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 import config as cfg
+from services.gcp_billing import refresh_fallback_prices
 from routers import (
     configs,
+    costs,
     firewall,
     images,
     instances,
@@ -20,10 +23,18 @@ from routers import (
 )
 
 
+async def _daily_price_refresh():
+    """Background task: refresh fallback pricing table immediately, then every 24 hours."""
+    while True:
+        await refresh_fallback_prices()
+        await asyncio.sleep(24 * 3600)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Load settings on startup
     cfg.settings = cfg.load_settings()
+    asyncio.create_task(_daily_price_refresh())
     yield
 
 
@@ -61,6 +72,7 @@ app.include_router(tags.router, prefix="/api")
 app.include_router(ssh.router, prefix="/api")
 app.include_router(images.router, prefix="/api")
 app.include_router(configs.router, prefix="/api")
+app.include_router(costs.router, prefix="/api")
 
 
 _VERSION_FILE = Path(__file__).parent.parent / "VERSION"

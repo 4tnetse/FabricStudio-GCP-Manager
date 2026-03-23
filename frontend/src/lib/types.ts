@@ -8,6 +8,7 @@ export interface Instance {
   labels: Record<string, string>
   tags: string[]
   creation_timestamp: string | null
+  boot_disk_gb: number | null
 }
 
 export interface Project {

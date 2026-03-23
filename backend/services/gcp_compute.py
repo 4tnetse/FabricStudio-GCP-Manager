@@ -39,6 +39,13 @@ def _parse_instance(inst: Any, zone_name: str) -> Instance:
     # Labels
     labels: dict[str, str] = dict(inst.labels) if inst.labels else {}
 
+    # Boot disk size
+    boot_disk_gb: int | None = None
+    for disk in inst.disks or []:
+        if disk.boot and disk.disk_size_gb:
+            boot_disk_gb = disk.disk_size_gb
+            break
+
     return Instance(
         name=inst.name,
         zone=zone_name,
@@ -49,6 +56,7 @@ def _parse_instance(inst: Any, zone_name: str) -> Instance:
         labels=labels,
         tags=tags,
         creation_timestamp=inst.creation_timestamp or None,
+        boot_disk_gb=boot_disk_gb,
     )
 
 
@@ -425,6 +433,20 @@ class GCPComputeService:
             client = compute_v1.ZonesClient(credentials=self._credentials)
             return [z.name for z in client.list(project=self._project_id) if z.status == "UP"]
         return sorted(await self._run(_list))
+
+    async def list_machine_types(self, zone: str) -> list[str]:
+        def _list():
+            client = compute_v1.MachineTypesClient(credentials=self._credentials)
+            return [mt.name for mt in client.list(project=self._project_id, zone=zone)]
+        return sorted(await self._run(_list))
+
+    async def get_machine_type_specs(self, zone: str, machine_type: str) -> dict:
+        """Return {vcpus, memory_gib} for the given machine type."""
+        def _get():
+            client = compute_v1.MachineTypesClient(credentials=self._credentials)
+            mt = client.get(project=self._project_id, zone=zone, machine_type=machine_type)
+            return {"vcpus": mt.guest_cpus, "memory_gib": mt.memory_mb / 1024.0}
+        return await self._run(_get)
 
     # ------------------------------------------------------------------ #
     #  Machine Images                                                      #
