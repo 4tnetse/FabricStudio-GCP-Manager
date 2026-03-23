@@ -6,9 +6,6 @@ export interface CostSummary {
   billing_account_id?: string
   billing_account_name?: string
   display_name?: string
-  start_date?: string
-  end_date?: string
-  costs?: unknown
   costs_error?: string
 }
 

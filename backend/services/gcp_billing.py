@@ -76,14 +76,12 @@ def _fallback_price(machine_type: str, zone: str, vcpus: int, memory_gib: float)
 def _get_sku_desc_prefix(machine_type: str) -> str | None:
     """Return the SKU description prefix for a given machine type, or None if unsupported."""
     mt = machine_type.lower()
-    families = [
+    # Families that use "Predefined"/"Custom" in SKU descriptions
+    standard_families = [
         ("n1-", "N1"),
         ("n2d-", "N2D AMD"),
         ("n2-", "N2"),
         ("n4-", "N4"),
-        ("e2-micro", None),   # shared-core, flat pricing
-        ("e2-small", None),   # shared-core, flat pricing
-        ("e2-", "E2"),
         ("c2d-", "C2D AMD"),
         ("c2-", "C2"),
         ("c3d-", "C3D AMD"),
@@ -96,12 +94,17 @@ def _get_sku_desc_prefix(machine_type: str) -> str | None:
         ("a2-", "A2"),
         ("a3-", "A3"),
     ]
-    for prefix, family in families:
+    for prefix, family in standard_families:
         if mt.startswith(prefix):
-            if family is None:
-                return None
             kind = "custom" if "custom" in mt else "predefined"
             return f"{family} {kind} instance"
+
+    # E2: shared-core variants have flat pricing; predefined uses "E2 Instance" (no "Predefined")
+    if mt.startswith("e2-micro") or mt.startswith("e2-small"):
+        return None
+    if mt.startswith("e2-"):
+        return "E2 Custom Instance" if "custom" in mt else "E2 Instance"
+
     return None
 
 
@@ -162,13 +165,14 @@ class GCPBillingService:
             skus = cached[0]
         else:
             def _fetch_skus():
-                # Public API — no auth needed; using httpx avoids OAuth project enablement check
+                # Use authenticated session — unauthenticated requests return 403
+                session = AuthorizedSession(self._credentials)
                 result, token = [], None
                 while True:
                     params: dict = {"pageSize": 5000, "currencyCode": "USD"}
                     if token:
                         params["pageToken"] = token
-                    r = httpx.get(
+                    r = session.get(
                         f"https://cloudbilling.googleapis.com/v1/services/{_COMPUTE_ENGINE_SERVICE_ID}/skus",
                         params=params,
                         timeout=30,
@@ -246,22 +250,29 @@ class GCPBillingService:
         return await self._run(_fetch)
 
 
-async def refresh_fallback_prices() -> bool:
+async def refresh_fallback_prices(credentials=None) -> bool:
     """Fetch live SKU prices from the Catalog API and update _FALLBACK_PRICES in-place.
 
     Returns True if the table was successfully updated, False otherwise (existing
     hardcoded values are kept on failure).
     """
     def _fetch_all_skus():
+        if credentials is not None:
+            session = AuthorizedSession(credentials)
+            def _get(url, params):
+                return session.get(url, params=params, timeout=30)
+        else:
+            def _get(url, params):
+                return httpx.get(url, params=params, timeout=30)
+
         result, token = [], None
         while True:
             params: dict = {"pageSize": 5000, "currencyCode": "USD"}
             if token:
                 params["pageToken"] = token
-            r = httpx.get(
+            r = _get(
                 f"https://cloudbilling.googleapis.com/v1/services/{_COMPUTE_ENGINE_SERVICE_ID}/skus",
-                params=params,
-                timeout=30,
+                params,
             )
             r.raise_for_status()
             data = r.json()
