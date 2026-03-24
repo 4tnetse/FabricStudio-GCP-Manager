@@ -1,7 +1,8 @@
-0.96
+0.97
 
 # Version history
 # ---------------
+# 0.97  Configure golden image: wait for instance readiness before connecting (polls /api/v1/session/check, retries every 10s up to 5 min)
 # 0.96  Configure golden image: Fabric Studio API integration (auth, license server, registration token, password change), Settings default admin password
 # 0.95  Build screen UX (section locking, DNS, labels/tags), FQDN fix (no zero-pad, include product), remove -000 deletion guard, instance table single-line rows
 # 0.94  Clone workshop naming, DNS FQDN includes workshop name
