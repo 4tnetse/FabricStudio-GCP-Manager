@@ -19,6 +19,7 @@ export interface Project {
 
 export interface Settings {
   service_account_key_path: string | null
+  service_account_key_name?: string | null
   initials: string | null
   default_zone: string | null
   default_type: string | null

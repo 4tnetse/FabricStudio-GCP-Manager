@@ -16,6 +16,7 @@ CONF_DIR = Path(__file__).parent.parent / "conf"
 
 class AppSettings(BaseModel):
     service_account_key_path: str | None = None
+    service_account_key_name: str | None = None
     active_project_id: str | None = None
     initials: str = ""
     default_zone: str = "europe-west4-a"

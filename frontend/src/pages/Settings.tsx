@@ -167,7 +167,7 @@ export default function SettingsPage() {
         {settings?.service_account_key_path && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-900/20 border border-green-800/60 text-xs text-green-400">
             <Key className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate font-mono flex-1">{settings.service_account_key_path}</span>
+            <span className="truncate font-mono flex-1">{settings.service_account_key_name || settings.service_account_key_path}</span>
             <button
               onClick={async () => {
                 try {
@@ -205,6 +205,7 @@ export default function SettingsPage() {
             {uploadKeyFile.isPending ? 'Uploading...' : 'Drop JSON key file here or click to browse'}
           </p>
           <p className="text-xs text-slate-500 mt-1">GCP service account JSON key</p>
+          <p className="text-xs text-slate-500 mt-2">GCP Console → IAM & Admin → Service Accounts → select account → Keys tab → Add Key → JSON</p>
           <input
             ref={fileInputRef}
             type="file"
