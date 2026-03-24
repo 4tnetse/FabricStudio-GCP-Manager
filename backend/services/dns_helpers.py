@@ -22,7 +22,7 @@ def _build_fqdn(instance_name: str, prefix: str, domain: str) -> str | None:
     """Build FQDN from instance name. Returns None if name can't be parsed."""
     try:
         parsed = InstanceName.parse(instance_name)
-        return f"{prefix}{parsed.number}.{domain}"
+        return f"{prefix}{parsed.number:03d}.{parsed.product}.{domain}"
     except ValueError:
         return None
 
