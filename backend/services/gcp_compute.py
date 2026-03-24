@@ -504,6 +504,53 @@ class GCPComputeService:
 
         await self._run(_create)
 
+    async def get_subnetwork_for_zone(self, zone: str) -> str | None:
+        """Return the subnetwork URL for the given zone.
+
+        Strategy:
+        1. Look for an existing instance in the same zone.
+        2. If none, look for an instance anywhere in the same region and
+           rewrite the subnetwork URL to the target region.
+        3. If still none, return None (GCP will use the default subnet).
+        """
+        region = zone.rsplit("-", 1)[0]
+        client = compute_v1.InstancesClient(credentials=self._credentials)
+
+        def _get():
+            # Pass 1: same zone
+            for inst in client.list(project=self._project_id, zone=zone):
+                for nic in inst.network_interfaces or []:
+                    if nic.subnetwork:
+                        return nic.subnetwork
+
+            # Pass 2: any instance in the project, prefer same region
+            agg = client.aggregated_list(project=self._project_id)
+            same_region, any_subnet = None, None
+            for _zone_key, scoped in agg:
+                for inst in scoped.instances or []:
+                    for nic in inst.network_interfaces or []:
+                        if nic.subnetwork:
+                            any_subnet = nic.subnetwork
+                            inst_region = nic.subnetwork.split("/regions/")[1].split("/")[0]
+                            if inst_region == region:
+                                same_region = nic.subnetwork
+                                break
+                    if same_region:
+                        break
+                if same_region:
+                    break
+
+            if same_region:
+                return same_region
+            if any_subnet:
+                # Rewrite the region part to match the target region
+                parts = any_subnet.split("/regions/")
+                suffix = parts[1].split("/", 1)[1]  # e.g. "subnetworks/default"
+                return f"{parts[0]}/regions/{region}/{suffix}"
+            return None
+
+        return await self._run(_get)
+
     # ------------------------------------------------------------------ #
     #  Build Instance                                                      #
     # ------------------------------------------------------------------ #
@@ -520,6 +567,7 @@ class GCPComputeService:
         poc_definitions: list[str],
         poc_launch: str,
         license_server: str,
+        subnetwork: str | None = None,
     ) -> None:
         client = compute_v1.InstancesClient(credentials=self._credentials)
 
@@ -562,6 +610,7 @@ class GCPComputeService:
                 ],
                 network_interfaces=[
                     compute_v1.NetworkInterface(
+                        subnetwork=subnetwork,
                         access_configs=[
                             compute_v1.AccessConfig(
                                 name="External NAT",

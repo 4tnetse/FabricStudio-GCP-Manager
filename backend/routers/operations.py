@@ -59,6 +59,8 @@ async def _build_job(job_id: str, build_cfg: BuildConfig) -> None:
 
         await q.put(f"Starting build of {len(names)} instance(s): {', '.join(names)}")
 
+        subnetwork = await svc.get_subnetwork_for_zone(build_cfg.zone)
+
         labels = dict(build_cfg.labels)
         if build_cfg.group:
             labels["group"] = build_cfg.group
@@ -80,6 +82,7 @@ async def _build_job(job_id: str, build_cfg: BuildConfig) -> None:
                 poc_definitions=build_cfg.poc_definitions,
                 poc_launch=build_cfg.poc_launch,
                 license_server=build_cfg.license_server or cfg.settings.license_server,
+                subnetwork=subnetwork,
             )
             await q.put(f"Instance {name} created successfully")
 
