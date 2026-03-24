@@ -3,9 +3,10 @@ import { toast } from 'sonner'
 import { Loader2, Info } from 'lucide-react'
 import { apiPost } from '@/api/client'
 import { useSettings } from '@/api/settings'
-import { useInstances, useZones } from '@/api/instances'
+import { useInstances, useZones, useZoneLocations } from '@/api/instances'
 import { LogStream } from '@/components/LogStream'
 import { CustomSelect } from '@/components/CustomSelect'
+import { zoneLabel } from '@/lib/zones'
 
 
 function InstanceCombobox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -67,6 +68,7 @@ export default function Clone() {
   const { data: settings } = useSettings()
   const { data: instances = [] } = useInstances()
   const { data: zones = [] } = useZones()
+  const { data: zoneLocations = {} } = useZoneLocations()
 
   const [source, setSource] = useState('')
   const [sourceZone, setSourceZone] = useState('')
@@ -229,8 +231,9 @@ export default function Clone() {
               value={destZone}
               onChange={setDestZone}
               disabled={!destZone}
-              options={zones.map((z) => ({ value: z, label: z }))}
+              options={zones.map((z) => ({ value: z, label: zoneLabel(z, zoneLocations) }))}
               placeholder="Auto-filled from source instance"
+              searchable
             />
           </div>
 

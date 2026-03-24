@@ -2,11 +2,12 @@ import { useState, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Upload, Loader2, Trash2, Key, Settings2, Palette } from 'lucide-react'
 import { useSettings, useUpdateSettings, useUploadKeyFile, useDeleteKeyFile, useResetSettings } from '@/api/settings'
+import { useZones, useZoneLocations } from '@/api/instances'
 import { useTheme, type AppTheme } from '@/context/ThemeContext'
 import type { Settings } from '@/lib/types'
 import { CustomSelect } from '@/components/CustomSelect'
+import { zoneLabel } from '@/lib/zones'
 
-const ZONES = ['europe-west4-a', 'asia-southeast1-b', 'us-central1-c']
 const TYPES = ['fs', 'fpoc']
 
 const THEMES: { value: AppTheme; label: string; description: string }[] = [
@@ -57,6 +58,8 @@ function ThemeSelector() {
 
 export default function SettingsPage() {
   const { data: settings, isLoading } = useSettings()
+  const { data: zones = [] } = useZones()
+  const { data: zoneLocations = {} } = useZoneLocations()
   const updateSettings = useUpdateSettings()
   const uploadKeyFile = useUploadKeyFile()
   const deleteKeyFile = useDeleteKeyFile()
@@ -71,7 +74,7 @@ export default function SettingsPage() {
     if (settings) {
       setForm({
         initials: settings.initials ?? '',
-        default_zone: settings.default_zone ?? ZONES[0],
+        default_zone: settings.default_zone ?? '',
         default_type: settings.default_type ?? 'fs',
         owner: settings.owner ?? '',
         group: settings.group ?? '',
@@ -253,9 +256,10 @@ export default function SettingsPage() {
             <label className={labelClass}>Default zone</label>
             <CustomSelect
               className={inputClass}
-              value={(form.default_zone as string) ?? ZONES[0]}
+              value={(form.default_zone as string) ?? ''}
               onChange={(v) => setField('default_zone', v)}
-              options={ZONES.map((z) => ({ value: z, label: z }))}
+              options={zones.map((z) => ({ value: z, label: zoneLabel(z, zoneLocations) }))}
+              searchable
             />
           </div>
           <div>

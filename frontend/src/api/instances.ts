@@ -17,6 +17,14 @@ export function useZones() {
   })
 }
 
+export function useZoneLocations() {
+  return useQuery({
+    queryKey: ['zone-locations'],
+    queryFn: () => apiGet<Record<string, string>>('/instances/zone-locations'),
+    staleTime: 24 * 60 * 60_000,
+  })
+}
+
 export function useMachineTypes(zone: string) {
   return useQuery({
     queryKey: ['machine-types', zone],

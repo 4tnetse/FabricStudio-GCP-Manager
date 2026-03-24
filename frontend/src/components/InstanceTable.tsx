@@ -27,6 +27,7 @@ import {
   useBulkOperation,
   useZones,
   useMachineTypes,
+  useZoneLocations,
 } from '@/api/instances'
 import { useMachineTypePrice } from '@/api/costs'
 import { useNavigate } from 'react-router-dom'
@@ -34,6 +35,7 @@ import { useSettings } from '@/api/settings'
 import { useTheme } from '@/context/ThemeContext'
 import { StatusBadge } from './StatusBadge'
 import { cn } from '@/lib/utils'
+import { zoneLabel } from '@/lib/zones'
 import type { Instance } from '@/lib/types'
 
 function buildFqdn(name: string, prefix: string, domain: string): string | null {
@@ -235,6 +237,7 @@ function MachineTypeDialog({ instance, onClose, onConfirm }: MachineTypeDialogPr
           value={value}
           onChange={setValue}
           options={options}
+          searchable
         />
         <div className="flex justify-end gap-2">
           <button
@@ -263,23 +266,25 @@ interface MoveZoneDialogProps {
 
 function MoveZoneDialog({ instance, onClose, onConfirm }: MoveZoneDialogProps) {
   const { data: zones = [] } = useZones()
+  const { data: zoneLocations = {} } = useZoneLocations()
   const otherZones = zones.filter((z) => z !== instance.zone)
   const [value, setValue] = useState('')
   useEffect(() => { if (!value && otherZones.length) setValue(otherZones[0]) }, [otherZones.length])
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
-        className="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-6"
+        className="w-full max-w-xl rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-base font-semibold text-slate-100 mb-4">Move to Zone</h2>
-        <p className="text-xs text-slate-400 mb-3">Current zone: {instance.zone}</p>
+        <p className="text-xs text-slate-400 mb-3">Current zone: {zoneLabel(instance.zone, zoneLocations)}</p>
         <CustomSelect
           className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 mb-4"
           value={value}
           onChange={setValue}
           placeholder="Select a zone..."
-          options={otherZones.map((z) => ({ value: z, label: z }))}
+          options={otherZones.map((z) => ({ value: z, label: zoneLabel(z, zoneLocations) }))}
+          searchable
         />
         <div className="flex justify-end gap-2">
           <button
@@ -553,6 +558,7 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
   const [statusFilter, setStatusFilter] = useState<string>(defaultStatus ?? '')
   const [zoneFilter, setZoneFilter] = useState<string>('')
   const [purposeFilter, setPurposeFilter] = useState<string>('')
+  const [groupFilter, setGroupFilter] = useState<string>('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [detailInstance, setDetailInstance] = useState<Instance | null>(null)
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false)
@@ -564,6 +570,7 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
   const queryClient = useQueryClient()
   const { data: instances = [], isLoading, isFetching, refetch } = useInstances()
   const { data: settings } = useSettings()
+  const { data: zoneLocations = {} } = useZoneLocations()
   const dnsPrefix = settings?.instance_fqdn_prefix as string | undefined
   const dnsDomain = settings?.dns_domain as string | undefined
   const hasDns = !!(dnsPrefix && dnsDomain)
@@ -577,9 +584,10 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
       if (statusFilter && inst.status !== statusFilter) return false
       if (zoneFilter && inst.zone !== zoneFilter) return false
       if (purposeFilter && inst.labels?.purpose !== purposeFilter) return false
+      if (groupFilter && inst.labels?.group !== groupFilter) return false
       return true
     })
-  }, [instances, search, statusFilter, zoneFilter, purposeFilter])
+  }, [instances, search, statusFilter, zoneFilter, purposeFilter, groupFilter])
 
   const zones = useMemo(() => {
     return Array.from(new Set(instances.map((i) => i.zone))).sort()
@@ -588,6 +596,12 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
   const purposes = useMemo(() => {
     return Array.from(new Set(
       instances.map((i) => i.labels?.purpose).filter(Boolean) as string[]
+    )).sort()
+  }, [instances])
+
+  const groups = useMemo(() => {
+    return Array.from(new Set(
+      instances.map((i) => i.labels?.group).filter(Boolean) as string[]
     )).sort()
   }, [instances])
 
@@ -693,6 +707,22 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
             </button>
           )}
         </div>
+        {groups.length > 0 && (
+          <CustomSelect
+            value={groupFilter}
+            onChange={setGroupFilter}
+            className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            options={[{ value: '', label: 'All groups' }, ...groups.map((g) => ({ value: g, label: g }))]}
+          />
+        )}
+        {purposes.length > 0 && (
+          <CustomSelect
+            value={purposeFilter}
+            onChange={setPurposeFilter}
+            className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            options={[{ value: '', label: 'All purposes' }, ...purposes.map((p) => ({ value: p, label: p }))]}
+          />
+        )}
         <CustomSelect
           value={statusFilter}
           onChange={setStatusFilter}
@@ -705,14 +735,6 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
           className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
           options={[{ value: '', label: 'All zones' }, ...zones.map((z) => ({ value: z, label: z }))]}
         />
-        {purposes.length > 0 && (
-          <CustomSelect
-            value={purposeFilter}
-            onChange={setPurposeFilter}
-            className="px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-            options={[{ value: '', label: 'All purposes' }, ...purposes.map((p) => ({ value: p, label: p }))]}
-          />
-        )}
         <button
           onClick={() => refetch()}
           className="p-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors"
@@ -874,7 +896,7 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
         <div className="px-3 py-2 border-t border-slate-800 bg-slate-900/40 text-xs text-slate-500 flex items-center justify-between">
           <span>
             {filtered.length} of {instances.length} instances
-            {(search || statusFilter || zoneFilter || purposeFilter) && ' (filtered)'}
+            {(search || statusFilter || zoneFilter || purposeFilter || groupFilter) && ' (filtered)'}
           </span>
           {isFetching && !isLoading && (
             <span className="flex items-center gap-1">

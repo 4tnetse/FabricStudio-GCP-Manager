@@ -1,20 +1,14 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Plus, Minus, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
+import { Plus, Minus, ChevronDown, ChevronUp, Loader2, Info } from 'lucide-react'
 import { apiPost } from '@/api/client'
 import { useSettings } from '@/api/settings'
+import { useZones, useMachineTypes, useZoneLocations } from '@/api/instances'
+import { useImages } from '@/api/images'
+import { zoneLabel } from '@/lib/zones'
 import { LogStream } from '@/components/LogStream'
 import { CustomSelect } from '@/components/CustomSelect'
 
-const ZONES = ['europe-west4-a', 'asia-southeast1-b', 'us-central1-c']
-const MACHINE_TYPES = [
-  'n1-standard-1',
-  'n1-standard-2',
-  'n1-standard-4',
-  'n1-standard-8',
-  'n1-standard-16',
-  'e2-medium',
-]
 
 interface LabelPair {
   key: string
@@ -23,11 +17,16 @@ interface LabelPair {
 
 export default function Build() {
   const { data: settings } = useSettings()
+  const { data: zones = [] } = useZones()
+  const { data: zoneLocations = {} } = useZoneLocations()
 
   const [prepend, setPrepend] = useState(settings?.initials ?? '')
   const [product, setProduct] = useState('')
-  const [zone, setZone] = useState(settings?.default_zone ?? ZONES[0])
-  const [machineType, setMachineType] = useState(settings?.default_type ?? MACHINE_TYPES[0])
+  const [zone, setZone] = useState(settings?.default_zone ?? '')
+  const [machineType, setMachineType] = useState('')
+
+  const { data: machineTypes = [], isLoading: machineTypesLoading } = useMachineTypes(zone)
+  const { data: images = [] } = useImages()
   const [image, setImage] = useState('')
   const [trialKey, setTrialKey] = useState('')
   const [group, setGroup] = useState(settings?.group ?? '')
@@ -35,8 +34,6 @@ export default function Build() {
   const [pocLaunch, setPocLaunch] = useState('')
   const [licenseServer, setLicenseServer] = useState(settings?.license_server ?? '')
   const [labels, setLabels] = useState<LabelPair[]>([])
-  const [rangeFrom, setRangeFrom] = useState(1)
-  const [rangeTo, setRangeTo] = useState(1)
   const [pocDefsExpanded, setPocDefsExpanded] = useState(false)
   const [streamUrl, setStreamUrl] = useState<string | null>(null)
   const [building, setBuilding] = useState(false)
@@ -80,8 +77,7 @@ export default function Build() {
           if (key) acc[key] = value
           return acc
         }, {}),
-        range_from: rangeFrom,
-        range_to: rangeTo,
+
       }
       const result = await apiPost<{ job_id: string }>('/ops/build', payload)
       setStreamUrl(`/api/ops/${result.job_id}/stream`)
@@ -101,7 +97,7 @@ export default function Build() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-slate-100">Build</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Create new Fabric Studio instances</p>
+        <p className="text-sm text-slate-400 mt-0.5">Create your workshop golden image</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -109,7 +105,7 @@ export default function Build() {
         <div className="space-y-4 rounded-xl border border-slate-700 bg-slate-800/30 p-5">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelClass}>Prepend (initials)</label>
+              <label className={labelClass}>Prepend (your initials)</label>
               <input
                 className={inputClass}
                 value={prepend}
@@ -118,15 +114,21 @@ export default function Build() {
               />
             </div>
             <div>
-              <label className={labelClass}>Product name</label>
+              <label className={labelClass}>Workshop name</label>
               <input
                 className={inputClass}
                 value={product}
                 onChange={(e) => setProduct(e.target.value)}
-                placeholder="e.g. fwb"
+                placeholder="e.g. partner-hol"
               />
             </div>
           </div>
+
+          {(prepend || product) && (
+            <div className="px-3 py-2 rounded-lg bg-slate-800/60 border border-slate-700 text-xs text-slate-400">
+              Instance name: <span className="font-mono text-slate-200">fs-{prepend || '<initials>'}-{product || '<workshop>'}-000</span>
+            </div>
+          )}
 
           <div>
             <label className={labelClass}>Zone</label>
@@ -134,33 +136,42 @@ export default function Build() {
               className={inputClass}
               value={zone}
               onChange={setZone}
-              options={ZONES.map((z) => ({ value: z, label: z }))}
+              options={zones.map((z) => ({ value: z, label: zoneLabel(z, zoneLocations) }))}
+              searchable
             />
           </div>
 
           <div>
-            <label className={labelClass}>Machine type</label>
+            <div className="flex items-center gap-1 mb-1">
+              <label className={labelClass.replace(' mb-1', '')}>Machine type</label>
+              <a href="https://cloud.google.com/products/compute/pricing" target="_blank" rel="noreferrer" className="text-slate-500 hover:text-slate-300 transition-colors">
+                <Info className="w-3.5 h-3.5" />
+              </a>
+            </div>
             <CustomSelect
               className={inputClass}
               value={machineType}
               onChange={setMachineType}
-              options={MACHINE_TYPES.map((m) => ({ value: m, label: m }))}
+              options={machineTypes.map((m) => ({ value: m, label: m }))}
+              placeholder={!zone ? 'Select a zone first' : machineTypesLoading ? 'Loading...' : 'Select machine type'}
+              searchable
             />
           </div>
 
           <div>
             <label className={labelClass}>Image</label>
-            <input
+            <CustomSelect
               className={inputClass}
               value={image}
-              onChange={(e) => setImage(e.target.value)}
-              placeholder="Image name or family"
+              onChange={setImage}
+              options={images.map((img) => ({ value: img.name, label: img.name }))}
+              placeholder="Select an image"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelClass}>Trial key</label>
+              <label className={labelClass}>Fabric Studio Registration Token</label>
               <input
                 className={inputClass}
                 value={trialKey}
@@ -180,12 +191,12 @@ export default function Build() {
           </div>
 
           <div>
-            <label className={labelClass}>License server</label>
+            <label className={labelClass}>Fabric Studio License Server</label>
             <input
               className={inputClass}
               value={licenseServer}
               onChange={(e) => setLicenseServer(e.target.value)}
-              placeholder="e.g. 10.0.0.1"
+              placeholder="e.g. https://10.20.30.2/license/"
             />
           </div>
 
@@ -269,37 +280,6 @@ export default function Build() {
             )}
           </div>
 
-          {/* Instance range */}
-          <div>
-            <label className={labelClass}>Instance range</label>
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <label className="text-xs text-slate-500 mb-1 block">From</label>
-                <input
-                  type="number"
-                  min={0}
-                  className={inputClass}
-                  value={rangeFrom}
-                  onChange={(e) => setRangeFrom(parseInt(e.target.value) || 0)}
-                />
-              </div>
-              <div className="flex-1">
-                <label className="text-xs text-slate-500 mb-1 block">To</label>
-                <input
-                  type="number"
-                  min={0}
-                  className={inputClass}
-                  value={rangeTo}
-                  onChange={(e) => setRangeTo(parseInt(e.target.value) || 0)}
-                />
-              </div>
-            </div>
-            {rangeTo >= rangeFrom && (
-              <p className="text-xs text-slate-500 mt-1">
-                Will create {rangeTo - rangeFrom + 1} instance{rangeTo - rangeFrom + 1 !== 1 ? 's' : ''} (#{rangeFrom} to #{rangeTo})
-              </p>
-            )}
-          </div>
 
           <button
             onClick={handleBuild}
