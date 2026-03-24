@@ -37,8 +37,8 @@ class BuildConfig(BaseModel):
     poc_launch: str = ""
     license_server: str = ""
     labels: dict[str, str] = {}
-    count_start: int = 1
-    count_end: int = 1
+    count_start: int = 0
+    count_end: int = 0
     title: str = ""
 
 

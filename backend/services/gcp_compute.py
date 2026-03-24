@@ -155,8 +155,6 @@ class GCPComputeService:
         await self._run(_stop)
 
     async def delete_instance(self, zone: str, name: str) -> None:
-        if name.endswith("-000"):
-            raise ValueError(f"Refusing to delete golden image instance '{name}' (ends in -000).")
         client = compute_v1.InstancesClient(credentials=self._credentials)
 
         def _delete():
@@ -474,8 +472,6 @@ class GCPComputeService:
         await self._run(_create)
 
     async def delete_machine_image(self, name: str) -> None:
-        if name.endswith("-000"):
-            raise ValueError(f"Refusing to delete golden image machine image '{name}' (ends in -000).")
         client = compute_v1.MachineImagesClient(credentials=self._credentials)
 
         def _delete():

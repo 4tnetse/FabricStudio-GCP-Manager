@@ -40,10 +40,11 @@ import type { Instance } from '@/lib/types'
 
 function buildFqdn(name: string, prefix: string, domain: string): string | null {
   if (name.startsWith('srv')) return null
-  const match = name.match(/-(\d+)$/)
+  const match = name.match(/^[^-]+-[^-]+-(.+)-(\d+)$/)
   if (!match) return null
-  const number = parseInt(match[1], 10)
-  return `${prefix}${number}.${domain}`
+  const product = match[1]
+  const number = parseInt(match[2], 10)
+  return `${prefix}${number}.${product}.${domain}`
 }
 
 const ALL_STATUSES = ['RUNNING', 'TERMINATED', 'STAGING', 'PROVISIONING', 'STOPPING', 'UNKNOWN'] as const
@@ -843,12 +844,12 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
                           className={cn('rounded border-slate-600 bg-slate-700', isSF ? 'focus:ring-red-500' : 'text-blue-500 focus:ring-blue-500')} style={isSF ? { accentColor: '#db291c' } : undefined}
                         />
                       </td>
-                      <td className="px-3 py-2.5 text-slate-200 text-xs">{instance.name}</td>
-                      <td className="px-3 py-2.5 text-slate-400 text-xs">{instance.zone}</td>
-                      <td className="px-3 py-2.5">
+                      <td className="px-3 py-2.5 text-slate-200 text-xs whitespace-nowrap">{instance.name}</td>
+                      <td className="px-3 py-2.5 text-slate-400 text-xs whitespace-nowrap">{instance.zone}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap">
                         <StatusBadge status={instance.status} />
                       </td>
-                      <td className="px-3 py-2.5 text-slate-400 text-xs">{instance.machine_type}</td>
+                      <td className="px-3 py-2.5 text-slate-400 text-xs whitespace-nowrap">{instance.machine_type}</td>
                       <td className="px-3 py-2.5 text-xs" onClick={(e) => e.stopPropagation()}>
                         {instance.public_ip
                           ? <a href={`https://${instance.public_ip}`} target="_blank" rel="noreferrer" className="text-slate-200 hover:text-white hover:underline">{instance.public_ip}</a>
@@ -866,12 +867,12 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
                             : <span className="text-slate-600">—</span>}
                         </td>
                       )}
-                      <td className="px-3 py-2.5">
-                        <div className="flex flex-wrap gap-1">
+                      <td className="px-3 py-2.5 whitespace-nowrap">
+                        <div className="flex gap-1">
                           {labelEntries.map(([k, v]) => (
                             <span
                               key={k}
-                              className="px-1.5 py-0.5 rounded text-xs bg-slate-800 text-slate-400 border border-slate-700"
+                              className="px-1.5 py-0.5 rounded text-xs bg-slate-800 text-slate-400 border border-slate-700 whitespace-nowrap"
                             >
                               {k}={v}
                             </span>
