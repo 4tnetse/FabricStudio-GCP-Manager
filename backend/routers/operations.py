@@ -126,7 +126,10 @@ async def _clone_job(job_id: str, clone_req: CloneRequest) -> None:
             await job_manager.mark_done(job_id, failed=True)
             return
 
-        base_name = clone_req.clone_base_name or source_inst.base_name
+        if clone_req.clone_base_name:
+            base_name = f"{source_inst.type}-{source_inst.prepend}-{clone_req.clone_base_name}"
+        else:
+            base_name = source_inst.base_name
         count_start = clone_req.count_start
         count_end = clone_req.count_end
 

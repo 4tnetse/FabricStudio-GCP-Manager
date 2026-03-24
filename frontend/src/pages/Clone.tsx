@@ -74,6 +74,7 @@ export default function Clone() {
   const [sourceZone, setSourceZone] = useState('')
   const [destZone, setDestZone] = useState('')
   const [cloneName, setCloneName] = useState('')
+  const [sourcePrefix, setSourcePrefix] = useState('')
 
   const sourceSelected = !!sourceZone
 
@@ -83,8 +84,14 @@ export default function Clone() {
     const z = match ? match.zone : ''
     setSourceZone(z)
     setDestZone(z)
-    const base = name.match(/^(.+)-\d{3}$/) ? name.replace(/-\d{3}$/, '') : name
-    setCloneName(match ? base : '')
+    const workshopMatch = name.match(/^([^-]+-[^-]+)-(.+)-\d{3}$/)
+    if (workshopMatch) {
+      setSourcePrefix(workshopMatch[1])
+      setCloneName(match ? workshopMatch[2] : '')
+    } else {
+      setSourcePrefix('')
+      setCloneName(match ? (name.replace(/-\d{3}$/, '')) : '')
+    }
   }
 
   const [purpose, setPurpose] = useState('')
@@ -118,8 +125,9 @@ export default function Clone() {
   const batches = Math.ceil(count / 5)
 
   const pad = (n: number) => String(n).padStart(3, '0')
+  const fullBaseName = sourcePrefix ? `${sourcePrefix}-${cloneName}` : cloneName
   const namePreview = cloneName && !nameError && count > 0
-    ? `${cloneName}-${pad(rangeFrom)}${count > 1 ? ` to ${cloneName}-${pad(rangeTo)}` : ''}`
+    ? `${fullBaseName}-${pad(rangeFrom)}${count > 1 ? ` to ${fullBaseName}-${pad(rangeTo)}` : ''}`
     : null
 
   async function startClone() {
@@ -192,7 +200,7 @@ export default function Clone() {
           </div>
 
           <div>
-            <label className={labelClass}>Clone name</label>
+            <label className={labelClass}>Workshop name</label>
             <input
               className={nameError
                 ? inputClass.replace('border-slate-700', 'border-red-500').replace('focus:ring-blue-500', 'focus:ring-red-500')

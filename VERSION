@@ -1,7 +1,8 @@
-0.93
+0.94
 
 # Version history
 # ---------------
+# 0.94  Clone workshop naming, DNS FQDN includes workshop name
 # 0.93  Split Build screen into create/configure sections, auto-detect subnetwork on build
 # 0.92  Build screen overhaul: zone/machine type/image dynamic dropdowns, searchable selects, instance name preview, label updates, nav reorder; zone locations from conf file with auto-discovery; group filter in instances
 # 0.91  Display original key filename in Settings UI, add key location hint in upload drop zone
