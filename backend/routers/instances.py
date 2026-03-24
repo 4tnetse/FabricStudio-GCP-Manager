@@ -22,6 +22,12 @@ async def list_zones():
     return await svc.list_zones()
 
 
+@router.get("/machine-types")
+async def list_machine_types(zone: str = Query(...)):
+    svc = _get_service()
+    return await svc.list_machine_types(zone=zone)
+
+
 @router.get("")
 async def list_instances(
     zone: str | None = Query(default=None),

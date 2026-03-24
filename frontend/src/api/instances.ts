@@ -13,7 +13,16 @@ export function useZones() {
   return useQuery({
     queryKey: ['zones'],
     queryFn: () => apiGet<string[]>('/instances/zones'),
-    staleTime: 5 * 60_000, // zones don't change often
+    staleTime: 5 * 60_000,
+  })
+}
+
+export function useMachineTypes(zone: string) {
+  return useQuery({
+    queryKey: ['machine-types', zone],
+    queryFn: () => apiGet<string[]>('/instances/machine-types', { zone }),
+    enabled: !!zone,
+    staleTime: 5 * 60_000,
   })
 }
 
