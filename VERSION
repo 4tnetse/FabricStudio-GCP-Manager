@@ -1,7 +1,8 @@
-0.95
+0.96
 
 # Version history
 # ---------------
+# 0.96  Configure golden image: Fabric Studio API integration (auth, license server, registration token, password change), Settings default admin password
 # 0.95  Build screen UX (section locking, DNS, labels/tags), FQDN fix (no zero-pad, include product), remove -000 deletion guard, instance table single-line rows
 # 0.94  Clone workshop naming, DNS FQDN includes workshop name
 # 0.93  Split Build screen into create/configure sections, auto-detect subnetwork on build
