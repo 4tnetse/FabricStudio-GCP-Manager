@@ -1,5 +1,6 @@
 import asyncio
 import uuid
+from datetime import datetime, timedelta
 from typing import AsyncGenerator
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
@@ -68,6 +69,8 @@ async def _build_job(job_id: str, build_cfg: BuildConfig) -> None:
             labels["owner"] = cfg.settings.owner
         if build_cfg.title:
             labels["title"] = build_cfg.title
+        labels["purpose"] = "golden_image"
+        labels["expire"] = (datetime.now() + timedelta(days=365)).strftime("%d-%m-%Y")
 
         async def build_one(name: str) -> None:
             await q.put(f"Building instance: {name}")
@@ -78,13 +81,14 @@ async def _build_job(job_id: str, build_cfg: BuildConfig) -> None:
                 image=build_cfg.image,
                 trial_key=build_cfg.trial_key,
                 labels=labels,
-                tags=[instance_type],
+                tags=["workshop-source-any", "workshop-source-networks"],
                 poc_definitions=build_cfg.poc_definitions,
                 poc_launch=build_cfg.poc_launch,
                 license_server=build_cfg.license_server or cfg.settings.license_server,
                 subnetwork=subnetwork,
             )
             await q.put(f"Instance {name} created successfully")
+            await create_dns_for_instance(name, build_cfg.zone, log=q.put)
 
         tasks = [build_one(name) for name in names]
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -133,11 +137,6 @@ async def _clone_job(job_id: str, clone_req: CloneRequest) -> None:
         count_start = clone_req.count_start
         count_end = clone_req.count_end
 
-        # Safety: never allow 000 to appear in the clone targets
-        if count_start == 0 or count_end == 0:
-            await q.put("ERROR: clone range must not include 000 — that is the golden image.")
-            await job_manager.mark_done(job_id, failed=True)
-            return
 
         numbers = list(range(count_start, count_end + 1))
         total = len(numbers)

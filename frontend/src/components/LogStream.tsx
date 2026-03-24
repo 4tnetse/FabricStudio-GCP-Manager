@@ -19,10 +19,10 @@ export function LogStream({ url, className, minHeight = 'min-h-64', onStreamingC
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (bottomRef.current) {
+    if (!isStreaming && bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [lines])
+  }, [isStreaming])
 
   if (!url) {
     return (

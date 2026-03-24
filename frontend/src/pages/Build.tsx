@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { Plus, Minus, ChevronDown, ChevronUp, Loader2, Info } from 'lucide-react'
 import { apiPost } from '@/api/client'
@@ -28,6 +28,9 @@ export default function Build() {
   const [group, setGroup] = useState(settings?.group ?? '')
   const [labels, setLabels] = useState<LabelPair[]>([])
   const [building, setBuilding] = useState(false)
+  const [streaming, setStreaming] = useState(false)
+  const [buildDone, setBuildDone] = useState(false)
+  const [streamType, setStreamType] = useState<'build' | 'configure' | null>(null)
 
   // Section 2: Configure instance
   const [trialKey, setTrialKey] = useState('')
@@ -39,6 +42,14 @@ export default function Build() {
 
   // Shared log
   const [streamUrl, setStreamUrl] = useState<string | null>(null)
+
+  const prevStreamingRef = useRef(false)
+  useEffect(() => {
+    if (prevStreamingRef.current && !streaming && streamType === 'build') {
+      setBuildDone(true)
+    }
+    prevStreamingRef.current = streaming
+  }, [streaming, streamType])
 
   const { data: machineTypes = [], isLoading: machineTypesLoading } = useMachineTypes(zone)
   const { data: images = [] } = useImages()
@@ -81,6 +92,7 @@ export default function Build() {
         }, { delete: 'no', ...(group ? { group } : {}) }),
       }
       const result = await apiPost<{ job_id: string }>('/ops/build', payload)
+      setStreamType('build')
       setStreamUrl(`/api/ops/${result.job_id}/stream`)
       toast.success('Build started')
     } catch (err) {
@@ -108,6 +120,7 @@ export default function Build() {
         poc_definitions: pocDefs.filter(Boolean),
       }
       const result = await apiPost<{ job_id: string }>('/ops/configure', payload)
+      setStreamType('configure')
       setStreamUrl(`/api/ops/${result.job_id}/stream`)
       toast.success('Configure started')
     } catch (err) {
@@ -133,7 +146,7 @@ export default function Build() {
         <div className="space-y-6">
 
           {/* Section 1: Create instance */}
-          <div className="space-y-4 rounded-xl border border-slate-700 bg-slate-800/30 p-5">
+          <div className={`space-y-4 rounded-xl border border-slate-700 bg-slate-800/30 p-5 ${buildDone || streaming ? 'opacity-40 pointer-events-none' : ''}`}>
             <h2 className="text-sm font-semibold text-slate-200">1. Create golden image</h2>
 
             <div className="grid grid-cols-2 gap-3">
@@ -255,15 +268,16 @@ export default function Build() {
               )}
             </div>
 
+
             <button
               onClick={handleBuild}
-              disabled={building}
+              disabled={building || streaming}
               className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors"
             >
-              {building ? (
+              {building || (streaming && streamType === 'build') ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Starting build...
+                  Building...
                 </>
               ) : (
                 'Build'
@@ -272,7 +286,7 @@ export default function Build() {
           </div>
 
           {/* Section 2: Configure instance */}
-          <div className="space-y-4 rounded-xl border border-slate-700 bg-slate-800/30 p-5">
+          <div className={`space-y-4 rounded-xl border border-slate-700 bg-slate-800/30 p-5 ${!buildDone ? 'opacity-40 pointer-events-none' : ''}`}>
             <h2 className="text-sm font-semibold text-slate-200">2. Configure golden image</h2>
             <p className="text-xs text-slate-500 -mt-2">Make sure the instance is running before configuring.</p>
 
@@ -354,7 +368,7 @@ export default function Build() {
         {/* Right: Log output */}
         <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 flex flex-col gap-3">
           <h2 className="text-sm font-medium text-slate-300 shrink-0">Output</h2>
-          <LogStream url={streamUrl} minHeight="min-h-96" className="flex-1 min-h-0" />
+          <LogStream url={streamUrl} minHeight="min-h-96" className="flex-1 min-h-0" onStreamingChange={setStreaming} />
         </div>
       </div>
     </div>

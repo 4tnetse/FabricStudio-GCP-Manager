@@ -244,7 +244,7 @@ export default function SettingsPage() {
             <label className={labelClass}>Owner</label>
             <input
               className={inputClass}
-              placeholder="e.g. John Doe"
+              placeholder="e.g. tvermant"
               value={(form.owner as string) ?? ''}
               onChange={(e) => setField('owner', e.target.value)}
             />
