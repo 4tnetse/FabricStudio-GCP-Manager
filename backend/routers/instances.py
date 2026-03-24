@@ -1,6 +1,48 @@
+import json
+import re
+
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 
 import config as cfg
+
+# Best-guess continent/area label for unknown regions based on name prefix
+_REGION_HINTS = [
+    (r'^europe-',         'Europe'),
+    (r'^us-',             'United States'),
+    (r'^northamerica-',   'North America'),
+    (r'^southamerica-',   'South America'),
+    (r'^asia-',           'Asia'),
+    (r'^australia-',      'Australia'),
+    (r'^me-',             'Middle East'),
+    (r'^africa-',         'Africa'),
+]
+
+
+def _guess_location(region: str) -> str:
+    for pattern, label in _REGION_HINTS:
+        if re.match(pattern, region):
+            return label
+    return ''
+
+
+def _update_zone_locations(zones: list[str]) -> None:
+    """Add any regions missing from zone-locations.json with a best-guess location."""
+    path = cfg.CONF_DIR / "zone-locations.json"
+    try:
+        locations: dict = json.loads(path.read_text()) if path.exists() else {}
+        new_regions = {
+            zone.rsplit('-', 1)[0]
+            for zone in zones
+            if zone.rsplit('-', 1)[0] not in locations
+        }
+        if not new_regions:
+            return
+        for region in sorted(new_regions):
+            locations[region] = _guess_location(region)
+        cfg.CONF_DIR.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(locations, indent=2, sort_keys=True))
+    except Exception:
+        pass
 from auth import get_credentials
 from models.instance import MachineTypeRequest, MoveRequest, RenameRequest
 from services.gcp_compute import GCPComputeService
@@ -16,10 +58,20 @@ def _get_service() -> GCPComputeService:
     return GCPComputeService(creds, cfg.settings.active_project_id)
 
 
+@router.get("/zone-locations")
+async def get_zone_locations():
+    path = cfg.CONF_DIR / "zone-locations.json"
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text())
+
+
 @router.get("/zones")
-async def list_zones():
+async def list_zones(background_tasks: BackgroundTasks):
     svc = _get_service()
-    return await svc.list_zones()
+    zones = await svc.list_zones()
+    background_tasks.add_task(_update_zone_locations, zones)
+    return zones
 
 
 @router.get("/machine-types")

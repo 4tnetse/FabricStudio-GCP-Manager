@@ -14,22 +14,35 @@ interface CustomSelectProps {
   className?: string
   disabled?: boolean
   placeholder?: string
+  searchable?: boolean
 }
 
-export function CustomSelect({ value, onChange, options, className, disabled, placeholder }: CustomSelectProps) {
+export function CustomSelect({ value, onChange, options, className, disabled, placeholder, searchable }: CustomSelectProps) {
   const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
   const ref = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
 
   const selected = options.find((o) => o.value === value)
 
+  const filtered = searchable && search
+    ? options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()))
+    : options
+
   useEffect(() => {
-    if (!open) return
+    if (!open) { setSearch(''); return }
     function handleClickOutside(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [open])
+
+  useEffect(() => {
+    if (open && searchable) {
+      setTimeout(() => searchRef.current?.focus(), 0)
+    }
+  }, [open, searchable])
 
   return (
     <div ref={ref} className="relative">
@@ -50,23 +63,39 @@ export function CustomSelect({ value, onChange, options, className, disabled, pl
       </button>
 
       {open && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-lg border border-slate-700 bg-slate-900 shadow-xl overflow-hidden max-h-64 overflow-y-auto">
-          {options.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => { onChange(opt.value); setOpen(false) }}
-              className={cn(
-                'flex w-full items-center px-3 py-2 text-sm text-left transition-colors',
-                opt.value === value
-                  ? 'bg-blue-900/40 text-blue-300'
-                  : 'text-slate-300 hover:bg-slate-800',
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-lg border border-slate-700 bg-slate-900 shadow-xl overflow-hidden">
+          {searchable && (
+            <div className="p-2 border-b border-slate-700">
+              <input
+                ref={searchRef}
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search..."
+                className="w-full px-2 py-1.5 rounded-md border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+              />
+            </div>
+          )}
+          <div className="max-h-56 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="px-3 py-2 text-sm text-slate-500">No results</p>
+            ) : filtered.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => { onChange(opt.value); setOpen(false) }}
+                className={cn(
+                  'flex w-full items-center px-3 py-2 text-sm text-left transition-colors',
+                  opt.value === value
+                    ? 'bg-blue-900/40 text-blue-300'
+                    : 'text-slate-300 hover:bg-slate-800',
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

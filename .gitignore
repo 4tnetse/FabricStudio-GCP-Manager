@@ -16,9 +16,10 @@ venv/
 # App data / settings (generated at runtime)
 backend/data/
 
-# Config files — only keep example.conf
+# Config files — only keep example.conf and zone-locations.json
 conf/*
 !conf/example.conf
+!conf/zone-locations.json
 
 # Node
 frontend/node_modules/
