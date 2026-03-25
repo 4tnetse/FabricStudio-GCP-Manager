@@ -445,6 +445,19 @@ async def _bulk_configure_job(job_id: str, req: BulkConfigureRequest) -> None:
                 if req.admin_password:
                     await q.put(f"{tag} Changing admin password…")
                     await fs.change_admin_password(default_password, req.admin_password)
+                if req.guest_password:
+                    await q.put(f"{tag} Setting guest password…")
+                    await fs.change_user_password("guest", req.guest_password)
+                all_ssh_keys = list(req.ssh_keys)
+                if cfg.settings.ssh_public_key:
+                    all_ssh_keys.insert(0, cfg.settings.ssh_public_key)
+                if all_ssh_keys:
+                    await q.put(f"{tag} Setting {len(all_ssh_keys)} SSH key(s)…")
+                    if req.delete_existing_keys:
+                        await fs.clear_ssh_keys()
+                    for key in all_ssh_keys:
+                        await fs.add_ssh_key(key)
+                    await q.put(f"{tag} SSH keys set.")
             await q.put(f"{tag} Done.")
         except Exception as exc:
             await q.put(f"{tag} ERROR: {exc}")

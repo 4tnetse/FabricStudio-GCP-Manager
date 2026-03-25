@@ -100,19 +100,6 @@ class FabricStudioClient:
     #  System / user                                                       #
     # ------------------------------------------------------------------ #
 
-    async def _get_admin_user_id(self) -> int:
-        """Return the numeric ID of the 'admin' user."""
-        r = await self._client.get(
-            f"{self._base}/api/v1/system/user",
-            headers=self._headers(),
-        )
-        r.raise_for_status()
-        users = r.json().get("object", [])
-        for user in users:
-            if user.get("username") == self._username:
-                return user["id"]
-        raise ValueError(f"User '{self._username}' not found on {self._base}")
-
     async def register_token(self, token_secret: str) -> None:
         """Register using a token:secret string."""
         if ":" not in token_secret:
@@ -143,9 +130,22 @@ class FabricStudioClient:
         )
         r.raise_for_status()
 
+    async def _get_user_id(self, username: str) -> int:
+        """Return the numeric ID of a user by username."""
+        r = await self._client.get(
+            f"{self._base}/api/v1/system/user",
+            headers=self._headers(),
+        )
+        r.raise_for_status()
+        users = r.json().get("object", [])
+        for user in users:
+            if user.get("username") == username:
+                return user["id"]
+        raise ValueError(f"User '{username}' not found on {self._base}")
+
     async def change_admin_password(self, current_password: str, new_password: str) -> None:
         """Change the admin user's password."""
-        user_id = await self._get_admin_user_id()
+        user_id = await self._get_user_id(self._username)
         r = await self._client.post(
             f"{self._base}/api/v1/system/user/password/{user_id}",
             json={"current_password": current_password, "new_password": new_password},
@@ -155,3 +155,52 @@ class FabricStudioClient:
         data = r.json()
         if data.get("status") == "error":
             raise ValueError(f"Password change failed: {data.get('errors', {})}")
+
+    async def change_user_password(self, username: str, new_password: str) -> None:
+        """Change any user's password (no current password required when called as admin)."""
+        user_id = await self._get_user_id(username)
+        r = await self._client.post(
+            f"{self._base}/api/v1/system/user/password/{user_id}",
+            json={"new_password": new_password},
+            headers=self._headers(),
+        )
+        r.raise_for_status()
+        data = r.json()
+        if data.get("status") == "error":
+            raise ValueError(f"Password change failed: {data.get('errors', {})}")
+
+    # ------------------------------------------------------------------ #
+    #  SSH keys                                                            #
+    # ------------------------------------------------------------------ #
+
+    async def list_ssh_keys(self) -> list[str]:
+        """Return list of SSH public key strings configured on the instance."""
+        r = await self._client.get(
+            f"{self._base}/api/v1/system/account/ssh/keys",
+            headers=self._headers(),
+        )
+        if not r.is_success:
+            raise ValueError(f"SSH key list failed ({r.status_code}): {r.text}")
+        return r.json().get("object", [])
+
+    async def clear_ssh_keys(self) -> None:
+        """Delete all SSH keys from the instance."""
+        keys = await self.list_ssh_keys()
+        for key in keys:
+            r = await self._client.post(
+                f"{self._base}/api/v1/system/account/ssh/keys:del",
+                json={"key": key},
+                headers=self._headers(),
+            )
+            if not r.is_success:
+                raise ValueError(f"SSH key delete failed ({r.status_code}): {r.text}")
+
+    async def add_ssh_key(self, public_key: str) -> None:
+        """Add a public SSH key to the instance."""
+        r = await self._client.post(
+            f"{self._base}/api/v1/system/account/ssh/keys:add",
+            json={"key": public_key},
+            headers=self._headers(),
+        )
+        if not r.is_success:
+            raise ValueError(f"SSH key add failed ({r.status_code}): {r.text}")
