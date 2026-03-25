@@ -63,10 +63,13 @@ class BulkConfigureRequest(BaseModel):
     instances: list[BulkConfigureItem]
     old_admin_password: str = ""
     admin_password: str = ""
+    guest_password: str = ""
     trial_key: str = ""
     license_server: str = ""
     poc_launch: str = ""
     poc_definitions: list[str] = []
+    ssh_keys: list[str] = []
+    delete_existing_keys: bool = False
 
 
 class CloneRequest(BaseModel):

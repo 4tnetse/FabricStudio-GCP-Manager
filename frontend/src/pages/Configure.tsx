@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { toast } from 'sonner'
-import { ChevronDown, ChevronUp, Loader2, Search, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Loader2, Plus, Search, X } from 'lucide-react'
 import { apiPost } from '@/api/client'
 import { useSettings } from '@/api/settings'
 import { useTheme } from '@/context/ThemeContext'
@@ -78,6 +78,8 @@ export default function Configure() {
   const [oldAdminPassword, setOldAdminPassword] = useState('')
   const [adminPassword, setAdminPassword] = useState('')
   const [guestPassword, setGuestPassword] = useState('')
+  const [sshKeys, setSshKeys] = useState<string[]>([])
+  const [deleteExistingKeys, setDeleteExistingKeys] = useState(false)
   const [trialKey, setTrialKey] = useState('')
   const [licenseServer, setLicenseServer] = useState('')
   const [pocLaunch, setPocLaunch] = useState('')
@@ -144,6 +146,18 @@ export default function Configure() {
     setPocDefs((prev) => prev.map((v, idx) => (idx === i ? val : v)))
   }
 
+  function addSshKey() {
+    setSshKeys((prev) => [...prev, ''])
+  }
+
+  function updateSshKey(i: number, val: string) {
+    setSshKeys((prev) => prev.map((v, idx) => (idx === i ? val : v)))
+  }
+
+  function removeSshKey(i: number) {
+    setSshKeys((prev) => prev.filter((_, idx) => idx !== i))
+  }
+
   async function handleConfigure() {
     if (selectedNames.size === 0) {
       toast.error('Select at least one instance')
@@ -165,6 +179,8 @@ export default function Configure() {
         license_server: licenseServer || undefined,
         poc_launch: pocLaunch || undefined,
         poc_definitions: pocDefs.filter(Boolean),
+        ssh_keys: sshKeys.filter(Boolean),
+        delete_existing_keys: deleteExistingKeys,
       }
       const result = await apiPost<{ job_id: string }>('/ops/bulk-configure', payload)
       setStreamUrl(`/api/ops/${result.job_id}/stream`)
@@ -379,6 +395,54 @@ export default function Configure() {
                 onChange={(e) => setGuestPassword(e.target.value)}
                 placeholder="Optional"
               />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className={labelClass + ' mb-0'}>SSH public keys</label>
+                <button
+                  type="button"
+                  onClick={addSshKey}
+                  className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
+                >
+                  <Plus className="w-3 h-3" />
+                  Add key
+                </button>
+              </div>
+              <label className="flex items-center gap-2 mb-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={deleteExistingKeys}
+                  onChange={(e) => setDeleteExistingKeys(e.target.checked)}
+                  className="rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-0"
+                />
+                <span className="text-xs text-slate-400">Delete existing keys before adding</span>
+              </label>
+              {settings?.ssh_public_key && (
+                <p className="text-xs text-slate-500 mb-2">The SSH key from Settings is always included.</p>
+              )}
+              {sshKeys.length === 0 && !settings?.ssh_public_key && (
+                <p className="text-xs text-slate-500 mb-1">No SSH key configured in Settings. Add keys below.</p>
+              )}
+              <div className="space-y-2">
+                {sshKeys.map((key, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input
+                      className={inputClass + ' font-mono text-xs'}
+                      value={key}
+                      onChange={(e) => updateSshKey(i, e.target.value)}
+                      placeholder="ssh-rsa AAAA…"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeSshKey(i)}
+                      className="shrink-0 text-slate-500 hover:text-slate-300"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div>
