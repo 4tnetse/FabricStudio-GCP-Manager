@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 import config as cfg
 from auth import get_credentials
-from models.instance import BuildConfig, CloneRequest, ConfigureRequest
+from models.instance import BuildConfig, BulkConfigureItem, BulkConfigureRequest, CloneRequest, ConfigureRequest
 from services.fs_api import FabricStudioClient, wait_until_ready
 from services.dns_helpers import create_dns_for_instance, delete_dns_for_instance
 from services.gcp_compute import GCPComputeService
@@ -386,6 +386,81 @@ async def bulk_delete(body: BulkRequest, background_tasks: BackgroundTasks):
     job_id = str(uuid.uuid4())
     job_manager.create_job(job_id)
     background_tasks.add_task(_bulk_op_job, job_id, body.instances, "delete")
+    return {"job_id": job_id}
+
+
+# ------------------------------------------------------------------ #
+#  Bulk configure                                                      #
+# ------------------------------------------------------------------ #
+
+async def _bulk_configure_job(job_id: str, req: BulkConfigureRequest) -> None:
+    q = job_manager.jobs[job_id]
+    failures: list[str] = []
+
+    default_password = req.old_admin_password or cfg.settings.fs_admin_password
+    if not default_password:
+        await q.put("ERROR: No admin password available — set a default in Settings or fill in the Admin password field.")
+        await job_manager.mark_done(job_id, failed=True)
+        return
+
+    prefix = cfg.settings.instance_fqdn_prefix
+    domain = cfg.settings.dns_domain
+    if not prefix or not domain:
+        await q.put("ERROR: DNS settings (Instance FQDN prefix / DNS Domain) are not configured in Settings.")
+        await job_manager.mark_done(job_id, failed=True)
+        return
+
+    await q.put(f"Starting configure for {len(req.instances)} instance(s)…")
+
+    async def configure_one(item: BulkConfigureItem) -> None:
+        tag = f"[{item.name}]"
+        try:
+            parsed = InstanceName.parse(item.name)
+        except ValueError as exc:
+            await q.put(f"{tag} ERROR: {exc}")
+            failures.append(item.name)
+            return
+
+        fqdn = f"{prefix}{parsed.number}.{parsed.product}.{domain}"
+
+        async def log(msg: str) -> None:
+            await q.put(f"{tag} {msg}")
+
+        try:
+            await wait_until_ready(fqdn, log=log)
+        except TimeoutError as exc:
+            await q.put(f"{tag} ERROR: {exc}")
+            failures.append(item.name)
+            return
+
+        await q.put(f"{tag} Connecting to {fqdn}…")
+        try:
+            async with FabricStudioClient(fqdn, default_password) as fs:
+                if req.license_server:
+                    await q.put(f"{tag} Setting license server…")
+                    await fs.set_license_server(req.license_server)
+                if req.trial_key:
+                    await q.put(f"{tag} Registering token…")
+                    await fs.register_token(req.trial_key)
+                if req.admin_password:
+                    await q.put(f"{tag} Changing admin password…")
+                    await fs.change_admin_password(default_password, req.admin_password)
+            await q.put(f"{tag} Done.")
+        except Exception as exc:
+            await q.put(f"{tag} ERROR: {exc}")
+            failures.append(item.name)
+
+    tasks = [configure_one(item) for item in req.instances]
+    await asyncio.gather(*tasks, return_exceptions=True)
+
+    await job_manager.mark_done(job_id, failed=bool(failures))
+
+
+@router.post("/bulk-configure")
+async def bulk_configure(req: BulkConfigureRequest, background_tasks: BackgroundTasks):
+    job_id = str(uuid.uuid4())
+    job_manager.create_job(job_id)
+    background_tasks.add_task(_bulk_configure_job, job_id, req)
     return {"job_id": job_id}
 
 
