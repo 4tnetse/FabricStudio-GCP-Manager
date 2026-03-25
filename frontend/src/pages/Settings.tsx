@@ -181,11 +181,16 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-slate-100">Settings</h1>
         <p className="text-sm text-slate-400 mt-0.5">Configure your GCP connection and preferences</p>
       </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+
+      {/* Left column: Keys + Appearance */}
+      <div className="space-y-6">
 
       {/* Service Account Keys */}
       <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
@@ -281,9 +286,14 @@ export default function SettingsPage() {
             }}
           />
         </div>
-      </div>
+      </div>{/* end Service Account Keys widget */}
 
-      {/* Preferences */}
+      {/* Appearance */}
+      <ThemeSelector />
+
+      </div>{/* end left column */}
+
+      {/* Right column: Preferences */}
       <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
         <div className="flex items-center gap-2">
           <Settings2 className="w-4 h-4 text-slate-400" />
@@ -421,8 +431,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Theme */}
-      <ThemeSelector />
+      </div>{/* end two-column grid */}
 
       {/* Reset confirmation dialog */}
       {confirmReset && (
