@@ -89,7 +89,7 @@ export default function Configurations() {
   return (
     <div className="flex flex-col h-full gap-4">
       <div>
-        <h1 className="text-xl font-semibold text-slate-100">Configurations</h1>
+        <h1 className="text-xl font-semibold text-slate-100">SSH Configurations</h1>
         <p className="text-sm text-slate-400 mt-0.5">Manage and edit configuration files</p>
       </div>
 

@@ -11,15 +11,32 @@ export interface Instance {
   boot_disk_gb: number | null
 }
 
+export interface ProjectInfo {
+  id: string
+  name: string
+}
+
+export interface KeyInfo {
+  id: string
+  display_name: string
+  filename: string
+  client_email: string
+  projects: ProjectInfo[]
+}
+
 export interface Project {
   id: string
   name: string
   is_selected?: boolean
+  key_id?: string
+  key_name?: string
 }
 
 export interface Settings {
   service_account_key_path: string | null
   service_account_key_name?: string | null
+  active_key_id?: string | null
+  active_project_id?: string | null
   initials: string | null
   default_zone: string | null
   default_type: string | null
@@ -30,8 +47,9 @@ export interface Settings {
   dns_domain: string | null
   instance_fqdn_prefix: string | null
   dns_zone_name: string | null
+  fs_admin_password?: string | null
   selected_project: string | null
-  active_project_id?: string | null
+  has_keys?: boolean
 }
 
 export interface FirewallRule {

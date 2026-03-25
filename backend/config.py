@@ -18,6 +18,7 @@ class AppSettings(BaseModel):
     service_account_key_path: str | None = None
     service_account_key_name: str | None = None
     active_project_id: str | None = None
+    active_key_id: str | None = None
     initials: str = ""
     default_zone: str = "europe-west4-a"
     default_type: str = "fs"
@@ -28,6 +29,7 @@ class AppSettings(BaseModel):
     dns_domain: str = ""
     instance_fqdn_prefix: str = ""
     dns_zone_name: str = ""
+    fs_admin_password: str = ""
 
     @field_validator("dns_domain")
     @classmethod

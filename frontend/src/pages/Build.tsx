@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import { Plus, Minus, ChevronDown, ChevronUp, Loader2, Info } from 'lucide-react'
 import { apiPost } from '@/api/client'
 import { useSettings } from '@/api/settings'
-import { useZones, useMachineTypes, useZoneLocations } from '@/api/instances'
+import { useInstances, useZones, useMachineTypes, useZoneLocations } from '@/api/instances'
 import { useImages } from '@/api/images'
 import { zoneLabel } from '@/lib/zones'
 import { LogStream } from '@/components/LogStream'
@@ -33,6 +33,9 @@ export default function Build() {
   const [streamType, setStreamType] = useState<'build' | 'configure' | null>(null)
 
   // Section 2: Configure instance
+  const [selectedGolden, setSelectedGolden] = useState('')
+  const [oldAdminPassword, setOldAdminPassword] = useState('')
+  const [adminPassword, setAdminPassword] = useState('')
   const [trialKey, setTrialKey] = useState('')
   const [licenseServer, setLicenseServer] = useState(settings?.license_server ?? '')
   const [pocLaunch, setPocLaunch] = useState('')
@@ -47,14 +50,24 @@ export default function Build() {
   useEffect(() => {
     if (prevStreamingRef.current && !streaming && streamType === 'build') {
       setBuildDone(true)
+      if (prepend && product) setSelectedGolden(`fs-${prepend}-${product}-000`)
     }
     prevStreamingRef.current = streaming
   }, [streaming, streamType])
+
+  const { data: instances = [] } = useInstances()
+  const goldenInstances = instances.filter(i => i.name.endsWith('-000'))
 
   const { data: machineTypes = [], isLoading: machineTypesLoading } = useMachineTypes(zone)
   const { data: images = [] } = useImages()
 
   const instanceName = `fs-${prepend || '<initials>'}-${product || '<workshop>'}-000`
+
+  function parseGoldenInstance(name: string) {
+    const match = name.match(/^[^-]+-([^-]+)-(.+)-\d{3}$/)
+    if (!match) return null
+    return { prepend: match[1], product: match[2] }
+  }
 
   function addLabel() {
     setLabels((prev) => [...prev, { key: '', value: '' }])
@@ -103,17 +116,25 @@ export default function Build() {
   }
 
   async function handleConfigure() {
-    if (!prepend || !product || !zone) {
-      toast.error('Prepend, product, and zone are required')
+    if (!selectedGolden) {
+      toast.error('Select a golden image instance first')
       return
     }
+    const parsed = parseGoldenInstance(selectedGolden)
+    if (!parsed) {
+      toast.error('Could not parse instance name')
+      return
+    }
+    const goldenInstance = instances.find(i => i.name === selectedGolden)
     setConfiguring(true)
     setStreamUrl(null)
     try {
       const payload = {
-        prepend,
-        product,
-        zone,
+        prepend: parsed.prepend,
+        product: parsed.product,
+        zone: goldenInstance?.zone ?? '',
+        old_admin_password: oldAdminPassword || undefined,
+        admin_password: adminPassword || undefined,
         trial_key: trialKey || undefined,
         license_server: licenseServer || undefined,
         poc_launch: pocLaunch || undefined,
@@ -155,7 +176,7 @@ export default function Build() {
                 <input
                   className={inputClass}
                   value={prepend}
-                  onChange={(e) => setPrepend(e.target.value)}
+                  onChange={(e) => setPrepend(e.target.value.toLowerCase())}
                   placeholder="e.g. tve"
                 />
               </div>
@@ -164,7 +185,7 @@ export default function Build() {
                 <input
                   className={inputClass}
                   value={product}
-                  onChange={(e) => setProduct(e.target.value)}
+                  onChange={(e) => setProduct(e.target.value.toLowerCase())}
                   placeholder="e.g. partner-hol"
                 />
               </div>
@@ -286,12 +307,46 @@ export default function Build() {
           </div>
 
           {/* Section 2: Configure instance */}
-          <div className={`space-y-4 rounded-xl border border-slate-700 bg-slate-800/30 p-5 ${!buildDone ? 'opacity-40 pointer-events-none' : ''}`}>
+          <div className="space-y-4 rounded-xl border border-slate-700 bg-slate-800/30 p-5">
             <h2 className="text-sm font-semibold text-slate-200">2. Configure golden image</h2>
             <p className="text-xs text-slate-500 -mt-2">Make sure the instance is running before configuring.</p>
 
             <div>
-              <label className={labelClass}>Fabric Studio Registration Token</label>
+              <label className={labelClass}>Golden image instance</label>
+              <CustomSelect
+                className={inputClass}
+                value={selectedGolden}
+                onChange={setSelectedGolden}
+                options={goldenInstances.map(i => ({ value: i.name, label: i.name }))}
+                placeholder="Select a golden image instance"
+                searchable
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Admin password</label>
+              <input
+                className={inputClass}
+                type="password"
+                value={oldAdminPassword}
+                onChange={(e) => setOldAdminPassword(e.target.value)}
+                placeholder="Leave empty to use Settings default"
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>New admin password</label>
+              <input
+                className={inputClass}
+                type="password"
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                placeholder="Optional"
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Fabric Studio Registration token:secret</label>
               <input
                 className={inputClass}
                 value={trialKey}
@@ -301,12 +356,12 @@ export default function Build() {
             </div>
 
             <div>
-              <label className={labelClass}>Fabric Studio License Server</label>
+              <label className={labelClass}>Fabric Studio License Server IP address</label>
               <input
                 className={inputClass}
                 value={licenseServer}
                 onChange={(e) => setLicenseServer(e.target.value)}
-                placeholder="e.g. https://10.20.30.2/license/"
+                placeholder={settings?.license_server ? `e.g. ${settings.license_server}` : 'e.g. 10.20.30.2'}
               />
             </div>
 
@@ -349,7 +404,7 @@ export default function Build() {
 
             <button
               onClick={handleConfigure}
-              disabled={configuring}
+              disabled={configuring || !selectedGolden}
               className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors"
             >
               {configuring ? (

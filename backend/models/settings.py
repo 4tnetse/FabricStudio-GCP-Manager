@@ -14,6 +14,7 @@ class SettingsUpdate(BaseModel):
     instance_fqdn_prefix: str | None = None
     dns_zone_name: str | None = None
     active_project_id: str | None = None
+    fs_admin_password: str | None = None
 
     @field_validator("dns_domain")
     @classmethod

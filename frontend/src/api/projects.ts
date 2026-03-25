@@ -5,7 +5,7 @@ import type { Project } from '@/lib/types'
 
 export function useProjects() {
   const { data: settings } = useSettings()
-  const hasKey = !!settings?.service_account_key_path
+  const hasKey = !!settings?.has_keys
   return useQuery({
     queryKey: ['projects'],
     queryFn: () => apiGet<Project[]>('/projects'),
