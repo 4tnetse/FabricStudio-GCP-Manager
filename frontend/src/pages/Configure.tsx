@@ -538,7 +538,7 @@ export default function Configure() {
                         name="workspace-install"
                         checked={workspaceInstallIndex === -1}
                         onChange={() => setWorkspaceInstallIndex(-1)}
-                        className="accent-blue-500 w-4 h-4 cursor-pointer"
+                        className={`${theme === 'security-fabric' ? 'accent-red-500' : 'accent-blue-500'} w-4 h-4 cursor-pointer`}
                       />
                     </div>
                     <span />
@@ -570,7 +570,7 @@ export default function Configure() {
                           name="workspace-install"
                           checked={workspaceInstallIndex === i}
                           onChange={() => setWorkspaceInstallIndex(i)}
-                          className="accent-blue-500 w-4 h-4 cursor-pointer"
+                          className={`${theme === 'security-fabric' ? 'accent-red-500' : 'accent-blue-500'} w-4 h-4 cursor-pointer`}
                         />
                       </div>
                       <div className="flex justify-center">
