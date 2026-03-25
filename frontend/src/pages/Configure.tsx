@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { ChevronDown, ChevronUp, Loader2, Search, X } from 'lucide-react'
 import { apiPost } from '@/api/client'
 import { useSettings } from '@/api/settings'
+import { useTheme } from '@/context/ThemeContext'
 import { useInstances } from '@/api/instances'
 import { LogStream } from '@/components/LogStream'
 import { CustomSelect } from '@/components/CustomSelect'
@@ -17,25 +18,52 @@ function formatSelection(names: Set<string>): string {
     return m ? { base: m[1], num: parseInt(m[2]), pad: m[2].length } : null
   }
 
-  const parsed = arr.map(parseNum)
-  if (parsed.every((p) => p && p.base === parsed[0]!.base)) {
-    const nums = parsed.map((p) => p!.num).sort((a, b) => a - b)
-    const isContiguous = nums.every((n, i) => i === 0 || n === nums[i - 1] + 1)
-    if (isContiguous) {
-      const base = parsed[0]!.base
-      const pad = parsed[0]!.pad
-      const from = String(nums[0]).padStart(pad, '0')
-      const to = String(nums[nums.length - 1]).padStart(pad, '0')
-      return `${base}-${from} to ${base}-${to}`
+  // Group by base name; unparseable names kept as-is
+  const groups = new Map<string, { nums: number[]; pad: number }>()
+  const singles: string[] = []
+
+  for (const name of arr) {
+    const p = parseNum(name)
+    if (!p) {
+      singles.push(name)
+    } else {
+      const g = groups.get(p.base)
+      if (g) {
+        g.nums.push(p.num)
+      } else {
+        groups.set(p.base, { nums: [p.num], pad: p.pad })
+      }
     }
   }
 
-  if (arr.length <= 3) return arr.join(', ')
-  return `${arr.slice(0, 2).join(', ')} +${arr.length - 2} more`
+  const parts: string[] = []
+  for (const [base, { nums, pad }] of groups) {
+    nums.sort((a, b) => a - b)
+    // Split into contiguous runs
+    const runs: number[][] = []
+    let run: number[] = [nums[0]]
+    for (let i = 1; i < nums.length; i++) {
+      if (nums[i] === nums[i - 1] + 1) {
+        run.push(nums[i])
+      } else {
+        runs.push(run)
+        run = [nums[i]]
+      }
+    }
+    runs.push(run)
+
+    for (const r of runs) {
+      const fmt = (n: number) => `${base}-${String(n).padStart(pad, '0')}`
+      parts.push(r.length === 1 ? fmt(r[0]) : `${fmt(r[0])} to ${fmt(r[r.length - 1])}`)
+    }
+  }
+
+  return [...parts, ...singles].join(', ')
 }
 
 export default function Configure() {
   const { data: settings } = useSettings()
+  const { theme } = useTheme()
   const { data: instances = [], isLoading: instancesLoading } = useInstances()
 
   // Instance selection
@@ -49,8 +77,9 @@ export default function Configure() {
   // Configure params
   const [oldAdminPassword, setOldAdminPassword] = useState('')
   const [adminPassword, setAdminPassword] = useState('')
+  const [guestPassword, setGuestPassword] = useState('')
   const [trialKey, setTrialKey] = useState('')
-  const [licenseServer, setLicenseServer] = useState(settings?.license_server ?? '')
+  const [licenseServer, setLicenseServer] = useState('')
   const [pocLaunch, setPocLaunch] = useState('')
   const [pocDefs, setPocDefs] = useState<string[]>(Array(8).fill(''))
   const [pocDefsExpanded, setPocDefsExpanded] = useState(false)
@@ -131,6 +160,7 @@ export default function Configure() {
         instances: items,
         old_admin_password: oldAdminPassword || undefined,
         admin_password: adminPassword || undefined,
+        guest_password: guestPassword || undefined,
         trial_key: trialKey || undefined,
         license_server: licenseServer || undefined,
         poc_launch: pocLaunch || undefined,
@@ -300,12 +330,12 @@ export default function Configure() {
 
             {/* Selection summary */}
             {selectedNames.size > 0 && (
-              <div className="flex items-start justify-between gap-2 px-3 py-2 rounded-lg bg-blue-900/20 border border-blue-800/40">
+              <div className="flex items-start justify-between gap-2 px-3 py-2 rounded-lg bg-blue-900/20">
                 <div className="text-xs text-blue-300 min-w-0">
                   <span className="font-medium">{selectedNames.size} instance{selectedNames.size !== 1 ? 's' : ''} selected: </span>
                   <span className="font-mono">{formatSelection(selectedNames)}</span>
                 </div>
-                <button onClick={clearSelection} className="text-blue-500 hover:text-blue-300 shrink-0">
+                <button onClick={clearSelection} className={`shrink-0 ${theme === 'security-fabric' ? 'text-[#db291c] hover:text-[#ff4433]' : 'text-blue-500 hover:text-blue-300'}`}>
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -317,24 +347,36 @@ export default function Configure() {
             <h2 className="text-sm font-semibold text-slate-200">2. Configure</h2>
             <p className="text-xs text-slate-500 -mt-2">Make sure the selected instances are running.</p>
 
-            <div>
-              <label className={labelClass}>Admin password</label>
-              <input
-                className={inputClass}
-                type="password"
-                value={oldAdminPassword}
-                onChange={(e) => setOldAdminPassword(e.target.value)}
-                placeholder="Leave empty to use Settings default"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>Admin password</label>
+                <input
+                  className={inputClass}
+                  type="password"
+                  value={oldAdminPassword}
+                  onChange={(e) => setOldAdminPassword(e.target.value)}
+                  placeholder="Leave empty to use Settings default"
+                />
+              </div>
+              <div>
+                <label className={labelClass}>New admin password</label>
+                <input
+                  className={inputClass}
+                  type="password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  placeholder="Optional"
+                />
+              </div>
             </div>
 
             <div>
-              <label className={labelClass}>New admin password</label>
+              <label className={labelClass}>Set guest password</label>
               <input
                 className={inputClass}
                 type="password"
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
+                value={guestPassword}
+                onChange={(e) => setGuestPassword(e.target.value)}
                 placeholder="Optional"
               />
             </div>
