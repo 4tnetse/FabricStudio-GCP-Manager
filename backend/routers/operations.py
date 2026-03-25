@@ -9,7 +9,8 @@ from pydantic import BaseModel
 
 import config as cfg
 from auth import get_credentials
-from models.instance import BuildConfig, CloneRequest
+from models.instance import BuildConfig, CloneRequest, ConfigureRequest
+from services.fs_api import FabricStudioClient, wait_until_ready
 from services.dns_helpers import create_dns_for_instance, delete_dns_for_instance
 from services.gcp_compute import GCPComputeService
 from services.gcp_dns import GCPDnsService
@@ -242,6 +243,87 @@ async def clone_instances(clone_req: CloneRequest, background_tasks: BackgroundT
     job_id = str(uuid.uuid4())
     job_manager.create_job(job_id)
     background_tasks.add_task(_clone_job, job_id, clone_req)
+    return {"job_id": job_id}
+
+
+# ------------------------------------------------------------------ #
+#  Configure                                                           #
+# ------------------------------------------------------------------ #
+
+def _build_instance_fqdn(product: str) -> str | None:
+    """Return the FQDN for the golden image (number=0) of a workshop."""
+    prefix = cfg.settings.instance_fqdn_prefix
+    domain = cfg.settings.dns_domain
+    if not prefix or not domain:
+        return None
+    return f"{prefix}0.{product}.{domain}"
+
+
+async def _configure_job(job_id: str, req: ConfigureRequest) -> None:
+    q = job_manager.jobs[job_id]
+    failed = False
+
+    try:
+        fqdn = _build_instance_fqdn(req.product)
+        if not fqdn:
+            await q.put("ERROR: DNS settings (Instance FQDN prefix / DNS Domain) are not configured in Settings.")
+            await job_manager.mark_done(job_id, failed=True)
+            return
+
+        default_password = req.old_admin_password or cfg.settings.fs_admin_password
+        if not default_password:
+            await q.put("ERROR: No admin password available — set a default in Settings or fill in the Old admin password field.")
+            await job_manager.mark_done(job_id, failed=True)
+            return
+
+        await q.put(f"Waiting for Fabric Studio instance at {fqdn} to be ready…")
+        try:
+            await wait_until_ready(fqdn, log=q.put)
+        except TimeoutError as exc:
+            await q.put(f"ERROR: {exc}")
+            await job_manager.mark_done(job_id, failed=True)
+            return
+
+        await q.put(f"Connecting to Fabric Studio instance at {fqdn}…")
+
+        try:
+            async with FabricStudioClient(fqdn, default_password) as fs:
+                # Set license server
+                if req.license_server:
+                    await q.put(f"Setting license server to https://{req.license_server}/license/…")
+                    await fs.set_license_server(req.license_server)
+                    await q.put("License server configured.")
+
+                # Register token:secret
+                if req.trial_key:
+                    await q.put("Registering token…")
+                    await fs.register_token(req.trial_key)
+                    await q.put("Registration token applied.")
+
+                # Change admin password (last — session uses old password)
+                if req.admin_password:
+                    await q.put("Changing admin password…")
+                    await fs.change_admin_password(
+                        current_password=default_password,
+                        new_password=req.admin_password,
+                    )
+                    await q.put("Admin password changed successfully.")
+        except Exception as exc:
+            await q.put(f"ERROR during configure: {exc}")
+            failed = True
+
+    except Exception as exc:
+        await q.put(f"Configure job failed: {exc}")
+        failed = True
+
+    await job_manager.mark_done(job_id, failed=failed)
+
+
+@router.post("/configure")
+async def configure_instance(req: ConfigureRequest, background_tasks: BackgroundTasks):
+    job_id = str(uuid.uuid4())
+    job_manager.create_job(job_id)
+    background_tasks.add_task(_configure_job, job_id, req)
     return {"job_id": job_id}
 
 

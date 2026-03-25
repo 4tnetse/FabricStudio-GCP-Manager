@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Hammer,
   Copy,
+  Wrench,
   Shield,
   Tag,
   Terminal,
@@ -25,6 +26,7 @@ import { useSettings } from '@/api/settings'
 import Dashboard from '@/pages/Dashboard'
 import Build from '@/pages/Build'
 import Clone from '@/pages/Clone'
+import Configure from '@/pages/Configure'
 import Firewall from '@/pages/Firewall'
 import Labels from '@/pages/Labels'
 import SSH from '@/pages/SSH'
@@ -37,10 +39,11 @@ const NAV_ITEMS = [
   { to: '/', label: 'Instances', icon: LayoutDashboard, exact: true },
   { to: '/build', label: 'Build', icon: Hammer },
   { to: '/clone', label: 'Clone', icon: Copy },
+  { to: '/configure', label: 'Configure', icon: Wrench },
   { to: '/firewall', label: 'Firewall', icon: Shield },
   { to: '/labels', label: 'Labels', icon: Tag },
-  { to: '/configurations', label: 'Configurations', icon: FileCode },
   { to: '/ssh', label: 'SSH', icon: Terminal },
+  { to: '/configurations', label: 'SSH Configurations', icon: FileCode },
   { to: '/images', label: 'Images', icon: HardDrive },
   { to: '/costs', label: 'Costs', icon: Receipt },
 ]
@@ -125,7 +128,7 @@ export default function App() {
   }, [])
 
   const { data: settings } = useSettings()
-  const hasKey = !!settings?.service_account_key_path
+  const hasKey = !!settings?.has_keys
 
   const { data: projects } = useProjects()
   const currentProject = projects?.find((p) => p.is_selected) ?? projects?.[0]
@@ -273,6 +276,7 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/build" element={<Build />} />
             <Route path="/clone" element={<Clone />} />
+            <Route path="/configure" element={<Configure />} />
             <Route path="/firewall" element={<Firewall />} />
             <Route path="/labels" element={<Labels />} />
             <Route path="/ssh" element={<SSH />} />

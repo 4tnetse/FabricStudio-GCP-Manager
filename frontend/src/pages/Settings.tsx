@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Upload, Loader2, Trash2, Key, Settings2, Palette } from 'lucide-react'
-import { useSettings, useUpdateSettings, useUploadKeyFile, useDeleteKeyFile, useResetSettings } from '@/api/settings'
+import { Upload, Loader2, Trash2, Key, Settings2, Palette, Pencil } from 'lucide-react'
+import { useSettings, useUpdateSettings, useResetSettings } from '@/api/settings'
+import { useKeys, useUploadKey, useDeleteKey, useRenameKey } from '@/api/keys'
 import { useZones, useZoneLocations } from '@/api/instances'
 import { useTheme, type AppTheme } from '@/context/ThemeContext'
-import type { Settings } from '@/lib/types'
+import type { Settings, KeyInfo } from '@/lib/types'
 import { CustomSelect } from '@/components/CustomSelect'
 import { zoneLabel } from '@/lib/zones'
+import { SwitchProjectDialog } from '@/components/SwitchProjectDialog'
 
 const TYPES = ['fs', 'fpoc']
 
@@ -61,14 +63,19 @@ export default function SettingsPage() {
   const { data: zones = [] } = useZones()
   const { data: zoneLocations = {} } = useZoneLocations()
   const updateSettings = useUpdateSettings()
-  const uploadKeyFile = useUploadKeyFile()
-  const deleteKeyFile = useDeleteKeyFile()
   const resetSettings = useResetSettings()
+  const { data: keys } = useKeys()
+  const uploadKey = useUploadKey()
+  const deleteKey = useDeleteKey()
+  const renameKey = useRenameKey()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState<Partial<Settings>>({})
   const [confirmReset, setConfirmReset] = useState(false)
   const [dragging, setDragging] = useState(false)
+  const [editingKeyId, setEditingKeyId] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState('')
+  const [pendingKeyInfo, setPendingKeyInfo] = useState<KeyInfo | null>(null)
 
   useEffect(() => {
     if (settings) {
@@ -79,10 +86,10 @@ export default function SettingsPage() {
         owner: settings.owner ?? '',
         group: settings.group ?? '',
         ssh_public_key: settings.ssh_public_key ?? '',
-        license_server: settings.license_server ?? '',
         dns_domain: settings.dns_domain ?? '',
         instance_fqdn_prefix: settings.instance_fqdn_prefix ?? '',
         dns_zone_name: settings.dns_zone_name ?? '',
+        fs_admin_password: settings.fs_admin_password ?? '',
       })
     }
   }, [settings])
@@ -106,11 +113,31 @@ export default function SettingsPage() {
       return
     }
     try {
-      await uploadKeyFile.mutateAsync(file)
+      const meta = await uploadKey.mutateAsync(file)
       toast.success('Key file uploaded successfully')
+      setPendingKeyInfo(meta)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to upload key file')
     }
+  }
+
+  async function handleDeleteKey(keyId: string) {
+    try {
+      await deleteKey.mutateAsync(keyId)
+      toast.success('Key removed')
+    } catch {
+      toast.error('Failed to remove key')
+    }
+  }
+
+  async function handleRenameConfirm(keyId: string) {
+    if (!editingName.trim()) return
+    try {
+      await renameKey.mutateAsync({ keyId, displayName: editingName.trim() })
+    } catch {
+      toast.error('Failed to rename key')
+    }
+    setEditingKeyId(null)
   }
 
   async function handleReset() {
@@ -160,52 +187,85 @@ export default function SettingsPage() {
         <p className="text-sm text-slate-400 mt-0.5">Configure your GCP connection and preferences</p>
       </div>
 
-      {/* Service Account Key */}
+      {/* Service Account Keys */}
       <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
         <div className="flex items-center gap-2">
           <Key className="w-4 h-4 text-slate-400" />
-          <h2 className="text-sm font-semibold text-slate-200">Service Account Key</h2>
+          <h2 className="text-sm font-semibold text-slate-200">Service Account Keys</h2>
         </div>
 
-        {settings?.service_account_key_path && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-900/20 border border-green-800/60 text-xs text-green-400">
-            <Key className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate font-mono flex-1">{settings.service_account_key_name || settings.service_account_key_path}</span>
-            <button
-              onClick={async () => {
-                try {
-                  await deleteKeyFile.mutateAsync()
-                  toast.success('Key file removed')
-                } catch {
-                  toast.error('Failed to remove key file')
-                }
-              }}
-              className="ml-1 text-green-600 hover:text-red-400 transition-colors shrink-0"
-              title="Remove key file"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+        {/* Key list */}
+        {keys && keys.length > 0 && (
+          <div className="space-y-2">
+            {keys.map((key) => (
+              <div key={key.id} className="flex items-start gap-3 px-3 py-3 rounded-lg bg-slate-800/60 border border-slate-700">
+                <Key className="w-3.5 h-3.5 text-green-400 mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  {editingKeyId === key.id ? (
+                    <div className="flex items-center gap-2 mb-1">
+                      <input
+                        className="flex-1 px-2 py-0.5 rounded bg-slate-700 border border-slate-600 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleRenameConfirm(key.id)
+                          if (e.key === 'Escape') setEditingKeyId(null)
+                        }}
+                        autoFocus
+                      />
+                      <button onClick={() => handleRenameConfirm(key.id)} className="text-xs text-blue-400 hover:text-blue-300 px-1">Save</button>
+                      <button onClick={() => setEditingKeyId(null)} className="text-xs text-slate-500 hover:text-slate-300 px-1">Cancel</button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-sm font-medium text-slate-200 truncate">{key.display_name}</span>
+                      <button
+                        onClick={() => { setEditingKeyId(key.id); setEditingName(key.display_name) }}
+                        className="text-slate-600 hover:text-slate-400 transition-colors shrink-0"
+                        title="Rename"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                  {key.client_email && (
+                    <div className="text-xs text-slate-500 truncate font-mono">{key.client_email}</div>
+                  )}
+                  <div className="text-xs text-slate-600 mt-0.5">
+                    {key.projects.length === 0
+                      ? 'No projects'
+                      : key.projects.map((p) => p.name || p.id).join(', ')}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDeleteKey(key.id)}
+                  className="text-slate-600 hover:text-red-400 transition-colors shrink-0 mt-0.5"
+                  title="Delete key"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
+        {/* Upload drop zone */}
         <div
           onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
           onDragLeave={() => setDragging(false)}
           onDrop={handleDrop}
           className={`relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-8 cursor-pointer transition-colors ${
-            dragging
-              ? 'border-blue-500 bg-blue-900/20'
-              : 'border-slate-700 hover:border-slate-500 hover:bg-slate-800/40'
+            dragging ? 'border-blue-500 bg-blue-900/20' : 'border-slate-700 hover:border-slate-500 hover:bg-slate-800/40'
           }`}
           onClick={() => fileInputRef.current?.click()}
         >
-          {uploadKeyFile.isPending ? (
+          {uploadKey.isPending ? (
             <Loader2 className="w-6 h-6 animate-spin text-slate-400 mb-2" />
           ) : (
             <Upload className="w-6 h-6 text-slate-400 mb-2" />
           )}
           <p className="text-sm text-slate-300">
-            {uploadKeyFile.isPending ? 'Uploading...' : 'Drop JSON key file here or click to browse'}
+            {uploadKey.isPending ? 'Uploading...' : 'Drop JSON key file here or click to browse'}
           </p>
           <p className="text-xs text-slate-500 mt-1">GCP service account JSON key</p>
           <p className="text-xs text-slate-500 mt-2">GCP Console → IAM & Admin → Service Accounts → select account → Keys tab → Add Key → JSON</p>
@@ -283,13 +343,15 @@ export default function SettingsPage() {
           />
         </div>
 
+
         <div>
-          <label className={labelClass}>License server</label>
+          <label className={labelClass}>Default Fabric Studio admin password</label>
           <input
             className={inputClass}
-            placeholder="e.g. 10.0.0.1"
-            value={(form.license_server as string) ?? ''}
-            onChange={(e) => setField('license_server', e.target.value)}
+            type="password"
+            placeholder="Default password for Fabric Studio API access"
+            value={(form.fs_admin_password as string) ?? ''}
+            onChange={(e) => setField('fs_admin_password', e.target.value)}
           />
         </div>
 
@@ -386,6 +448,11 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Switch project dialog after key upload */}
+      {pendingKeyInfo && (
+        <SwitchProjectDialog keyInfo={pendingKeyInfo} onClose={() => setPendingKeyInfo(null)} />
       )}
     </div>
   )

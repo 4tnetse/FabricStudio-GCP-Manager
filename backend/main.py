@@ -39,6 +39,24 @@ async def _daily_price_refresh():
 async def lifespan(app: FastAPI):
     # Load settings on startup
     cfg.settings = cfg.load_settings()
+
+    # Migrate legacy single-key setup
+    from services import key_store
+    if cfg.settings.service_account_key_path and not key_store.load_keys():
+        from services.key_store import migrate_from_legacy
+        meta = migrate_from_legacy(
+            cfg.settings.service_account_key_path,
+            cfg.settings.service_account_key_name,
+        )
+        if meta:
+            project_id = cfg.settings.active_project_id or (meta.projects[0].id if meta.projects else None)
+            updated = cfg.settings.model_copy(update={
+                "active_key_id": meta.id,
+                "active_project_id": project_id,
+            })
+            cfg.settings = updated
+            cfg.save_settings(updated)
+
     asyncio.create_task(_daily_price_refresh())
     yield
 

@@ -42,6 +42,18 @@ class BuildConfig(BaseModel):
     title: str = ""
 
 
+class ConfigureRequest(BaseModel):
+    prepend: str
+    product: str
+    zone: str
+    old_admin_password: str = ""
+    admin_password: str = ""
+    trial_key: str = ""
+    license_server: str = ""
+    poc_launch: str = ""
+    poc_definitions: list[str] = []
+
+
 class CloneRequest(BaseModel):
     source_name: str  # the 000 instance name e.g. "fs-tve-fwb-000"
     zone: str         # zone of the source instance

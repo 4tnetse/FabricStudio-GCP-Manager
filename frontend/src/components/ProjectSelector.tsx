@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import type { Project } from '@/lib/types'
 
 export function ProjectSelector() {
   const { data: settings } = useSettings()
@@ -12,9 +13,9 @@ export function ProjectSelector() {
   const selectProject = useSelectProject()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-
   const navigate = useNavigate()
-  const noKey = !settings?.service_account_key_path
+
+  const noKey = !settings?.has_keys
 
   const currentProject = projects?.find((p) => p.is_selected) ?? projects?.[0]
 
@@ -50,6 +51,21 @@ export function ProjectSelector() {
     )
   }
 
+  // Group projects by key
+  const grouped: { keyId: string; keyName: string; projects: Project[] }[] = []
+  if (projects) {
+    for (const p of projects) {
+      const keyId = p.key_id ?? '__unknown__'
+      const keyName = p.key_name ?? 'Unknown key'
+      const existing = grouped.find((g) => g.keyId === keyId)
+      if (existing) {
+        existing.projects.push(p)
+      } else {
+        grouped.push({ keyId, keyName, projects: [p] })
+      }
+    }
+  }
+
   return (
     <div ref={ref} className="relative">
       <button
@@ -78,28 +94,41 @@ export function ProjectSelector() {
             <div className="px-3 py-2 text-xs text-slate-500">No projects available</div>
           ) : (
             <div className="max-h-64 overflow-y-auto">
-              {projects.map((project) => (
-                <button
-                  key={project.id}
-                  onClick={() => handleSelect(project.id)}
-                  className={cn(
-                    'flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition-colors',
-                    project.is_selected
-                      ? 'bg-blue-900/40 text-blue-300'
-                      : 'text-slate-300 hover:bg-slate-800',
+              {grouped.map((group, gi) => (
+                <div key={group.keyId}>
+                  {/* Key group header — non-clickable separator */}
+                  {grouped.length > 1 && (
+                    <div className={cn(
+                      'px-3 py-1.5 text-xs font-medium text-slate-500 bg-slate-800/60 select-none',
+                      gi > 0 && 'border-t border-slate-700/60'
+                    )}>
+                      {group.keyName}
+                    </div>
                   )}
-                >
-                  <FolderOpen className="w-3.5 h-3.5 shrink-0 text-slate-500" />
-                  <div className="flex-1 min-w-0">
-                    <div className="truncate">{project.name || project.id}</div>
-                    {project.name && project.name !== project.id && (
-                      <div className="text-xs text-slate-500 truncate">{project.id}</div>
-                    )}
-                  </div>
-                  {project.is_selected && (
-                    <span className="text-xs text-blue-400">active</span>
-                  )}
-                </button>
+                  {group.projects.map((project) => (
+                    <button
+                      key={project.id}
+                      onClick={() => handleSelect(project.id)}
+                      className={cn(
+                        'flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition-colors',
+                        project.is_selected
+                          ? 'bg-blue-900/40 text-blue-300'
+                          : 'text-slate-300 hover:bg-slate-800',
+                      )}
+                    >
+                      <FolderOpen className="w-3.5 h-3.5 shrink-0 text-slate-500" />
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate">{project.name || project.id}</div>
+                        {project.name && project.name !== project.id && (
+                          <div className="text-xs text-slate-500 truncate">{project.id}</div>
+                        )}
+                      </div>
+                      {project.is_selected && (
+                        <span className="text-xs text-blue-400">active</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
               ))}
             </div>
           )}
