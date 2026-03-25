@@ -1,7 +1,8 @@
-0.104
+0.105
 
 # Version history
 # ---------------
+# 0.105  Configure screen: Fabric Workspace section — create multiple fabrics from templates, install selector (radio with None default), hostname field, SSH key management fixes, info icon on registration token
 # 0.104  Configure screen: set hostname with {count} template (maps to instance number); info icon on registration token field
 # 0.103  Configure screen: SSH public key management — add/remove multiple keys, optional "delete existing keys" checkbox; settings key always included; backed by Fabric Studio /api/v1/system/account/ssh/keys API
 # 0.102  Configure screen: selection summary compresses contiguous ranges per base name, even when mixed with other instances (e.g. "fs-tve-devtest-000 to fs-tve-devtest-002, srv-tve-license-001")

@@ -71,6 +71,7 @@ class BulkConfigureRequest(BaseModel):
     ssh_keys: list[str] = []
     delete_existing_keys: bool = False
     hostname_template: str = ""
+    workspace_fabrics: list[dict] = []  # [{name: str, template_id: int}]
 
 
 class CloneRequest(BaseModel):

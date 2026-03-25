@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import AsyncGenerator
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -452,6 +452,25 @@ async def _bulk_configure_job(job_id: str, req: BulkConfigureRequest) -> None:
                     hostname = req.hostname_template.replace("{count}", str(parsed.number))
                     await q.put(f"{tag} Setting hostname to '{hostname}'…")
                     await fs.set_hostname(hostname)
+                valid_fabrics = [f for f in req.workspace_fabrics if f.get("name") and f.get("template_id")]
+                if valid_fabrics:
+                    await q.put(f"{tag} Uninstalling fabric runtime…")
+                    await fs.uninstall_fabric()
+                    await q.put(f"{tag} Waiting for uninstall to complete…")
+                    await fs.wait_for_tasks()
+                    await q.put(f"{tag} Deleting all existing fabrics…")
+                    await fs.delete_all_fabrics()
+                    for fabric in valid_fabrics:
+                        await q.put(f"{tag} Creating fabric '{fabric['name']}' from template {fabric['template_id']}…")
+                        await fs.create_fabric(fabric["name"], fabric["template_id"])
+                        await fs.wait_for_tasks()
+                        await q.put(f"{tag} Fabric '{fabric['name']}' created.")
+                    fabric_to_install = next((f for f in valid_fabrics if f.get("install")), None)
+                    if fabric_to_install:
+                        await q.put(f"{tag} Installing fabric '{fabric_to_install['name']}'…")
+                        fabric_id = await fs.get_fabric_id_by_name(fabric_to_install["name"])
+                        await fs.install_fabric(fabric_id)
+                        await q.put(f"{tag} Fabric '{fabric_to_install['name']}' installation started.")
                 all_ssh_keys = list(req.ssh_keys)
                 if cfg.settings.ssh_public_key:
                     all_ssh_keys.insert(0, cfg.settings.ssh_public_key)
@@ -479,6 +498,36 @@ async def bulk_configure(req: BulkConfigureRequest, background_tasks: Background
     job_manager.create_job(job_id)
     background_tasks.add_task(_bulk_configure_job, job_id, req)
     return {"job_id": job_id}
+
+
+# ------------------------------------------------------------------ #
+#  Fabric Studio helpers                                                #
+# ------------------------------------------------------------------ #
+
+@router.get("/fs-templates")
+async def get_fs_templates(instance_name: str = Query(...)):
+    """Fetch available fabric templates from a Fabric Studio instance."""
+    try:
+        parsed = InstanceName.parse(instance_name)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    prefix = cfg.settings.instance_fqdn_prefix
+    domain = cfg.settings.dns_domain
+    if not prefix or not domain:
+        raise HTTPException(status_code=400, detail="DNS settings not configured in Settings.")
+
+    fqdn = f"{prefix}{parsed.number}.{parsed.product}.{domain}"
+    password = cfg.settings.fs_admin_password
+    if not password:
+        raise HTTPException(status_code=400, detail="No admin password configured in Settings.")
+
+    try:
+        async with FabricStudioClient(fqdn, password) as fs:
+            templates = await fs.list_templates()
+        return {"templates": templates}
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
 
 
 # ------------------------------------------------------------------ #

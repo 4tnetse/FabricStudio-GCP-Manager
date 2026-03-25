@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { toast } from 'sonner'
 import { ChevronDown, ChevronUp, Info, Loader2, Plus, Search, X } from 'lucide-react'
-import { apiPost } from '@/api/client'
+import { apiGet, apiPost } from '@/api/client'
 import { useSettings } from '@/api/settings'
 import { useTheme } from '@/context/ThemeContext'
 import { useInstances } from '@/api/instances'
@@ -83,12 +83,34 @@ export default function Configure() {
   const [deleteExistingKeys, setDeleteExistingKeys] = useState(false)
   const [trialKey, setTrialKey] = useState('')
   const [licenseServer, setLicenseServer] = useState('')
-  const [pocLaunch, setPocLaunch] = useState('')
-  const [pocDefs, setPocDefs] = useState<string[]>(Array(8).fill(''))
-  const [pocDefsExpanded, setPocDefsExpanded] = useState(false)
+  const [workspaceSource, setWorkspaceSource] = useState('')
+  const [workspaceTemplates, setWorkspaceTemplates] = useState<{ id: number; name: string; description: string }[]>([])
+  const [workspaceTemplatesLoading, setWorkspaceTemplatesLoading] = useState(false)
+  const [workspaceFabrics, setWorkspaceFabrics] = useState<{ name: string; templateId: string }[]>([{ name: '', templateId: '' }])
+  const [workspaceInstallIndex, setWorkspaceInstallIndex] = useState<number>(-1) // -1 = None
   const [configuring, setConfiguring] = useState(false)
   const [streaming, setStreaming] = useState(false)
   const [streamUrl, setStreamUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!workspaceSource) {
+      setWorkspaceTemplates([])
+      setWorkspaceFabrics([{ name: '', templateId: '' }])
+      setWorkspaceInstallIndex(-1)
+      return
+    }
+    setWorkspaceTemplatesLoading(true)
+    setWorkspaceTemplates([])
+    setWorkspaceFabrics([{ name: '', templateId: '' }])
+    setWorkspaceInstallIndex(-1)
+    apiGet<{ templates: { id: number; name: string; description: string }[] }>(
+      '/ops/fs-templates',
+      { instance_name: workspaceSource },
+    )
+      .then((data) => setWorkspaceTemplates(data.templates))
+      .catch((err) => toast.error(`Failed to fetch templates: ${err.message}`))
+      .finally(() => setWorkspaceTemplatesLoading(false))
+  }, [workspaceSource])
 
   const filtered = useMemo(
     () => instances.filter((i) => !search || i.name.toLowerCase().includes(search.toLowerCase())),
@@ -143,10 +165,6 @@ export default function Configure() {
     toast.success(`Selected ${found.length} instance${found.length !== 1 ? 's' : ''} from range`)
   }
 
-  function updatePocDef(i: number, val: string) {
-    setPocDefs((prev) => prev.map((v, idx) => (idx === i ? val : v)))
-  }
-
   function addSshKey() {
     setSshKeys((prev) => [...prev, ''])
   }
@@ -178,9 +196,8 @@ export default function Configure() {
         guest_password: guestPassword || undefined,
         trial_key: trialKey || undefined,
         license_server: licenseServer || undefined,
-        poc_launch: pocLaunch || undefined,
-        poc_definitions: pocDefs.filter(Boolean),
         hostname_template: hostnameTemplate || undefined,
+        workspace_fabrics: workspaceFabrics.filter(f => f.name && f.templateId).map((f, i) => ({ name: f.name, template_id: parseInt(f.templateId), install: i === workspaceInstallIndex })),
         ssh_keys: sshKeys.filter(Boolean),
         delete_existing_keys: deleteExistingKeys,
       }
@@ -211,7 +228,7 @@ export default function Configure() {
 
           {/* Section 1: Instance selection */}
           <div className="space-y-3 p-5">
-            <h2 className="text-sm font-semibold text-slate-200">1. Select instances</h2>
+            <h2 className="text-sm font-semibold text-slate-200">Select instances</h2>
 
             {/* Select by name */}
             <div>
@@ -362,7 +379,7 @@ export default function Configure() {
 
           {/* Section 2: Configuration */}
           <div className="space-y-4 p-5">
-            <h2 className="text-sm font-semibold text-slate-200">2. Configure</h2>
+            <h2 className="text-sm font-semibold text-slate-200">Configure</h2>
             <p className="text-xs text-slate-500 -mt-2">Make sure the selected instances are running.</p>
 
             <div className="grid grid-cols-2 gap-3">
@@ -483,39 +500,105 @@ export default function Configure() {
               />
             </div>
 
-            <div>
-              <label className={labelClass}>PoC Launch</label>
-              <input
-                className={inputClass}
-                value={pocLaunch}
-                onChange={(e) => setPocLaunch(e.target.value)}
-                placeholder="Optional"
-              />
-            </div>
+            {/* Fabric Workspace */}
+            <div className="pt-2 space-y-3">
+              <h2 className="text-sm font-semibold text-slate-200">Fabric Workspace</h2>
 
-            {/* PoC Definitions collapsible */}
-            <div>
-              <button
-                type="button"
-                onClick={() => setPocDefsExpanded((v) => !v)}
-                className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 mb-2"
-              >
-                {pocDefsExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                PoC Definitions (1–8)
-              </button>
-              {pocDefsExpanded && (
+              <div>
+                <label className={labelClass}>Source instance (make sure the instance is running)</label>
+                <CustomSelect
+                  className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  value={workspaceSource}
+                  onChange={setWorkspaceSource}
+                  options={[
+                    { value: '', label: 'Select instance…' },
+                    ...instances.map((i) => ({ value: i.name, label: i.name })),
+                  ]}
+                  searchable
+                />
+              </div>
+
+              {workspaceSource && (
                 <div className="space-y-2">
-                  {pocDefs.map((val, i) => (
-                    <div key={i}>
-                      <label className={labelClass}>PoC Definition {i + 1}</label>
+                  {/* Header row */}
+                  <div className="grid gap-3 items-center" style={{ gridTemplateColumns: '1fr 1fr 5rem 1.5rem' }}>
+                    <span className={labelClass + ' mb-0'}>Name</span>
+                    <span className={labelClass + ' mb-0'}>Template</span>
+                    <span className={labelClass + ' mb-0 text-center'}>Install</span>
+                    <span />
+                  </div>
+
+                  {/* None row */}
+                  <div className="grid gap-3 items-center" style={{ gridTemplateColumns: '1fr 1fr 5rem 1.5rem' }}>
+                    <span />
+                    <span className="text-xs text-slate-400 italic text-right">None</span>
+                    <div className="flex items-center justify-center">
                       <input
-                        className={inputClass}
-                        value={val}
-                        onChange={(e) => updatePocDef(i, e.target.value)}
-                        placeholder={`Definition ${i + 1}`}
+                        type="radio"
+                        name="workspace-install"
+                        checked={workspaceInstallIndex === -1}
+                        onChange={() => setWorkspaceInstallIndex(-1)}
+                        className="accent-blue-500 w-4 h-4 cursor-pointer"
                       />
                     </div>
+                    <span />
+                  </div>
+
+                  {/* Fabric rows */}
+                  {workspaceFabrics.map((fabric, i) => (
+                    <div key={i} className="grid gap-3 items-center" style={{ gridTemplateColumns: '1fr 1fr 5rem 1.5rem' }}>
+                      <input
+                        className={inputClass}
+                        value={fabric.name}
+                        onChange={(e) => setWorkspaceFabrics(prev => prev.map((f, idx) => idx === i ? { ...f, name: e.target.value } : f))}
+                        placeholder="e.g. My Workshop"
+                      />
+                      <CustomSelect
+                        className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        value={fabric.templateId}
+                        onChange={(val) => setWorkspaceFabrics(prev => prev.map((f, idx) => idx === i ? { ...f, templateId: val } : f))}
+                        disabled={workspaceTemplatesLoading || workspaceTemplates.length === 0}
+                        options={[
+                          { value: '', label: workspaceTemplatesLoading ? 'Loading…' : workspaceTemplates.length === 0 ? 'No templates' : 'Select…' },
+                          ...workspaceTemplates.map((t) => ({ value: String(t.id), label: t.name || t.description || `Template ${t.id}` })),
+                        ]}
+                        searchable
+                      />
+                      <div className="flex items-center justify-center">
+                        <input
+                          type="radio"
+                          name="workspace-install"
+                          checked={workspaceInstallIndex === i}
+                          onChange={() => setWorkspaceInstallIndex(i)}
+                          className="accent-blue-500 w-4 h-4 cursor-pointer"
+                        />
+                      </div>
+                      <div className="flex justify-center">
+                        {workspaceFabrics.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setWorkspaceFabrics(prev => prev.filter((_, idx) => idx !== i))
+                              if (workspaceInstallIndex === i) setWorkspaceInstallIndex(-1)
+                              else if (workspaceInstallIndex > i) setWorkspaceInstallIndex(workspaceInstallIndex - 1)
+                            }}
+                            className="text-slate-500 hover:text-slate-300"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   ))}
+
+                  <button
+                    type="button"
+                    onClick={() => setWorkspaceFabrics(prev => [...prev, { name: '', templateId: '' }])}
+                    className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 pt-1"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add Fabric
+                  </button>
                 </div>
               )}
             </div>
