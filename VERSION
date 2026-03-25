@@ -1,7 +1,8 @@
-0.100
+0.101
 
 # Version history
 # ---------------
+# 0.101  Instances: add 5s delayed refresh after each mutation
 # 0.100  Configure screen: SSH-style instance selectors (by name / by range), bulk configure, selection summary, split into 2 sections; Build screen cleanup
 # 0.99  Settings: two-column layout (keys + appearance left, preferences right) on wide screens
 # 0.98  Multi-key GCP support: upload/manage multiple service account keys, grouped project selector, switch-project dialog on key upload, inline key rename

@@ -64,6 +64,7 @@ export function useStartInstance() {
       apiPost(`/instances/${zone}/${name}/start`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instances'] })
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['instances'] }), 5000)
     },
   })
 }
@@ -75,6 +76,7 @@ export function useStopInstance() {
       apiPost(`/instances/${zone}/${name}/stop`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instances'] })
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['instances'] }), 5000)
     },
   })
 }
@@ -101,6 +103,7 @@ export function useSetMachineType() {
       apiPatch(`/instances/${zone}/${name}/machine-type`, { machine_type }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instances'] })
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['instances'] }), 5000)
     },
   })
 }
@@ -112,6 +115,7 @@ export function useRenameInstance() {
       apiPatch(`/instances/${zone}/${name}/rename`, { new_name }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instances'] })
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['instances'] }), 5000)
     },
   })
 }
@@ -123,6 +127,7 @@ export function useMoveInstance() {
       apiPost(`/instances/${zone}/${name}/move`, { destination_zone: target_zone }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instances'] })
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['instances'] }), 5000)
     },
   })
 }
@@ -139,6 +144,7 @@ export function useBulkOperation() {
     }) => apiPost<{ job_id: string }>(`/ops/${operation}`, { instances }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['instances'] })
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['instances'] }), 5000)
     },
   })
 }
