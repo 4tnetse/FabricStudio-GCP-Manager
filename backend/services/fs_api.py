@@ -170,6 +170,91 @@ class FabricStudioClient:
             raise ValueError(f"Password change failed: {data.get('errors', {})}")
 
     # ------------------------------------------------------------------ #
+    #  Workspace / Fabric                                                  #
+    # ------------------------------------------------------------------ #
+
+    async def list_templates(self) -> list[dict]:
+        """Return list of available fabric templates from all repositories."""
+        r = await self._client.get(
+            f"{self._base}/api/v1/system/repository/template",
+            headers=self._headers(),
+        )
+        if not r.is_success:
+            raise ValueError(f"List templates failed ({r.status_code}): {r.text}")
+        return r.json().get("object", [])
+
+    async def uninstall_fabric(self) -> None:
+        """Uninstall the running fabric from the runtime environment."""
+        r = await self._client.delete(
+            f"{self._base}/api/v1/runtime/fabric",
+            headers=self._headers(),
+        )
+        # 404 means no fabric is installed — that's fine
+        if not r.is_success and r.status_code != 404:
+            raise ValueError(f"Uninstall fabric failed ({r.status_code}): {r.text}")
+
+    async def wait_for_tasks(self, timeout: int = 300, interval: int = 5) -> None:
+        """Poll GET /api/v1/task until all tasks have completed (returned_date is set)."""
+        await asyncio.sleep(interval)  # give the server time to register the task
+        for _ in range(timeout // interval):
+            r = await self._client.get(
+                f"{self._base}/api/v1/task",
+                headers=self._headers(),
+            )
+            if r.is_success:
+                tasks = r.json().get("object", [])
+                running = [t for t in tasks if t.get("returned_date") is None]
+                if not running:
+                    return
+            await asyncio.sleep(interval)
+        raise TimeoutError("Timed out waiting for fabric tasks to complete")
+
+    async def delete_all_fabrics(self) -> None:
+        """Batch delete all fabric models."""
+        r = await self._client.delete(
+            f"{self._base}/api/v1/model/fabric/batch",
+            headers=self._headers(),
+        )
+        if not r.is_success:
+            raise ValueError(f"Delete all fabrics failed ({r.status_code}): {r.text}")
+
+    async def create_fabric(self, name: str, template_id: int) -> None:
+        """Create a fabric from a template."""
+        r = await self._client.post(
+            f"{self._base}/api/v1/model/fabric",
+            json={"name": name, "template": template_id},
+            headers=self._headers(),
+        )
+        if not r.is_success:
+            raise ValueError(f"Create fabric failed ({r.status_code}): {r.text}")
+        data = r.json()
+        if data.get("status") == "error":
+            raise ValueError(f"Create fabric failed: {data.get('errors', {})}")
+
+    async def get_fabric_id_by_name(self, name: str) -> int:
+        """Look up a fabric ID by name."""
+        r = await self._client.get(
+            f"{self._base}/api/v1/model/fabric",
+            headers=self._headers(),
+        )
+        if not r.is_success:
+            raise ValueError(f"List fabrics failed ({r.status_code}): {r.text}")
+        fabrics = r.json().get("object", [])
+        for fabric in fabrics:
+            if fabric.get("name") == name:
+                return fabric["id"]
+        raise ValueError(f"Fabric '{name}' not found after creation")
+
+    async def install_fabric(self, fabric_id: int) -> None:
+        """Install a fabric into the runtime environment by ID."""
+        r = await self._client.post(
+            f"{self._base}/api/v1/runtime/fabric/{fabric_id}",
+            headers=self._headers(),
+        )
+        if not r.is_success:
+            raise ValueError(f"Install fabric failed ({r.status_code}): {r.text}")
+
+    # ------------------------------------------------------------------ #
     #  Hostname                                                            #
     # ------------------------------------------------------------------ #
 
