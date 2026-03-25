@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { toast } from 'sonner'
-import { ChevronDown, ChevronUp, Loader2, Plus, Search, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Info, Loader2, Plus, Search, X } from 'lucide-react'
 import { apiPost } from '@/api/client'
 import { useSettings } from '@/api/settings'
 import { useTheme } from '@/context/ThemeContext'
@@ -78,6 +78,7 @@ export default function Configure() {
   const [oldAdminPassword, setOldAdminPassword] = useState('')
   const [adminPassword, setAdminPassword] = useState('')
   const [guestPassword, setGuestPassword] = useState('')
+  const [hostnameTemplate, setHostnameTemplate] = useState('')
   const [sshKeys, setSshKeys] = useState<string[]>([])
   const [deleteExistingKeys, setDeleteExistingKeys] = useState(false)
   const [trialKey, setTrialKey] = useState('')
@@ -179,6 +180,7 @@ export default function Configure() {
         license_server: licenseServer || undefined,
         poc_launch: pocLaunch || undefined,
         poc_definitions: pocDefs.filter(Boolean),
+        hostname_template: hostnameTemplate || undefined,
         ssh_keys: sshKeys.filter(Boolean),
         delete_existing_keys: deleteExistingKeys,
       }
@@ -446,7 +448,23 @@ export default function Configure() {
             </div>
 
             <div>
-              <label className={labelClass}>Fabric Studio Registration token:secret</label>
+              <label className={labelClass}>Hostname</label>
+              <input
+                className={inputClass}
+                value={hostnameTemplate}
+                onChange={(e) => setHostnameTemplate(e.target.value)}
+                placeholder="e.g. Attendee - {count}"
+              />
+              <p className="text-xs text-slate-500 mt-1"><code className="text-slate-500">{'{count}'}</code> is replaced with the instance number (e.g. 1, 23)</p>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-1.5 mb-1">
+                <label className="text-xs font-medium text-slate-400">Fabric Studio Registration token:secret</label>
+                <a href="https://srv3.register.fortipoc.com/" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-slate-300">
+                  <Info className="w-3.5 h-3.5" />
+                </a>
+              </div>
               <input
                 className={inputClass}
                 value={trialKey}

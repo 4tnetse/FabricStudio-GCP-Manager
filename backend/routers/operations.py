@@ -448,6 +448,10 @@ async def _bulk_configure_job(job_id: str, req: BulkConfigureRequest) -> None:
                 if req.guest_password:
                     await q.put(f"{tag} Setting guest password…")
                     await fs.change_user_password("guest", req.guest_password)
+                if req.hostname_template:
+                    hostname = req.hostname_template.replace("{count}", str(parsed.number))
+                    await q.put(f"{tag} Setting hostname to '{hostname}'…")
+                    await fs.set_hostname(hostname)
                 all_ssh_keys = list(req.ssh_keys)
                 if cfg.settings.ssh_public_key:
                     all_ssh_keys.insert(0, cfg.settings.ssh_public_key)
