@@ -38,3 +38,4 @@ frontend/.vite/
 .idea/
 .vscode/
 *.swp
+.claude/
