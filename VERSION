@@ -1,7 +1,8 @@
-0.98
+0.99
 
 # Version history
 # ---------------
+# 0.99  Settings: two-column layout (keys + appearance left, preferences right) on wide screens
 # 0.98  Multi-key GCP support: upload/manage multiple service account keys, grouped project selector, switch-project dialog on key upload, inline key rename
 # 0.97  Configure golden image: wait for instance readiness before connecting (polls /api/v1/session/check, retries every 10s up to 5 min)
 # 0.96  Configure golden image: Fabric Studio API integration (auth, license server, registration token, password change), Settings default admin password
