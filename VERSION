@@ -1,7 +1,8 @@
-0.105
+0.106
 
 # Version history
 # ---------------
+# 0.106  Configure screen: radio buttons red in Security Fabric theme, blue otherwise; fix None radio alignment
 # 0.105  Configure screen: Fabric Workspace section — create multiple fabrics from templates, install selector (radio with None default), hostname field, SSH key management fixes, info icon on registration token
 # 0.104  Configure screen: set hostname with {count} template (maps to instance number); info icon on registration token field
 # 0.103  Configure screen: SSH public key management — add/remove multiple keys, optional "delete existing keys" checkbox; settings key always included; backed by Fabric Studio /api/v1/system/account/ssh/keys API
