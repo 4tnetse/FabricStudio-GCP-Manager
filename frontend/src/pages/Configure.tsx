@@ -86,8 +86,9 @@ export default function Configure() {
   const [workspaceSource, setWorkspaceSource] = useState('')
   const [workspaceTemplates, setWorkspaceTemplates] = useState<{ id: number; name: string; description: string }[]>([])
   const [workspaceTemplatesLoading, setWorkspaceTemplatesLoading] = useState(false)
-  const [workspaceFabrics, setWorkspaceFabrics] = useState<{ name: string; templateId: string }[]>([{ name: '', templateId: '' }])
+  const [workspaceFabrics, setWorkspaceFabrics] = useState<{ name: string; templateId: string }[]>([])
   const [workspaceInstallIndex, setWorkspaceInstallIndex] = useState<number>(-1) // -1 = None
+  const [deleteAllWorkspaces, setDeleteAllWorkspaces] = useState(false)
   const [configuring, setConfiguring] = useState(false)
   const [streaming, setStreaming] = useState(false)
   const [streamUrl, setStreamUrl] = useState<string | null>(null)
@@ -95,14 +96,16 @@ export default function Configure() {
   useEffect(() => {
     if (!workspaceSource) {
       setWorkspaceTemplates([])
-      setWorkspaceFabrics([{ name: '', templateId: '' }])
+      setWorkspaceFabrics([])
       setWorkspaceInstallIndex(-1)
+      setDeleteAllWorkspaces(false)
       return
     }
     setWorkspaceTemplatesLoading(true)
     setWorkspaceTemplates([])
-    setWorkspaceFabrics([{ name: '', templateId: '' }])
+    setWorkspaceFabrics([])
     setWorkspaceInstallIndex(-1)
+    setDeleteAllWorkspaces(false)
     apiGet<{ templates: { id: number; name: string; description: string }[] }>(
       '/ops/fs-templates',
       { instance_name: workspaceSource },
@@ -177,6 +180,8 @@ export default function Configure() {
     setSshKeys((prev) => prev.filter((_, idx) => idx !== i))
   }
 
+  const hasValidFabrics = workspaceFabrics.some(f => f.name && f.templateId)
+
   async function handleConfigure() {
     if (selectedNames.size === 0) {
       toast.error('Select at least one instance')
@@ -197,6 +202,7 @@ export default function Configure() {
         trial_key: trialKey || undefined,
         license_server: licenseServer || undefined,
         hostname_template: hostnameTemplate || undefined,
+        delete_all_workspaces: hasValidFabrics || deleteAllWorkspaces,
         workspace_fabrics: workspaceFabrics.filter(f => f.name && f.templateId).map((f, i) => ({ name: f.name, template_id: parseInt(f.templateId), install: i === workspaceInstallIndex })),
         ssh_keys: sshKeys.filter(Boolean),
         delete_existing_keys: deleteExistingKeys,
@@ -520,33 +526,49 @@ export default function Configure() {
 
               {workspaceSource && (
                 <div className="space-y-2">
-                  {/* Header row */}
-                  <div className="grid gap-3 items-center" style={{ gridTemplateColumns: '1fr 1fr 5rem 1.5rem' }}>
-                    <span className={labelClass + ' mb-0'}>Name</span>
-                    <span className={labelClass + ' mb-0'}>Template</span>
-                    <span className={labelClass + ' mb-0 text-center'}>Install</span>
+                  <label className={`flex items-center gap-2 cursor-pointer select-none ${hasValidFabrics ? 'opacity-50' : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={hasValidFabrics || deleteAllWorkspaces}
+                      disabled={hasValidFabrics}
+                      onChange={(e) => setDeleteAllWorkspaces(e.target.checked)}
+                      className="rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-0"
+                    />
+                    <span className="text-xs text-slate-400">Delete all workspaces</span>
+                  </label>
+
+                  {workspaceFabrics.length > 0 && <>
+                  {/* Install label row (above radio column) */}
+                  <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 1fr 3rem 3rem' }}>
+                    <span />
+                    <span />
+                    <div className="flex justify-center">
+                      <span className={labelClass + ' mb-0'}>Install</span>
+                    </div>
                     <span />
                   </div>
 
-                  {/* None row */}
-                  <div className="grid gap-3 items-center" style={{ gridTemplateColumns: '1fr 1fr 5rem 1.5rem' }}>
-                    <span />
-                    <span className="text-xs text-slate-400 italic text-right">None</span>
-                    <div className="flex items-center justify-center">
+                  {/* Name / Template / None row */}
+                  <div className="grid gap-3 items-center -mt-1" style={{ gridTemplateColumns: '1fr 1fr 3rem 3rem' }}>
+                    <span className={labelClass + ' mb-0'}>Name</span>
+                    <span className={labelClass + ' mb-0'}>Template</span>
+                    <div className="flex justify-center">
                       <input
                         type="radio"
                         name="workspace-install"
                         checked={workspaceInstallIndex === -1}
                         onChange={() => setWorkspaceInstallIndex(-1)}
-                        className={`${theme === 'security-fabric' ? 'accent-red-500' : 'accent-blue-500'} w-4 h-4 cursor-pointer`}
+                        className="accent-blue-500 w-4 h-4 cursor-pointer"
                       />
                     </div>
-                    <span />
+                    <div className="flex justify-center">
+                      <span className="text-xs text-slate-400 italic">None</span>
+                    </div>
                   </div>
 
                   {/* Fabric rows */}
                   {workspaceFabrics.map((fabric, i) => (
-                    <div key={i} className="grid gap-3 items-center" style={{ gridTemplateColumns: '1fr 1fr 5rem 1.5rem' }}>
+                    <div key={i} className="grid gap-3 items-center" style={{ gridTemplateColumns: '1fr 1fr 3rem 3rem' }}>
                       <input
                         className={inputClass}
                         value={fabric.name}
@@ -564,32 +586,31 @@ export default function Configure() {
                         ]}
                         searchable
                       />
-                      <div className="flex items-center justify-center">
+                      <div className="flex justify-center">
                         <input
                           type="radio"
                           name="workspace-install"
                           checked={workspaceInstallIndex === i}
                           onChange={() => setWorkspaceInstallIndex(i)}
-                          className={`${theme === 'security-fabric' ? 'accent-red-500' : 'accent-blue-500'} w-4 h-4 cursor-pointer`}
+                          className="accent-blue-500 w-4 h-4 cursor-pointer"
                         />
                       </div>
                       <div className="flex justify-center">
-                        {workspaceFabrics.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setWorkspaceFabrics(prev => prev.filter((_, idx) => idx !== i))
-                              if (workspaceInstallIndex === i) setWorkspaceInstallIndex(-1)
-                              else if (workspaceInstallIndex > i) setWorkspaceInstallIndex(workspaceInstallIndex - 1)
-                            }}
-                            className="text-slate-500 hover:text-slate-300"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setWorkspaceFabrics(prev => prev.filter((_, idx) => idx !== i))
+                            if (workspaceInstallIndex === i) setWorkspaceInstallIndex(-1)
+                            else if (workspaceInstallIndex > i) setWorkspaceInstallIndex(workspaceInstallIndex - 1)
+                          }}
+                          className="text-slate-500 hover:text-slate-300"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   ))}
+                  </>}
 
                   <button
                     type="button"
