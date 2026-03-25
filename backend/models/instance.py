@@ -70,6 +70,7 @@ class BulkConfigureRequest(BaseModel):
     poc_definitions: list[str] = []
     ssh_keys: list[str] = []
     delete_existing_keys: bool = False
+    hostname_template: str = ""
 
 
 class CloneRequest(BaseModel):

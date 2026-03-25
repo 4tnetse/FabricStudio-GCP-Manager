@@ -170,6 +170,20 @@ class FabricStudioClient:
             raise ValueError(f"Password change failed: {data.get('errors', {})}")
 
     # ------------------------------------------------------------------ #
+    #  Hostname                                                            #
+    # ------------------------------------------------------------------ #
+
+    async def set_hostname(self, hostname: str) -> None:
+        """Set the system hostname."""
+        r = await self._client.post(
+            f"{self._base}/api/v1/system/hostname",
+            json={"hostname": hostname},
+            headers=self._headers(),
+        )
+        if not r.is_success:
+            raise ValueError(f"Set hostname failed ({r.status_code}): {r.text}")
+
+    # ------------------------------------------------------------------ #
     #  SSH keys                                                            #
     # ------------------------------------------------------------------ #
 
