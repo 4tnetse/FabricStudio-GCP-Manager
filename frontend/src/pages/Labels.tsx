@@ -102,6 +102,8 @@ export default function Labels() {
         <p className="text-sm text-slate-400 mt-0.5">Manage instance labels</p>
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="space-y-6">
       {/* Instance selector */}
       <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
         <h2 className="text-sm font-semibold text-slate-200">Select Instance</h2>
@@ -241,6 +243,8 @@ export default function Labels() {
           </div>
         </div>
       )}
+      </div>
+      </div>
     </div>
   )
 }

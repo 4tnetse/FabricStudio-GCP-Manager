@@ -389,6 +389,38 @@ async def bulk_delete(body: BulkRequest, background_tasks: BackgroundTasks):
     return {"job_id": job_id}
 
 
+@router.post("/bulk-shutdown")
+async def bulk_shutdown(body: BulkRequest):
+    prefix = cfg.settings.instance_fqdn_prefix
+    domain = cfg.settings.dns_domain
+    password = cfg.settings.fs_admin_password
+
+    if not prefix or not domain:
+        raise HTTPException(status_code=400, detail="DNS settings (Instance FQDN prefix / DNS Domain) are not configured in Settings.")
+    if not password:
+        raise HTTPException(status_code=400, detail="No admin password configured in Settings.")
+
+    async def shutdown_one(item: BulkInstanceItem) -> dict:
+        try:
+            parsed = InstanceName.parse(item.name)
+        except ValueError as exc:
+            return {"name": item.name, "status": "error", "message": str(exc)}
+        fqdn = f"{prefix}{parsed.number}.{parsed.product}.{domain}"
+        try:
+            async with FabricStudioClient(fqdn, password) as fs:
+                await fs.shutdown()
+        except Exception as exc:
+            return {"name": item.name, "status": "error", "message": str(exc)}
+        try:
+            await delete_dns_for_instance(item.name, log=lambda _: None)
+        except Exception:
+            pass  # DNS cleanup is best-effort
+        return {"name": item.name, "status": "ok"}
+
+    results = await asyncio.gather(*[shutdown_one(item) for item in body.instances])
+    return {"results": results}
+
+
 # ------------------------------------------------------------------ #
 #  Bulk configure                                                      #
 # ------------------------------------------------------------------ #
@@ -453,7 +485,7 @@ async def _bulk_configure_job(job_id: str, req: BulkConfigureRequest) -> None:
                     await q.put(f"{tag} Setting hostname to '{hostname}'…")
                     await fs.set_hostname(hostname)
                 valid_fabrics = [f for f in req.workspace_fabrics if f.get("name") and f.get("template_id")]
-                if valid_fabrics:
+                if req.delete_all_workspaces or valid_fabrics:
                     await q.put(f"{tag} Uninstalling fabric runtime…")
                     await fs.uninstall_fabric()
                     await q.put(f"{tag} Waiting for uninstall to complete…")
