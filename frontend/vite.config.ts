@@ -13,7 +13,8 @@ export default defineConfig({
   server: {
     port: frontendPort,
     proxy: {
-      '/api': `http://localhost:${backendPort}`
+      '/api': `http://localhost:${backendPort}`,
+      '/manual': `http://localhost:${backendPort}`
     }
   }
 })

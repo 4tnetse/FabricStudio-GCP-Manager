@@ -1,7 +1,8 @@
-1.5
+1.6
 
 # Version history
 # ---------------
+# 1.6    Documentation link in sidebar; mkdocs served at /manual with Security Fabric theme
 # 1.5    Shutdown auth retry dialog; license server via FS API only; Configure op reorder + task waits; bulk ops skip wrong-state; nav reorder
 # 1.4    Settings preferences moved left; Configure API call order matches UI; wait for registration task before fabric ops; friendly DNS error on template fetch
 # 1.3    Bulk start/stop/shutdown skip wrong-state instances; already running/stopped toasts

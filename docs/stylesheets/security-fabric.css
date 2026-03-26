@@ -1,0 +1,74 @@
+/* Security Fabric theme — matches the app's Fortinet-branded dark UI */
+
+:root,
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color:        #db291c;
+  --md-primary-fg-color--light: #e84c40;
+  --md-primary-fg-color--dark:  #c22419;
+  --md-primary-bg-color:        #ffffff;
+  --md-accent-fg-color:         #db291c;
+  --md-accent-fg-color--transparent: rgba(219, 41, 28, 0.1);
+
+  /* Sidebar / nav background */
+  --md-default-bg-color:        #1e2226;
+  --md-default-fg-color:        #c9d1d9;
+  --md-default-fg-color--light: #8b949e;
+
+  /* Nav sidebar */
+  --md-nav-bg-color:            #292e34;
+}
+
+/* Header */
+.md-header {
+  background-color: #db291c;
+  border-bottom: none;
+}
+
+/* Left nav sidebar */
+.md-sidebar--primary .md-sidebar__scrollwrap {
+  background-color: #292e34;
+}
+
+/* Active nav item */
+.md-nav__item .md-nav__link--active,
+.md-nav__item .md-nav__link:is(:focus, :hover) {
+  color: #db291c;
+}
+
+/* Nav item active indicator */
+.md-nav__item--active > .md-nav__link {
+  color: #db291c;
+}
+
+/* Search bar */
+.md-search__input {
+  background-color: #3d3d3d;
+}
+
+/* Footer */
+.md-footer {
+  background-color: #292e34;
+}
+
+/* Buttons / highlighted elements */
+.md-button--primary {
+  background-color: #db291c;
+  border-color: #db291c;
+}
+
+.md-button--primary:hover {
+  background-color: #c22419;
+  border-color: #c22419;
+}
+
+/* Inline code */
+.md-typeset code {
+  background-color: rgba(219, 41, 28, 0.08);
+  color: #e84c40;
+}
+
+/* Admonition / note highlight */
+.md-typeset .admonition,
+.md-typeset details {
+  border-left-color: #db291c;
+}

@@ -17,6 +17,7 @@ import {
   Receipt,
   Settings,
   ChevronRight,
+  BookOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ProjectSelector } from '@/components/ProjectSelector'
@@ -191,9 +192,21 @@ export default function App() {
           ))}
         </nav>
 
-        {/* Settings at bottom */}
-        <div className="px-3 py-3 border-b border-slate-800" style={isSF ? { borderColor: '#3d3d3d' } : undefined}>
+        {/* Settings + Documentation at bottom */}
+        <div className="px-3 py-3 border-b border-slate-800 space-y-0.5" style={isSF ? { borderColor: '#3d3d3d' } : undefined}>
           <SidebarLink to="/settings" label="Settings" icon={Settings} />
+          <a
+            href="/manual"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors group',
+              isSF ? 'text-slate-300 hover:text-white hover:bg-[#505c66]' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800',
+            )}
+          >
+            <BookOpen className={cn('w-4 h-4 shrink-0', isSF ? 'text-slate-400 group-hover:text-white' : 'text-slate-500 group-hover:text-slate-400')} />
+            <span>Documentation</span>
+          </a>
         </div>
 
         {/* Version */}

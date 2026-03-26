@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 import config as cfg
 from auth import get_credentials
@@ -97,6 +98,10 @@ app.include_router(images.router, prefix="/api")
 app.include_router(configs.router, prefix="/api")
 app.include_router(costs.router, prefix="/api")
 
+
+_DOCS_DIR = Path(__file__).parent.parent / "site"
+if _DOCS_DIR.exists():
+    app.mount("/manual", StaticFiles(directory=_DOCS_DIR, html=True), name="docs")
 
 _VERSION_FILE = Path(__file__).parent.parent / "VERSION"
 
