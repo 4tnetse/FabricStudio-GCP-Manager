@@ -4,7 +4,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 import config as cfg
@@ -101,6 +101,9 @@ app.include_router(costs.router, prefix="/api")
 
 _DOCS_DIR = Path(__file__).parent.parent / "site"
 if _DOCS_DIR.exists():
+    @app.get("/manual", include_in_schema=False)
+    async def docs_redirect():
+        return RedirectResponse(url="/manual/")
     app.mount("/manual", StaticFiles(directory=_DOCS_DIR, html=True), name="docs")
 
 _VERSION_FILE = Path(__file__).parent.parent / "VERSION"
@@ -117,6 +120,8 @@ _FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"
 if _FRONTEND_DIST.exists():
     @app.get("/{full_path:path}", include_in_schema=False)
     async def spa_fallback(full_path: str):
+        if full_path.startswith("api/") or full_path.startswith("manual"):
+            return JSONResponse({"detail": "Not found"}, status_code=404)
         file_path = _FRONTEND_DIST / full_path
         if file_path.exists() and file_path.is_file():
             return FileResponse(str(file_path))

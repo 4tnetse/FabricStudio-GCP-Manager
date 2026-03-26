@@ -1,7 +1,8 @@
-1.8
+1.9
 
 # Version history
 # ---------------
+# 1.9    Fix /manual redirect; fix SPA catch-all intercepting docs; fix Docker TS build error
 # 1.8    Docker support: Dockerfile, docker-compose, GitHub Actions workflow, SPA serving
 # 1.7    Documentation updates: corrected screen docs for Firewall, Images, Costs, Labels, Configure, Clone, Workflow
 # 1.6    Documentation link in sidebar; mkdocs served at /manual with Security Fabric theme
