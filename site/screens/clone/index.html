@@ -913,7 +913,7 @@
 <tr>
 <td><strong>Destination zone</strong></td>
 <td>No</td>
-<td>Target zone for the clones. Defaults to the source instance zone.</td>
+<td>Target zone for the clones. Auto-filled from the source instance zone; can be changed for cross-zone cloning.</td>
 </tr>
 <tr>
 <td><strong>Clone range (From / To)</strong></td>
@@ -934,7 +934,7 @@
 <p>An info box also shows the total count and the number of batches (clones run in batches of 5).</p>
 <h2 id="dns">DNS</h2>
 <p>If DNS settings are configured in Settings, DNS records are created automatically for each cloned instance.</p>
-<p>If DNS settings are incomplete, a warning dialog appears before cloning starts, allowing you to continue without DNS records.</p>
+<p>If DNS settings are incomplete, a warning dialog appears before cloning starts. You must either configure the missing settings or explicitly choose to continue without DNS record creation.</p>
 <h2 id="output-panel">Output panel</h2>
 <p>The right panel streams live clone output. Each batch is shown as it completes.</p>
 
@@ -996,6 +996,8 @@
     
     
       <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../javascripts/external-links.js"></script>
       
     
   </body>

@@ -1003,18 +1003,23 @@
 <p>The table lists all instances with the following columns: name, zone, status, machine type, public IP, and labels.</p>
 <h3 id="filtering">Filtering</h3>
 <ul>
-<li><strong>Status filter</strong> — filter by running, stopped, or all instances</li>
-<li><strong>Purpose filter</strong> — filter by the <code>purpose</code> GCP label</li>
-<li><strong>Name search</strong> — free-text search on instance name</li>
+<li><strong>Name search</strong> — free-text search on instance name  </li>
+<li><strong>Group filter</strong> — filter by the <code>group</code> GCP label  </li>
+<li><strong>Purpose filter</strong> — filter by the <code>purpose</code> GCP label  </li>
+<li><strong>Status filter</strong> — filter by all possible intance statusses, or all instances  </li>
+<li><strong>Zone filter</strong> — filter by GCP zone</li>
 </ul>
 <h3 id="instance-detail">Instance detail</h3>
 <p>Click any row to open a detail popup with:</p>
 <ul>
+<li>Status</li>
 <li>Zone, machine type, vCPUs, memory</li>
 <li>Boot disk size</li>
-<li>Public and internal IP addresses</li>
+<li>Estimated or exact hourly cost (~ indicates an estimate)</li>
+<li>FQDN, Public and internal IP addresses</li>
+<li>Creation time</li>
 <li>All GCP labels</li>
-<li>Estimated hourly cost</li>
+<li>All GCP tags (used for firewalling)</li>
 </ul>
 <h3 id="row-actions">Row actions</h3>
 <p>Each row has an actions menu (three-dot) with:</p>
@@ -1043,6 +1048,21 @@
 <td>Gracefully shut down via Fabric Studio API</td>
 </tr>
 <tr>
+<td><strong>Rename</strong></td>
+<td>Any</td>
+<td>Rename the instance</td>
+</tr>
+<tr>
+<td><strong>Change Machine Type</strong></td>
+<td>Instance is stopped</td>
+<td>Change the machine type in GCP</td>
+</tr>
+<tr>
+<td><strong>Move Zone</strong></td>
+<td>Instance is stopped</td>
+<td>Change the zone in GCP</td>
+</tr>
+<tr>
 <td><strong>Edit Labels</strong></td>
 <td>Any</td>
 <td>Open the Labels screen for this instance</td>
@@ -1055,7 +1075,7 @@
 </tbody>
 </table>
 <h3 id="bulk-actions">Bulk actions</h3>
-<p>Select multiple instances using the checkboxes. A bulk action bar appears at the bottom:</p>
+<p>Select multiple instances using the checkboxes. A bulk action bar appears:</p>
 <table>
 <thead>
 <tr>
@@ -1066,7 +1086,7 @@
 <tbody>
 <tr>
 <td><strong>Start</strong></td>
-<td>Stopped instances only (running ones are skipped with a toast)</td>
+<td>Stopped instances only</td>
 </tr>
 <tr>
 <td><strong>Stop</strong></td>
@@ -1082,7 +1102,6 @@
 </tr>
 </tbody>
 </table>
-<p>The bulk bar clears immediately after clicking an action.</p>
 <h4 id="shutdown-password-prompt">Shutdown password prompt</h4>
 <p>If the default admin password from Settings is incorrect, a popup will appear asking for the password. In bulk mode, additional options are available:</p>
 <ul>
@@ -1150,6 +1169,8 @@
     
     
       <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../javascripts/external-links.js"></script>
       
     
   </body>

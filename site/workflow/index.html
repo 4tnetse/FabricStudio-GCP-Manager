@@ -974,58 +974,58 @@
 <h2 id="1-initial-setup">1. Initial setup</h2>
 <p>Complete the <a href="../configuration/">first-time configuration</a> in Settings before doing anything else:</p>
 <ul>
-<li>Upload your GCP service account key</li>
-<li>Set your SSH public key, default zone, and admin password</li>
+<li>Upload your GCP service account key  </li>
+<li>Set your SSH public key, default zone, and admin password  </li>
 <li>Configure DNS settings if you want automatic DNS records</li>
 </ul>
 <h2 id="2-build-a-workshop-golden-image">2. Build a workshop golden image</h2>
-<p>Go to <strong>Build</strong> and create the <code>000</code> instance — this is your golden workshop image.
+<p>Go to <strong>Build</strong> and create the <code>000</code> instance — this is your golden workshop image.<br />
 You can reuse it fo several workshops or create a new golden image for each workshop.</p>
 <ul>
-<li>Set your <strong>initials</strong> and a <strong>workshop name</strong>. The instance will be named <code>&lt;instance prefix&gt;-&lt;initials&gt;-&lt;workshop&gt;-000</code>. (the instance prefix is configured in the Settings page)</li>
-<li>Select a <strong>zone</strong>, <strong>machine type</strong>, and <strong>image</strong>.</li>
+<li>Set your <strong>initials</strong> and a <strong>workshop name</strong>. The instance will be named <code>&lt;instance prefix&gt;-&lt;initials&gt;-&lt;workshop&gt;-000</code>. (the instance prefix is configured in the Settings page)  </li>
+<li>Select a <strong>zone</strong>, <strong>machine type</strong>, and <strong>image</strong>.  </li>
 <li>Click <strong>Build</strong> and watch the live output.</li>
 </ul>
 <h2 id="3-configure-the-golden-image">3. Configure the golden image</h2>
 <p>Go to <strong>Configure</strong> and select the <code>000</code> instance.</p>
 <ul>
-<li>Set the admin password (if different from the default in Settings).</li>
-<li>Enter a <strong>registration token</strong> to register Fabric Studio.</li>
-<li>Add additional SSH public keys if needed.</li>
-<li>Set the <strong>license server internal IP address</strong>.</li>
-<li>Set a guest password, and Fabric Workspace templates.</li>
+<li>Set the admin password (if different from the default in Settings).  </li>
+<li>Enter a <strong>registration token</strong> to register Fabric Studio.  </li>
+<li>Add additional SSH public keys if needed.  </li>
+<li>Set the <strong>license server internal IP address</strong>.  </li>
+<li>Set a guest password, and Fabric Workspace templates.  </li>
 <li>Click <strong>Configure</strong> and wait for the output to complete.</li>
 </ul>
 <h2 id="4-clone-to-workshop-attendee-instances">4. Clone to workshop attendee instances</h2>
 <p>Once the golden image is configured, go to <strong>Clone</strong>:</p>
 <ul>
-<li>Select the <code>000</code> instance as source.</li>
-<li>Set the <strong>Workshop name</strong>.</li>
-<li>Set the <strong>Customer, Partner or Event</strong> label.</li>
-<li>Choose the <strong>Destination zone</strong>.</li>
-<li>Set the <strong>clone range</strong> (e.g. 1 to 20 for 20 attendees).</li>
+<li>Select the <code>000</code> instance as source.  </li>
+<li>Set the <strong>Workshop name</strong>.  </li>
+<li>Set the <strong>Customer, Partner or Event</strong> label.  </li>
+<li>Choose the <strong>Destination zone</strong>.  </li>
+<li>Set the <strong>clone range</strong> (e.g. 1 to 20 for 20 attendees).  </li>
 <li>Click <strong>Clone</strong>. Instances are created in batches of 5.</li>
 </ul>
 <h2 id="5-verify-instances">5. Verify instances</h2>
 <p>Go to <strong>Instances</strong> to verify all cloned instances are running. Use the status summary cards at the top to see totals at a glance.</p>
 <h2 id="6-configure-workshop-instances">6. Configure workshop instances</h2>
-<p>Go to <strong>Configure</strong> and select all workshop instances instance:</p>
+<p>Go to <strong>Configure</strong> and select all workshop instances:</p>
 <ul>
-<li>Set the <strong>Hostname</strong>. e.g. <code>Attendee - {count}</code></li>
+<li>Set the <strong>Hostname</strong>. e.g. <code>Attendee - {count}</code>  </li>
 <li>leave the rest as is and click <strong>Configure</strong>.</li>
 </ul>
 <h2 id="7-run-commands-via-ssh-optional">7. Run commands via SSH (optional)</h2>
 <p>Use the <strong>SSH</strong> screen to execute commands across all instances simultaneously:</p>
 <ul>
-<li>Select instances by name, range, or load all public IPs.</li>
-<li>Enter a command manually or select a saved <strong>configuration file</strong>.</li>
+<li>Select instances by name, range, or load all public IPs.  </li>
+<li>Enter a command manually or select a saved <strong>configuration file</strong>.  </li>
 <li>Choose <strong>parallel</strong> (all at once) or <strong>sequential</strong> (one at a time) execution mode.</li>
 </ul>
 <h2 id="8-clean-up-after-the-workshop">8. Clean up after the workshop</h2>
 <p>When the workshop is done:</p>
 <ul>
-<li>Use <strong>Instances → Bulk Stop</strong> to stop all instances and avoid unnecessary costs.</li>
-<li>Use <strong>Instances → Bulk Delete</strong> to remove instances that are no longer needed.</li>
+<li>Use <strong>Instances → Bulk Stop</strong> to stop all instances and avoid unnecessary costs.  </li>
+<li>Use <strong>Instances → Bulk Delete</strong> to remove instances that are no longer needed.  </li>
 <li>Check <strong>Costs</strong> to verify billing is as expected.</li>
 </ul>
 
@@ -1087,6 +1087,8 @@ You can reuse it fo several workshops or create a new golden image for each work
     
     
       <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../javascripts/external-links.js"></script>
       
     
   </body>

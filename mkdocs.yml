@@ -6,6 +6,9 @@ repo_name: FabricStudio-GCP-Manager
 extra_css:
   - stylesheets/security-fabric.css
 
+extra_javascript:
+  - javascripts/external-links.js
+
 theme:
   name: material
   palette:

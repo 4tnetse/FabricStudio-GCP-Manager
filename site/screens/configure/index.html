@@ -989,7 +989,7 @@
 <td>New admin password to set</td>
 </tr>
 <tr>
-<td><strong>Registration token:secret</strong></td>
+<td><strong>Fabric Studio Registration token:secret</strong></td>
 <td>Fabric Studio registration token (format: <code>token:secret</code>)</td>
 </tr>
 <tr>
@@ -998,7 +998,7 @@
 </tr>
 <tr>
 <td><strong>License Server IP</strong></td>
-<td>IP address of the Fabric Studio license server</td>
+<td>Internal IP address of the Fabric Studio license server</td>
 </tr>
 <tr>
 <td><strong>Guest password</strong></td>
@@ -1026,10 +1026,10 @@
 <h2 id="api-call-order">API call order</h2>
 <p>Operations are applied in the following order on each instance:</p>
 <ol>
-<li>Authenticate (current admin password → new admin password if set)</li>
-<li>Registration token (waits for registration task to complete before continuing)</li>
+<li>Authenticate (current admin password → new admin password will be configured if set)</li>
+<li>Registration token</li>
 <li>SSH keys</li>
-<li>License server (waits for license server task to complete before continuing)</li>
+<li>License server</li>
 <li>Guest password</li>
 <li>Hostname</li>
 <li>Fabric Workspace (delete existing → create fabrics → install selected fabric)</li>
@@ -1093,6 +1093,8 @@
     
     
       <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../javascripts/external-links.js"></script>
       
     
   </body>

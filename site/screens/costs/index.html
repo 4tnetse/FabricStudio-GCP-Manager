@@ -752,14 +752,12 @@
 
 <h1 id="costs">Costs</h1>
 <p>View billing information and cost summary for the active GCP project.</p>
-<p>The Costs screen shows:</p>
-<ul>
-<li><strong>Billing account</strong> information linked to the active project</li>
-<li><strong>Current-month cost summary</strong> broken down by service</li>
-</ul>
-<p>Costs are fetched from the GCP Cloud Billing API. The data reflects the current calendar month up to the most recent billing export.</p>
+<p>The Costs screen shows the <strong>Billing Account</strong> linked to the active project, including the account name, account ID, and a link to open the full report in the GCP Billing Console.</p>
 <p>!!! note
     Access to billing data requires the service account to have the <strong>Billing Account Viewer</strong> role on the billing account.</p>
+<p>!!! info
+    Detailed cost breakdowns are not available via the GCP Billing API. Use the link to the GCP Billing Console to view per-service and per-resource usage.</p>
+<p>If the service account lacks billing permissions, an error is shown with a direct link to the GCP Billing Console. If billing is not enabled for the project, a notification is shown instead.</p>
 
 
 
@@ -819,6 +817,8 @@
     
     
       <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../javascripts/external-links.js"></script>
       
     
   </body>

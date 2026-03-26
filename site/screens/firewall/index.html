@@ -515,6 +515,24 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Firewall
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -531,6 +549,58 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#source-ip-allowlist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source IP Allowlist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#global-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Global Access
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#all-firewall-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        All Firewall Rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -732,6 +802,47 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#source-ip-allowlist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source IP Allowlist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#global-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Global Access
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#all-firewall-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        All Firewall Rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -751,16 +862,69 @@
 
 
 <h1 id="firewall">Firewall</h1>
-<p>View and manage GCP firewall rules for the active project.</p>
-<p>The Firewall screen lists all firewall rules in the project, including:</p>
+<p>View and manage GCP firewall rules and access controls for the active project.</p>
+<h2 id="source-ip-allowlist">Source IP Allowlist</h2>
+<p>Manage a list of allowed source IP addresses for workshop access.</p>
 <ul>
-<li>Rule name</li>
-<li>Direction (ingress / egress)</li>
-<li>Priority</li>
-<li>Target tags or service accounts</li>
-<li>Allowed or denied protocols and ports</li>
-<li>Source/destination ranges</li>
+<li>Click <strong>Add</strong> to add an IP manually, or click <strong>Detect</strong> to auto-detect your current public IP.</li>
+<li>Click the delete button next to an IP to remove it from the allowlist.</li>
 </ul>
+<h2 id="global-access">Global Access</h2>
+<p>Toggle global access on or off.</p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Disabled</strong></td>
+<td>Only IPs in the Source IP Allowlist are allowed</td>
+</tr>
+<tr>
+<td><strong>Enabled</strong></td>
+<td>The whole Internet is allowed (not advised)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="all-firewall-rules">All Firewall Rules</h2>
+<p>Lists all firewall rules in the project with the following columns:</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Name</strong></td>
+<td>Firewall rule name</td>
+</tr>
+<tr>
+<td><strong>Direction</strong></td>
+<td>Ingress or egress</td>
+</tr>
+<tr>
+<td><strong>Priority</strong></td>
+<td>Rule priority (lower = higher priority)</td>
+</tr>
+<tr>
+<td><strong>Source Ranges</strong></td>
+<td>Source IP ranges the rule applies to</td>
+</tr>
+<tr>
+<td><strong>Target Tags</strong></td>
+<td>GCP network tags targeted by the rule</td>
+</tr>
+<tr>
+<td><strong>Status</strong></td>
+<td>Enabled or disabled</td>
+</tr>
+</tbody>
+</table>
 <p>Firewall rules are read from the GCP Compute Engine API for the active project.</p>
 
 
@@ -821,6 +985,8 @@
     
     
       <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../javascripts/external-links.js"></script>
       
     
   </body>

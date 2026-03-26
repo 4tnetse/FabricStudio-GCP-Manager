@@ -752,14 +752,42 @@
 
 <h1 id="images">Images</h1>
 <p>Browse available VM machine images in the active GCP project.</p>
-<p>The Images screen lists all available images, including:</p>
-<ul>
-<li>Image name</li>
-<li>Creation date</li>
-<li>Disk size</li>
-<li>Status</li>
-</ul>
-<p>Images are loaded from the GCP Compute Engine API. The selected image can be used when building a new instance on the <a href="../build/">Build</a> screen.</p>
+<p>The Images screen lists all available images with the following columns:</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Name</strong></td>
+<td>Image name</td>
+</tr>
+<tr>
+<td><strong>Family</strong></td>
+<td>Image family (e.g. <code>fortigate-7-6-1</code>)</td>
+</tr>
+<tr>
+<td><strong>Status</strong></td>
+<td>Image status (e.g. <code>READY</code>)</td>
+</tr>
+<tr>
+<td><strong>Size (GB)</strong></td>
+<td>Boot disk size</td>
+</tr>
+<tr>
+<td><strong>Created</strong></td>
+<td>Creation date</td>
+</tr>
+<tr>
+<td><strong>Description</strong></td>
+<td>Image description</td>
+</tr>
+</tbody>
+</table>
+<p>Images are loaded from the GCP Compute Engine API. Use the <strong>Refresh</strong> button to reload the list. The selected image can be used when building a new instance on the <a href="../build/">Build</a> screen.</p>
 
 
 
@@ -819,6 +847,8 @@
     
     
       <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../javascripts/external-links.js"></script>
       
     
   </body>

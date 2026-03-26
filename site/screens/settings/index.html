@@ -876,7 +876,7 @@
 </tr>
 <tr>
 <td><strong>Owner</strong></td>
-<td>Owner label applied to new instances</td>
+<td>Owner GCP label applied to new instances</td>
 </tr>
 <tr>
 <td><strong>Default zone</strong></td>
@@ -884,11 +884,11 @@
 </tr>
 <tr>
 <td><strong>Default instance prefix</strong></td>
-<td>Instance name prefix (<code>fs</code> or <code>fpoc</code>)</td>
+<td>Instance name prefix (e.g. <code>fs</code>)</td>
 </tr>
 <tr>
 <td><strong>Default group</strong></td>
-<td>Group label applied to new instances</td>
+<td>Group GCP label applied to new instances</td>
 </tr>
 <tr>
 <td><strong>Default Fabric Studio admin password</strong></td>
@@ -896,25 +896,25 @@
 </tr>
 <tr>
 <td><strong>DNS Domain</strong></td>
-<td>Base domain for instance FQDNs (e.g. <code>fs.fortilab.be</code>)</td>
+<td>Base domain for instance FQDNs (e.g. <code>labs.yourdomain.com</code>)</td>
 </tr>
 <tr>
 <td><strong>Instance FQDN prefix</strong></td>
-<td>Prefix applied to instance names in FQDNs (e.g. <code>lab</code>)</td>
+<td>Prefix applied to instance names in FQDNs (e.g. <code>fs</code>)</td>
 </tr>
 <tr>
 <td><strong>DNS Zone name</strong></td>
-<td>Managed zone name in Google Cloud DNS (e.g. <code>fs-fortilab-be</code>)</td>
+<td>Managed zone name in Google Cloud DNS (e.g. <code>labs-yourdomain-com</code>)</td>
 </tr>
 <tr>
 <td><strong>SSH public key</strong></td>
-<td>Public key installed on instances during Configure and Clone operations</td>
+<td>Deafult public key installed on instances during Configure and Clone operations</td>
 </tr>
 </tbody>
 </table>
 <p>Click <strong>Save settings</strong> to apply changes. Click <strong>Reset all settings</strong> to remove all settings (requires re-configuration).</p>
 <h2 id="service-account-keys">Service account keys</h2>
-<p>Upload one or more GCP service account JSON key files. Each key can have multiple projects.</p>
+<p>Upload one or more <a href="https://console.cloud.google.com/iam-admin/serviceaccounts">GCP service account JSON key</a> files. Each key can have multiple projects.</p>
 <ul>
 <li><strong>Upload</strong> — drag and drop a <code>.json</code> key file onto the upload zone, or click to browse.</li>
 <li><strong>Rename</strong> — click the pencil icon next to a key name.</li>
@@ -1005,6 +1005,8 @@
     
     
       <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../javascripts/external-links.js"></script>
       
     
   </body>

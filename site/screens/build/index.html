@@ -912,12 +912,12 @@
 </tr>
 <tr>
 <td><strong>Machine type</strong></td>
-<td>No</td>
+<td>Yes</td>
 <td>VM machine type; loaded dynamically based on the selected zone</td>
 </tr>
 <tr>
 <td><strong>Image</strong></td>
-<td>No</td>
+<td>Yes</td>
 <td>Boot disk image to use</td>
 </tr>
 <tr>
@@ -934,14 +934,14 @@
 </table>
 <h2 id="instance-name-preview">Instance name preview</h2>
 <p>As you fill in <strong>Prepend</strong> and <strong>Workshop name</strong>, a live preview of the instance name appears:</p>
-<pre><code>fs-&lt;initials&gt;-&lt;workshop&gt;-000
+<pre><code>&lt;instance prefix&gt;-&lt;initials&gt;-&lt;workshop&gt;-000
 </code></pre>
-<p>The <code>000</code> suffix marks this as the golden image.</p>
+<p>The <code>&lt;instance prefix&gt;</code> is taken from the <strong>Settings</strong> page.<br />
+The <code>000</code> suffix marks this as the golden image.</p>
 <h2 id="output-panel">Output panel</h2>
-<p>The right panel streams live build output once the build is started. The form is locked while streaming is active.</p>
+<p>The right panel streams live build output once the build is started.</p>
 <h2 id="notes">Notes</h2>
 <ul>
-<li>The form is locked while a build is in progress.</li>
 <li>Machine types are loaded dynamically after selecting a zone.</li>
 <li>The <code>delete: no</code> label is automatically applied to protect the golden image from accidental deletion during clone operations.</li>
 </ul>
@@ -1004,6 +1004,8 @@
     
     
       <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../javascripts/external-links.js"></script>
       
     
   </body>

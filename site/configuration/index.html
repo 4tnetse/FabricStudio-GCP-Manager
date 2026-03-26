@@ -1250,45 +1250,45 @@
 <h1 id="configuration">Configuration</h1>
 <h2 id="setup-gcp-for-fs-gcp-manager">Setup GCP for FS GCP Manager</h2>
 <h3 id="1-create-a-new-vpc">1. Create a new VPC</h3>
-<p>Create a new project in GCP and create a new default VPC network at <a href="https://console.cloud.google.com/networking/networks">GCP VPC networks</a>.
+<p>Create a new project in GCP and create a new default VPC network at <a href="https://console.cloud.google.com/networking/networks">GCP VPC networks</a>.<br />
 The new VPC network should be named default, Subnet creation mode set to automatic and the Dynamic routing mode set to global.</p>
 <h3 id="2-configure-the-vpc-firewall">2. Configure the VPC firewall</h3>
-<p>Create two new firewall rules at <a href="https://console.cloud.google.com/net-security/firewall-manager/firewall-policies">GCP Network Security Firewall Policies</a>.
+<p>Create two new firewall rules at <a href="https://console.cloud.google.com/net-security/firewall-manager/firewall-policies">GCP Network Security Firewall Policies</a>.<br />
 These two rules will be used to control access to you Fabric Studio instances.</p>
 <p><strong>Rule 1</strong>
-Name: workshop-source-networks
-Network: default
-Priority: 1001
-Direction: Ingress
-Action: Allow
-Taget tag: workshop-source-networks
-Source IPv4 range: your current public IP address
-TCP ports: 22, 80, 443, 8000, 8080, 8888, 10000-20000, 20808, 20909, 22222
-UDP ports: 53, 514, 1812, 1813
-Enforcement: enabled</p>
+Name: workshop-source-networks<br />
+Network: default<br />
+Priority: 1001 <br />
+Direction: Ingress<br />
+Action: Allow<br />
+Taget tag: workshop-source-networks<br />
+Source IPv4 range: your current public IP address<br />
+TCP ports: 22, 80, 443, 8000, 8080, 8888, 10000-20000, 20808, 20909, 22222<br />
+UDP ports: 53, 514, 1812, 1813<br />
+Enforcement: enabled  </p>
 <p><strong>Rule 2</strong>
-Name: workshop-source-any
-Network: default
-Priority: 1000
-Direction: Ingress
-Action: Allow
-Taget tag: workshop-source-any
-Source IPv4 range: 0.0.0.0/0
-TCP ports: 22, 80, 443, 8000, 8080, 8888, 10000-20000, 20808, 20909, 22222
-UDP ports: 53, 514, 1812, 1813
-Enforcement: disabled</p>
+Name: workshop-source-any<br />
+Network: default<br />
+Priority: 1000<br />
+Direction: Ingress<br />
+Action: Allow<br />
+Taget tag: workshop-source-any<br />
+Source IPv4 range: 0.0.0.0/0<br />
+TCP ports: 22, 80, 443, 8000, 8080, 8888, 10000-20000, 20808, 20909, 22222<br />
+UDP ports: 53, 514, 1812, 1813<br />
+Enforcement: disabled  </p>
 <h3 id="3-obtain-and-upload-fabric-studio-to-gcp">3. Obtain and upload Fabric Studio to GCP</h3>
 <p>Obtain the Fabric Studio image for GCP. This version has a raw disk compressed and zipped in a tar.gz.</p>
-<p>If you have the .vmdk or .qcow2 you first need to convert it to a raw disk e.g.
+<p>If you have the .vmdk or .qcow2 you first need to convert it to a raw disk e.g.<br />
 <code>qemu-img dd -f vmdk -O raw bs=4M count=1K if=fabricstudio.vmdk of=disk.raw tar -cvzf fabric-studio_2.0.6.tar.gz disk.raw</code></p>
-<p>Upload the tar.gz to <a href="https://console.cloud.google.com/compute/images">GCP Compute Images</a>
+<p>Upload the tar.gz to <a href="https://console.cloud.google.com/compute/images">GCP Compute Images</a><br />
 Note: skip OS Adaptation</p>
 <h3 id="4-resize-the-fabric-studio-image">4. Resize the Fabric Studio image</h3>
 <p>Create a temporary instance from the newly uploaded image at <a href="https://console.cloud.google.com/compute/images">GCP Compute Images</a>.</p>
 <p>Set the disk size to 200GB and set the network tags workshop-source-networks and workshop-source-any in the instance creation wizard.</p>
 <p>SSH to the new instance and set a strong password. you need to enter this password later in the Settings page.</p>
-<p>Extend the disk by typing <code># system disk extend</code></p>
-<p>Shutdown the Fabric Studio instance: <code># system execute shutdown</code></p>
+<p>Extend the disk by typing <code>system disk extend</code></p>
+<p>Shutdown the Fabric Studio instance: <code>system execute shutdown</code></p>
 <p>Create a new machine image, e.g. fabric-studio-200g,  from your temporary instance at <a href="https://console.cloud.google.com/compute/instances">GCP Compute Instances</a>.</p>
 <h3 id="5-enable-gcp-dns">5. Enable GCP DNS</h3>
 <p>You will need GCP Cloud DNS to auto generate DNS A records for your Fabric Studio instances.</p>
@@ -1306,7 +1306,7 @@ Note: skip OS Adaptation</p>
 <h3 id="3-ssh-public-key">3. SSH public key</h3>
 <p>Paste your SSH public key to enable SSH command execution on instances.</p>
 <h3 id="4-default-admin-password">4. Default admin password</h3>
-<p>Enter the strong admin password you configured in the GCP image.
+<p>Enter the strong admin password you configured in the GCP image.<br />
 This pre-fills the current admin password field on the Configure screen and is used for Fabric Studio API access.</p>
 <h3 id="5-default-zone">5. Default zone</h3>
 <p>Set your preferred GCP zone (e.g. <code>europe-west4-a</code>). Used as default when building or cloning instances.</p>
@@ -1359,15 +1359,15 @@ This pre-fills the current admin password field on the Configure screen and is u
 <p>Set Static IP address to Let me choose and enter the IP of the license server in the ustom IP address field.</p>
 <h3 id="5-add-a-firewall-rule-in-gcp">5. Add a firewall rule in GCP</h3>
 <p>Add a new firewall rule in <a href="https://console.cloud.google.com/net-security/firewall-manager/firewall-policies">GCP Network Security Firewall policies</a>.</p>
-<p>Name: fabric-studio-license-server
-Network: default
-Priority: 900
-Direction: Ingress
-Action: Allow
-Taget tag: workshop-source-networks
-Source IPv4 range: 10.0.0.0/8
-Destination IPv4 range: <License Server internal IP>/32
-Protocols and ports: All
+<p>Name: fabric-studio-license-server<br />
+Network: default<br />
+Priority: 900<br />
+Direction: Ingress<br />
+Action: Allow<br />
+Taget tag: workshop-source-networks<br />
+Source IPv4 range: 10.0.0.0/8<br />
+Destination IPv4 range: <License Server internal IP>/32<br />
+Protocols and ports: All<br />
 Enforcement: enabled</p>
 
 
@@ -1428,6 +1428,8 @@ Enforcement: enabled</p>
     
     
       <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../javascripts/external-links.js"></script>
       
     
   </body>
