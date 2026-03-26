@@ -2,11 +2,13 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import { CustomSelect } from '@/components/CustomSelect'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { apiPost } from '@/api/client'
 import {
   Search,
   X,
   Play,
   Square,
+  PowerOff,
   Trash2,
   MoreHorizontal,
   RefreshCw,
@@ -37,6 +39,21 @@ import { StatusBadge } from './StatusBadge'
 import { cn } from '@/lib/utils'
 import { zoneLabel } from '@/lib/zones'
 import type { Instance } from '@/lib/types'
+
+function showShutdownToasts(results: { name: string; status: string; message?: string }[]) {
+  const ok = results.filter((r) => r.status === 'ok')
+  const errors = results.filter((r) => r.status === 'error')
+  if (ok.length > 0)
+    toast.success(`Shutdown command sent to ${ok.length} instance${ok.length !== 1 ? 's' : ''}`)
+  for (const r of errors) {
+    const isAuth = r.message?.toLowerCase().includes('login failed') || r.message?.toLowerCase().includes('401')
+    toast.error(
+      isAuth
+        ? `${r.name}: Authentication failed — check the admin password in Settings`
+        : `${r.name}: ${r.message || 'Shutdown failed'}`,
+    )
+  }
+}
 
 function buildFqdn(name: string, prefix: string, domain: string): string | null {
   if (name.startsWith('srv')) return null
@@ -403,6 +420,20 @@ function RowActions({ instance }: RowActionsProps) {
     }
   }
 
+  async function handleShutdown() {
+    setOpen(false)
+    toast.success(`Initiating shutdown for ${instance.name} — status will update shortly`)
+    try {
+      const res = await apiPost<{ results: { name: string; status: string; message?: string }[] }>(
+        '/ops/bulk-shutdown',
+        { instances: [{ zone: instance.zone, name: instance.name }] },
+      )
+      showShutdownToasts(res.results)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to shutdown')
+    }
+  }
+
   async function handleDelete() {
     setDialog(null)
     try {
@@ -475,6 +506,15 @@ function RowActions({ instance }: RowActionsProps) {
               >
                 <Square className="w-3.5 h-3.5 text-yellow-400" />
                 Stop
+              </button>
+            )}
+            {instance.status === 'RUNNING' && (
+              <button
+                onClick={handleShutdown}
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"
+              >
+                <PowerOff className="w-3.5 h-3.5 text-orange-400" />
+                Shutdown
               </button>
             )}
             <button
@@ -630,7 +670,7 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
       for (const inst of selectedInstances) {
         await startInstance.mutateAsync({ zone: inst.zone, name: inst.name })
       }
-      toast.success(`Starting ${selectedInstances.length} instances`)
+      toast.success(`Starting ${selectedInstances.length} instance${selectedInstances.length !== 1 ? 's' : ''}`)
       setSelected(new Set())
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Bulk start failed')
@@ -642,10 +682,24 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
       for (const inst of selectedInstances) {
         await stopInstance.mutateAsync({ zone: inst.zone, name: inst.name })
       }
-      toast.success(`Stopping ${selectedInstances.length} instances`)
+      toast.success(`Stopping ${selectedInstances.length} instance${selectedInstances.length !== 1 ? 's' : ''}`)
       setSelected(new Set())
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Bulk stop failed')
+    }
+  }
+
+  async function handleBulkShutdown() {
+    toast.success(`Initiating shutdown for ${selectedInstances.length} instance${selectedInstances.length !== 1 ? 's' : ''} — status will update shortly`)
+    try {
+      const res = await apiPost<{ results: { name: string; status: string; message?: string }[] }>(
+        '/ops/bulk-shutdown',
+        { instances: selectedInstances.map((i) => ({ zone: i.zone, name: i.name })) },
+      )
+      showShutdownToasts(res.results)
+      setSelected(new Set())
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Bulk shutdown failed')
     }
   }
 
@@ -676,7 +730,7 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
         instances: toDelete.map((i) => ({ zone: i.zone, name: i.name })),
       })
       const names = toDelete.map((i) => i.name).join(', ')
-      toast.success(`Delete triggered for ${names} — they will disappear shortly`)
+      toast.success(`Delete triggered for ${names} — ${toDelete.length === 1 ? 'it' : 'they'} will disappear shortly`)
     } catch (err) {
       queryClient.invalidateQueries({ queryKey: ['instances'] })
       toast.error(err instanceof Error ? err.message : 'Bulk delete failed')
@@ -765,6 +819,14 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
             >
               <Square className="w-3.5 h-3.5" />
               Stop
+            </button>
+            <button
+              onClick={handleBulkShutdown}
+              disabled={bulkOp.isPending}
+              className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm disabled:opacity-50', isSF ? 'bg-slate-700 hover:bg-slate-600 text-orange-400' : 'bg-orange-900/40 hover:bg-orange-800/40 text-orange-300 border border-orange-800')}
+            >
+              <PowerOff className="w-3.5 h-3.5" />
+              Shutdown
             </button>
             <button
               onClick={() => setBulkDeleteConfirm(true)}

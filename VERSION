@@ -1,7 +1,8 @@
-1.0
+1.1
 
 # Version history
 # ---------------
+# 1.1    Shutdown via Fabric Studio API with DNS cleanup; Clone/Labels half-width layout; toast grammar fixes; README updates
 # 1.0    README updates (Configure screen added, multi-key, feature order matches UI); Configure screen: Install header above radios, radio/None/X center-aligned
 # 0.106  Configure screen: radio buttons red in Security Fabric theme, blue otherwise; fix None radio alignment
 # 0.105  Configure screen: Fabric Workspace section — create multiple fabrics from templates, install selector (radio with None default), hostname field, SSH key management fixes, info icon on registration token

@@ -55,6 +55,8 @@ class FabricStudioClient:
     async def __aexit__(self, *_) -> None:
         try:
             await self._logout()
+        except Exception:
+            pass  # Logout is best-effort; ignore if instance is already gone
         finally:
             await self._client.aclose()
 
@@ -303,3 +305,21 @@ class FabricStudioClient:
         )
         if not r.is_success:
             raise ValueError(f"SSH key add failed ({r.status_code}): {r.text}")
+
+    # ------------------------------------------------------------------ #
+    #  Power                                                               #
+    # ------------------------------------------------------------------ #
+
+    async def shutdown(self) -> None:
+        """Send a graceful shutdown command to the Fabric Studio instance."""
+        try:
+            r = await self._client.post(
+                f"{self._base}/api/v1/system/execute:shutdown",
+                headers=self._headers(),
+            )
+            if not r.is_success:
+                raise ValueError(f"Shutdown failed ({r.status_code}): {r.text}")
+        except httpx.TransportError:
+            # The server closes the connection immediately after receiving the
+            # shutdown command — treat any transport error here as success.
+            pass
