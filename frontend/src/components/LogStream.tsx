@@ -6,11 +6,10 @@ import { cn } from '@/lib/utils'
 interface LogStreamProps {
   url: string | null
   className?: string
-  minHeight?: string
   onStreamingChange?: (isStreaming: boolean) => void
 }
 
-export function LogStream({ url, className, minHeight = 'min-h-64', onStreamingChange }: LogStreamProps) {
+export function LogStream({ url, className, onStreamingChange }: LogStreamProps) {
   const { lines, isStreaming, error } = useSSEStream(url)
 
   useEffect(() => {
@@ -19,17 +18,14 @@ export function LogStream({ url, className, minHeight = 'min-h-64', onStreamingC
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!isStreaming && bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [isStreaming])
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [lines])
 
   if (!url) {
     return (
       <div
         className={cn(
-          'flex items-center justify-center rounded-lg border border-slate-700 bg-slate-950 text-slate-500 text-sm',
-          minHeight,
+          'flex items-center justify-center rounded-lg border border-slate-700 bg-slate-950 text-slate-500 text-sm min-h-64',
           className,
         )}
       >
@@ -39,7 +35,7 @@ export function LogStream({ url, className, minHeight = 'min-h-64', onStreamingC
   }
 
   return (
-    <div className={cn('rounded-lg border border-slate-700 bg-slate-950 overflow-hidden flex flex-col', className)}>
+    <div className={cn('rounded-lg border border-slate-700 bg-slate-950 overflow-hidden flex flex-col min-h-64', className)}>
       <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-800 bg-slate-900 shrink-0">
         {isStreaming ? (
           <>
@@ -62,10 +58,7 @@ export function LogStream({ url, className, minHeight = 'min-h-64', onStreamingC
         <span className="ml-auto text-xs text-slate-600">{lines.length} lines</span>
       </div>
       <pre
-        className={cn(
-          'p-3 text-xs font-mono text-slate-300 overflow-auto flex-1',
-          minHeight,
-        )}
+        className="p-3 text-xs font-mono text-slate-300 overflow-y-auto flex-1 min-h-0"
       >
         {lines.length === 0 && !isStreaming ? (
           <span className="text-slate-600">No output yet...</span>

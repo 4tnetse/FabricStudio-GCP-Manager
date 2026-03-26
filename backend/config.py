@@ -25,7 +25,6 @@ class AppSettings(BaseModel):
     owner: str = ""
     group: str = ""
     ssh_public_key: str = ""
-    license_server: str = ""
     dns_domain: str = ""
     instance_fqdn_prefix: str = ""
     dns_zone_name: str = ""

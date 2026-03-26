@@ -35,7 +35,6 @@ class BuildConfig(BaseModel):
     group: str = ""
     poc_definitions: list[str] = []  # up to 8
     poc_launch: str = ""
-    license_server: str = ""
     labels: dict[str, str] = {}
     count_start: int = 0
     count_end: int = 0
@@ -71,7 +70,8 @@ class BulkConfigureRequest(BaseModel):
     ssh_keys: list[str] = []
     delete_existing_keys: bool = False
     hostname_template: str = ""
-    workspace_fabrics: list[dict] = []  # [{name: str, template_id: int}]
+    delete_all_workspaces: bool = False
+    workspace_fabrics: list[dict] = []  # [{name: str, template_id: int, install: bool}]
 
 
 class CloneRequest(BaseModel):

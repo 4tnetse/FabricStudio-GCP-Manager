@@ -40,19 +40,85 @@ import { cn } from '@/lib/utils'
 import { zoneLabel } from '@/lib/zones'
 import type { Instance } from '@/lib/types'
 
-function showShutdownToasts(results: { name: string; status: string; message?: string }[]) {
+function isAuthError(message?: string) {
+  return !!(message?.toLowerCase().includes('login failed') || message?.toLowerCase().includes('401'))
+}
+
+// Shows toasts for successes and non-auth errors. Returns names of auth-failed instances.
+function processShutdownResults(results: { name: string; status: string; message?: string }[]): string[] {
   const ok = results.filter((r) => r.status === 'ok')
-  const errors = results.filter((r) => r.status === 'error')
+  const authFailed: string[] = []
+  const otherErrors: { name: string; message?: string }[] = []
+  for (const r of results.filter((r) => r.status === 'error')) {
+    if (isAuthError(r.message)) authFailed.push(r.name)
+    else otherErrors.push(r)
+  }
   if (ok.length > 0)
     toast.success(`Shutdown command sent to ${ok.length} instance${ok.length !== 1 ? 's' : ''}`)
-  for (const r of errors) {
-    const isAuth = r.message?.toLowerCase().includes('login failed') || r.message?.toLowerCase().includes('401')
-    toast.error(
-      isAuth
-        ? `${r.name}: Authentication failed — check the admin password in Settings`
-        : `${r.name}: ${r.message || 'Shutdown failed'}`,
-    )
-  }
+  for (const r of otherErrors)
+    toast.error(`${r.name}: ${r.message || 'Shutdown failed'}`)
+  return authFailed
+}
+
+function PasswordPromptDialog({ instanceName, onConfirm, onConfirmAll, onSkip, onCancelAll }: {
+  instanceName: string
+  onConfirm: (password: string) => void
+  onConfirmAll?: (password: string) => void  // bulk only: use password for all remaining
+  onSkip?: () => void                        // bulk only: skip this instance, continue with rest
+  onCancelAll: () => void                    // single: Cancel / bulk: Cancel everything
+}) {
+  const [password, setPassword] = useState('')
+  const { theme } = useTheme()
+  const isSF = theme === 'security-fabric'
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onCancelAll}>
+      <div className="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-base font-semibold text-slate-100">Admin Password Required</h2>
+        <p className="text-sm text-slate-400">
+          Authentication failed for <span className="font-mono text-slate-200">{instanceName}</span>.
+          Enter the correct admin password to retry.
+        </p>
+        <input
+          type="password"
+          autoFocus
+          className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && password) onConfirm(password) }}
+          placeholder="Admin password"
+        />
+        <div className="flex justify-end gap-2">
+          {onSkip && (
+            <button onClick={onSkip} className="px-3 py-1.5 rounded-lg text-sm border border-slate-600 text-slate-300 hover:border-slate-400 transition-colors">
+              Skip instance
+            </button>
+          )}
+          <button onClick={onCancelAll} className="px-3 py-1.5 rounded-lg text-sm border border-slate-600 text-slate-300 hover:border-slate-400 transition-colors">
+            {onSkip ? 'Cancel everything' : 'Cancel'}
+          </button>
+          <button
+            onClick={() => { if (password) onConfirm(password) }}
+            disabled={!password}
+            className="px-3 py-1.5 rounded-lg text-sm bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white transition-colors"
+          >
+            Retry Shutdown
+          </button>
+          {onConfirmAll && (
+            <button
+              onClick={() => { if (password) onConfirmAll(password) }}
+              disabled={!password}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-sm disabled:opacity-50 text-white transition-colors',
+                isSF ? 'bg-[#db291c] hover:bg-[#c22419]' : 'bg-blue-700 hover:bg-blue-600',
+              )}
+            >
+              Use for all
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function buildFqdn(name: string, prefix: string, domain: string): string | null {
@@ -373,6 +439,7 @@ interface RowActionsProps {
 function RowActions({ instance }: RowActionsProps) {
   const [open, setOpen] = useState(false)
   const [dialog, setDialog] = useState<'rename' | 'machine-type' | 'move' | 'delete' | null>(null)
+  const [shutdownPasswordPrompt, setShutdownPasswordPrompt] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
 
@@ -420,15 +487,17 @@ function RowActions({ instance }: RowActionsProps) {
     }
   }
 
-  async function handleShutdown() {
+  async function handleShutdown(passwordOverride?: string) {
     setOpen(false)
-    toast.success(`Initiating shutdown for ${instance.name} — status will update shortly`)
+    if (!passwordOverride)
+      toast.success(`Initiating shutdown for ${instance.name} — status will update shortly`)
     try {
       const res = await apiPost<{ results: { name: string; status: string; message?: string }[] }>(
         '/ops/bulk-shutdown',
-        { instances: [{ zone: instance.zone, name: instance.name }] },
+        { instances: [{ zone: instance.zone, name: instance.name }], ...(passwordOverride ? { admin_password: passwordOverride } : {}) },
       )
-      showShutdownToasts(res.results)
+      const authFailed = processShutdownResults(res.results)
+      if (authFailed.length > 0) setShutdownPasswordPrompt(true)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to shutdown')
     }
@@ -585,6 +654,13 @@ function RowActions({ instance }: RowActionsProps) {
           onConfirm={handleDelete}
         />
       )}
+      {shutdownPasswordPrompt && (
+        <PasswordPromptDialog
+          instanceName={instance.name}
+          onConfirm={(password) => { setShutdownPasswordPrompt(false); handleShutdown(password) }}
+          onCancelAll={() => setShutdownPasswordPrompt(false)}
+        />
+      )}
     </>
   )
 }
@@ -604,6 +680,8 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
   const [detailInstance, setDetailInstance] = useState<Instance | null>(null)
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false)
   const [bulkJobId, setBulkJobId] = useState<string | null>(null)
+  // Queue of auth-failed instances to retry one by one; null = dialog closed
+  const [shutdownRetryQueue, setShutdownRetryQueue] = useState<{ zone: string; name: string }[] | null>(null)
 
   const { theme } = useTheme()
   const isSF = theme === 'security-fabric'
@@ -666,40 +744,95 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
   const selectedInstances = filtered.filter((i) => selected.has(`${i.zone}/${i.name}`))
 
   async function handleBulkStart() {
+    const instances = selectedInstances.filter((i) => i.status !== 'RUNNING')
+    setSelected(new Set())
+    if (instances.length === 0) {
+      toast.info(`Instance${selectedInstances.length !== 1 ? 's are' : ' is'} already running`)
+      return
+    }
     try {
-      for (const inst of selectedInstances) {
+      for (const inst of instances) {
         await startInstance.mutateAsync({ zone: inst.zone, name: inst.name })
       }
-      toast.success(`Starting ${selectedInstances.length} instance${selectedInstances.length !== 1 ? 's' : ''}`)
-      setSelected(new Set())
+      toast.success(`Starting ${instances.length} instance${instances.length !== 1 ? 's' : ''}`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Bulk start failed')
     }
   }
 
   async function handleBulkStop() {
+    const instances = selectedInstances.filter((i) => i.status === 'RUNNING')
+    setSelected(new Set())
+    if (instances.length === 0) {
+      toast.info(`Instance${selectedInstances.length !== 1 ? 's are' : ' is'} already stopped`)
+      return
+    }
     try {
-      for (const inst of selectedInstances) {
+      for (const inst of instances) {
         await stopInstance.mutateAsync({ zone: inst.zone, name: inst.name })
       }
-      toast.success(`Stopping ${selectedInstances.length} instance${selectedInstances.length !== 1 ? 's' : ''}`)
-      setSelected(new Set())
+      toast.success(`Stopping ${instances.length} instance${instances.length !== 1 ? 's' : ''}`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Bulk stop failed')
     }
   }
 
-  async function handleBulkShutdown() {
-    toast.success(`Initiating shutdown for ${selectedInstances.length} instance${selectedInstances.length !== 1 ? 's' : ''} — status will update shortly`)
+  async function handleBulkShutdown(instanceList?: { zone: string; name: string }[], passwordOverride?: string) {
+    const targets = instanceList ?? selectedInstances.filter((i) => i.status === 'RUNNING').map((i) => ({ zone: i.zone, name: i.name }))
+    if (!instanceList) {
+      setSelected(new Set())
+      if (targets.length === 0) {
+        toast.info(`Instance${selectedInstances.length !== 1 ? 's are' : ' is'} already stopped`)
+        return
+      }
+    }
+    if (!passwordOverride)
+      toast.success(`Initiating shutdown for ${targets.length} instance${targets.length !== 1 ? 's' : ''} — status will update shortly`)
     try {
       const res = await apiPost<{ results: { name: string; status: string; message?: string }[] }>(
         '/ops/bulk-shutdown',
-        { instances: selectedInstances.map((i) => ({ zone: i.zone, name: i.name })) },
+        { instances: targets, ...(passwordOverride ? { admin_password: passwordOverride } : {}) },
       )
-      showShutdownToasts(res.results)
-      setSelected(new Set())
+      const authFailedNames = processShutdownResults(res.results)
+      if (authFailedNames.length > 0) {
+        const authFailedInstances = targets.filter((t) => authFailedNames.includes(t.name))
+        setShutdownRetryQueue(authFailedInstances)
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Bulk shutdown failed')
+    }
+  }
+
+  async function retryShutdownHead(password: string) {
+    if (!shutdownRetryQueue?.length) return
+    const [head, ...tail] = shutdownRetryQueue
+    setShutdownRetryQueue(tail.length > 0 ? tail : null)
+    try {
+      const res = await apiPost<{ results: { name: string; status: string; message?: string }[] }>(
+        '/ops/bulk-shutdown',
+        { instances: [head], admin_password: password },
+      )
+      const authFailedNames = processShutdownResults(res.results)
+      // If this one still fails auth, put it back at the front with the rest
+      if (authFailedNames.length > 0)
+        setShutdownRetryQueue([head, ...tail])
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Shutdown failed')
+    }
+  }
+
+  async function retryAllWithPassword(password: string) {
+    if (!shutdownRetryQueue?.length) return
+    const queue = shutdownRetryQueue
+    setShutdownRetryQueue(null)
+    try {
+      const res = await apiPost<{ results: { name: string; status: string; message?: string }[] }>(
+        '/ops/bulk-shutdown',
+        { instances: queue, admin_password: password },
+      )
+      processShutdownResults(res.results)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Shutdown failed')
     }
   }
 
@@ -821,7 +954,7 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
               Stop
             </button>
             <button
-              onClick={handleBulkShutdown}
+              onClick={() => handleBulkShutdown()}
               disabled={bulkOp.isPending}
               className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm disabled:opacity-50', isSF ? 'bg-slate-700 hover:bg-slate-600 text-orange-400' : 'bg-orange-900/40 hover:bg-orange-800/40 text-orange-300 border border-orange-800')}
             >
@@ -984,6 +1117,16 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
           names={selectedInstances.map((i) => i.name)}
           onClose={() => setBulkDeleteConfirm(false)}
           onConfirm={handleBulkDelete}
+        />
+      )}
+
+      {shutdownRetryQueue && shutdownRetryQueue.length > 0 && (
+        <PasswordPromptDialog
+          instanceName={shutdownRetryQueue[0].name}
+          onConfirm={(password) => retryShutdownHead(password)}
+          onConfirmAll={shutdownRetryQueue.length > 1 ? (password) => retryAllWithPassword(password) : undefined}
+          onSkip={() => setShutdownRetryQueue(shutdownRetryQueue.length > 1 ? shutdownRetryQueue.slice(1) : null)}
+          onCancelAll={() => setShutdownRetryQueue(null)}
         />
       )}
 

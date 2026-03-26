@@ -159,13 +159,8 @@ export default function Configure() {
     }
     const pad = (n: number) => String(n).padStart(match[2].length, '0')
     const names = Array.from({ length: end - start + 1 }, (_, i) => `${base}-${pad(start + i)}`)
-    const found = names.filter((n) => instances.some((i) => i.name === n))
-    if (found.length === 0) {
-      toast.error('No instances found in that range')
-      return
-    }
-    setSelectedNames(new Set(found))
-    toast.success(`Selected ${found.length} instance${found.length !== 1 ? 's' : ''} from range`)
+    setSelectedNames(new Set(names))
+    toast.success(`Selected ${names.length} instance${names.length !== 1 ? 's' : ''} from range`)
   }
 
   function addSshKey() {
@@ -189,7 +184,7 @@ export default function Configure() {
     }
     const items = [...selectedNames].map((name) => {
       const inst = instances.find((i) => i.name === name)
-      return { name, zone: inst?.zone ?? '' }
+      return { name, zone: inst?.zone ?? settings?.default_zone ?? '' }
     })
     setConfiguring(true)
     setStreamUrl(null)
@@ -412,12 +407,16 @@ export default function Configure() {
             </div>
 
             <div>
-              <label className={labelClass}>Set guest password</label>
+              <div className="flex items-center gap-1.5 mb-1">
+                <label className="text-xs font-medium text-slate-400">Fabric Studio Registration token:secret</label>
+                <a href="https://srv3.register.fortipoc.com/" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-slate-300">
+                  <Info className="w-3.5 h-3.5" />
+                </a>
+              </div>
               <input
                 className={inputClass}
-                type="password"
-                value={guestPassword}
-                onChange={(e) => setGuestPassword(e.target.value)}
+                value={trialKey}
+                onChange={(e) => setTrialKey(e.target.value)}
                 placeholder="Optional"
               />
             </div>
@@ -444,7 +443,7 @@ export default function Configure() {
                 <span className="text-xs text-slate-400">Delete existing keys before adding</span>
               </label>
               {settings?.ssh_public_key && (
-                <p className="text-xs text-slate-500 mb-2">The SSH key from Settings is always included.</p>
+                <p className="text-xs text-slate-500 mb-2">The SSH key from Settings is always installed.</p>
               )}
               {sshKeys.length === 0 && !settings?.ssh_public_key && (
                 <p className="text-xs text-slate-500 mb-1">No SSH key configured in Settings. Add keys below.</p>
@@ -471,6 +470,28 @@ export default function Configure() {
             </div>
 
             <div>
+              <label className={labelClass}>Fabric Studio License Server IP address</label>
+              <input
+                className={inputClass}
+                value={licenseServer}
+                onChange={(e) => setLicenseServer(e.target.value)}
+                placeholder="e.g. 10.20.30.2"
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Set guest password</label>
+              <input
+                className={inputClass}
+                type="password"
+                value={guestPassword}
+                onChange={(e) => setGuestPassword(e.target.value)}
+                placeholder="Optional"
+              />
+              <p className="text-xs text-slate-500 mt-1">Must meet policy: at least 3 of uppercase, lowercase, digit, special character.</p>
+            </div>
+
+            <div>
               <label className={labelClass}>Hostname</label>
               <input
                 className={inputClass}
@@ -481,37 +502,12 @@ export default function Configure() {
               <p className="text-xs text-slate-500 mt-1"><code className="text-slate-500">{'{count}'}</code> is replaced with the instance number (e.g. 1, 23)</p>
             </div>
 
-            <div>
-              <div className="flex items-center gap-1.5 mb-1">
-                <label className="text-xs font-medium text-slate-400">Fabric Studio Registration token:secret</label>
-                <a href="https://srv3.register.fortipoc.com/" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-slate-300">
-                  <Info className="w-3.5 h-3.5" />
-                </a>
-              </div>
-              <input
-                className={inputClass}
-                value={trialKey}
-                onChange={(e) => setTrialKey(e.target.value)}
-                placeholder="Optional"
-              />
-            </div>
-
-            <div>
-              <label className={labelClass}>Fabric Studio License Server IP address</label>
-              <input
-                className={inputClass}
-                value={licenseServer}
-                onChange={(e) => setLicenseServer(e.target.value)}
-                placeholder={settings?.license_server ? `e.g. ${settings.license_server}` : 'e.g. 10.20.30.2'}
-              />
-            </div>
-
             {/* Fabric Workspace */}
             <div className="pt-2 space-y-3">
               <h2 className="text-sm font-semibold text-slate-200">Fabric Workspace</h2>
 
               <div>
-                <label className={labelClass}>Source instance (make sure the instance is running)</label>
+                <label className={labelClass}>Source instance (make sure the instance is running and registered)</label>
                 <CustomSelect
                   className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                   value={workspaceSource}
@@ -642,10 +638,12 @@ export default function Configure() {
 
         </div>{/* end left widget */}
 
-        {/* Right: log output */}
-        <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-slate-300 shrink-0">Output</h2>
-          <LogStream url={streamUrl} minHeight="min-h-96" className="flex-1 min-h-0" onStreamingChange={setStreaming} />
+        {/* Right: log output — relative wrapper so absolute child doesn't inflate grid row */}
+        <div className="relative">
+          <div className="absolute inset-0 rounded-xl border border-slate-700 bg-slate-800/30 p-5 flex flex-col gap-3 overflow-hidden">
+            <h2 className="text-sm font-medium text-slate-300 shrink-0">Output</h2>
+            <LogStream url={streamUrl} className="flex-1 min-h-0" onStreamingChange={setStreaming} />
+          </div>
         </div>
       </div>
     </div>

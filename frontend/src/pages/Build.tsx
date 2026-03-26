@@ -227,10 +227,12 @@ export default function Build() {
           </button>
         </div>
 
-        {/* Right: log output */}
-        <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-slate-300 shrink-0">Output</h2>
-          <LogStream url={streamUrl} minHeight="min-h-96" className="flex-1 min-h-0" onStreamingChange={setStreaming} />
+        {/* Right: log output — relative wrapper so absolute child doesn't inflate grid row */}
+        <div className="relative">
+          <div className="absolute inset-0 rounded-xl border border-slate-700 bg-slate-800/30 p-5 flex flex-col gap-3 overflow-hidden">
+            <h2 className="text-sm font-medium text-slate-300 shrink-0">Output</h2>
+            <LogStream url={streamUrl} className="flex-1 min-h-0" onStreamingChange={setStreaming} />
+          </div>
         </div>
       </div>
     </div>

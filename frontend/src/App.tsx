@@ -38,8 +38,8 @@ import Costs from '@/pages/Costs'
 const NAV_ITEMS = [
   { to: '/', label: 'Instances', icon: LayoutDashboard, exact: true },
   { to: '/build', label: 'Build', icon: Hammer },
-  { to: '/clone', label: 'Clone', icon: Copy },
   { to: '/configure', label: 'Configure', icon: Wrench },
+  { to: '/clone', label: 'Clone', icon: Copy },
   { to: '/firewall', label: 'Firewall', icon: Shield },
   { to: '/labels', label: 'Labels', icon: Tag },
   { to: '/ssh', label: 'SSH', icon: Terminal },

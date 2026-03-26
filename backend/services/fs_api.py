@@ -166,10 +166,11 @@ class FabricStudioClient:
             json={"new_password": new_password},
             headers=self._headers(),
         )
-        r.raise_for_status()
+        if not r.is_success:
+            raise ValueError(f"Set guest password failed ({r.status_code}): {r.text}")
         data = r.json()
         if data.get("status") == "error":
-            raise ValueError(f"Password change failed: {data.get('errors', {})}")
+            raise ValueError(f"Set guest password failed: {data.get('errors', {})}")
 
     # ------------------------------------------------------------------ #
     #  Workspace / Fabric                                                  #

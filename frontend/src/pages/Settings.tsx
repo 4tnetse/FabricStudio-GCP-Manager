@@ -10,7 +10,6 @@ import { CustomSelect } from '@/components/CustomSelect'
 import { zoneLabel } from '@/lib/zones'
 import { SwitchProjectDialog } from '@/components/SwitchProjectDialog'
 
-const TYPES = ['fs', 'fpoc']
 
 const THEMES: { value: AppTheme; label: string; description: string }[] = [
   { value: 'dark', label: 'Dark', description: 'Dark slate theme (default)' },
@@ -166,6 +165,14 @@ export default function SettingsPage() {
   const fqdnPrefixError = form.instance_fqdn_prefix && !DNS_PREFIX_RE.test(form.instance_fqdn_prefix as string)
     ? 'Invalid prefix — letters, numbers and hyphens only (e.g. lab)' : null
 
+  const INSTANCE_PREFIX_RE = /^[a-z][a-z0-9-]*$/
+  const instancePrefixValue = (form.default_type as string) ?? 'fs'
+  const instancePrefixError = instancePrefixValue && !INSTANCE_PREFIX_RE.test(instancePrefixValue)
+    ? 'Must start with a letter; only lowercase letters, digits and hyphens allowed'
+    : instancePrefixValue.endsWith('-')
+      ? 'Cannot end with a hyphen'
+      : null
+
   const inputClass =
     'w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500'
   const inputErrorClass =
@@ -189,7 +196,145 @@ export default function SettingsPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
 
-      {/* Left column: Keys + Appearance */}
+      {/* Left column: Preferences */}
+      <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Settings2 className="w-4 h-4 text-slate-400" />
+          <h2 className="text-sm font-semibold text-slate-200">Preferences</h2>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={labelClass}>Default initials</label>
+            <input
+              className={inputClass}
+              placeholder="e.g. tve"
+              value={(form.initials as string) ?? ''}
+              onChange={(e) => setField('initials', e.target.value)}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Owner</label>
+            <input
+              className={inputClass}
+              placeholder="e.g. tvermant"
+              value={(form.owner as string) ?? ''}
+              onChange={(e) => setField('owner', e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={labelClass}>Default zone</label>
+            <CustomSelect
+              className={inputClass}
+              value={(form.default_zone as string) ?? ''}
+              onChange={(v) => setField('default_zone', v)}
+              options={zones.map((z) => ({ value: z, label: zoneLabel(z, zoneLocations) }))}
+              searchable
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Default instance prefix</label>
+            <input
+              className={instancePrefixError ? inputErrorClass : inputClass}
+              placeholder="e.g. fs"
+              value={instancePrefixValue}
+              onChange={(e) => setField('default_type', e.target.value.toLowerCase())}
+            />
+            {instancePrefixError && <p className="text-xs text-red-400 mt-1">{instancePrefixError}</p>}
+          </div>
+        </div>
+
+        <div>
+          <label className={labelClass}>Default group</label>
+          <input
+            className={inputClass}
+            placeholder="e.g. my-workshop-group"
+            value={(form.group as string) ?? ''}
+            onChange={(e) => setField('group', e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className={labelClass}>Default Fabric Studio admin password</label>
+          <input
+            className={inputClass}
+            type="password"
+            placeholder="Default password for Fabric Studio API access"
+            value={(form.fs_admin_password as string) ?? ''}
+            onChange={(e) => setField('fs_admin_password', e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={labelClass}>DNS Domain</label>
+            <input
+              className={dnsDomainError ? inputErrorClass : inputClass}
+              placeholder="e.g. fs.fortilab.be"
+              value={(form.dns_domain as string) ?? ''}
+              onChange={(e) => setField('dns_domain', e.target.value)}
+            />
+            {dnsDomainError && <p className="text-xs text-red-400 mt-1">{dnsDomainError}</p>}
+          </div>
+          <div>
+            <label className={labelClass}>Instance FQDN prefix</label>
+            <input
+              className={fqdnPrefixError ? inputErrorClass : inputClass}
+              placeholder="e.g. lab"
+              value={(form.instance_fqdn_prefix as string) ?? ''}
+              onChange={(e) => setField('instance_fqdn_prefix', e.target.value)}
+            />
+            {fqdnPrefixError && <p className="text-xs text-red-400 mt-1">{fqdnPrefixError}</p>}
+          </div>
+        </div>
+
+        <div>
+          <label className={labelClass}>DNS Zone name</label>
+          <input
+            className={inputClass}
+            placeholder="e.g. fs-fortilab-be"
+            value={(form.dns_zone_name as string) ?? ''}
+            onChange={(e) => setField('dns_zone_name', e.target.value)}
+          />
+          <p className="text-xs text-slate-500 mt-1">The managed zone name in Google Cloud DNS</p>
+        </div>
+
+        <div>
+          <label className={labelClass}>SSH public key</label>
+          <textarea
+            rows={3}
+            className={inputClass + ' resize-none font-mono text-xs'}
+            placeholder="ssh-rsa AAAA..."
+            value={(form.ssh_public_key as string) ?? ''}
+            onChange={(e) => setField('ssh_public_key', e.target.value)}
+          />
+        </div>
+
+        <div className="flex items-center justify-between pt-2">
+          <button
+            onClick={() => setConfirmReset(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-red-400 hover:text-red-300 hover:bg-red-900/20 border border-transparent hover:border-red-800 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Reset all settings
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={updateSettings.isPending || !!dnsDomainError || !!fqdnPrefixError || !!instancePrefixError}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+          >
+            {updateSettings.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : null}
+            Save settings
+          </button>
+        </div>
+      </div>{/* end Preferences widget */}
+
+      {/* Right column: Keys + Appearance */}
       <div className="space-y-6">
 
       {/* Service Account Keys */}
@@ -291,147 +436,10 @@ export default function SettingsPage() {
       {/* Appearance */}
       <ThemeSelector />
 
-      </div>{/* end left column */}
-
-      {/* Right column: Preferences */}
-      <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
-        <div className="flex items-center gap-2">
-          <Settings2 className="w-4 h-4 text-slate-400" />
-          <h2 className="text-sm font-semibold text-slate-200">Preferences</h2>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={labelClass}>Initials</label>
-            <input
-              className={inputClass}
-              placeholder="e.g. tve"
-              value={(form.initials as string) ?? ''}
-              onChange={(e) => setField('initials', e.target.value)}
-            />
-          </div>
-          <div>
-            <label className={labelClass}>Owner</label>
-            <input
-              className={inputClass}
-              placeholder="e.g. tvermant"
-              value={(form.owner as string) ?? ''}
-              onChange={(e) => setField('owner', e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={labelClass}>Default zone</label>
-            <CustomSelect
-              className={inputClass}
-              value={(form.default_zone as string) ?? ''}
-              onChange={(v) => setField('default_zone', v)}
-              options={zones.map((z) => ({ value: z, label: zoneLabel(z, zoneLocations) }))}
-              searchable
-            />
-          </div>
-          <div>
-            <label className={labelClass}>Default type</label>
-            <CustomSelect
-              className={inputClass}
-              value={(form.default_type as string) ?? 'fs'}
-              onChange={(v) => setField('default_type', v)}
-              options={TYPES.map((t) => ({ value: t, label: t }))}
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className={labelClass}>Group</label>
-          <input
-            className={inputClass}
-            placeholder="e.g. my-workshop-group"
-            value={(form.group as string) ?? ''}
-            onChange={(e) => setField('group', e.target.value)}
-          />
-        </div>
-
-
-        <div>
-          <label className={labelClass}>Default Fabric Studio admin password</label>
-          <input
-            className={inputClass}
-            type="password"
-            placeholder="Default password for Fabric Studio API access"
-            value={(form.fs_admin_password as string) ?? ''}
-            onChange={(e) => setField('fs_admin_password', e.target.value)}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={labelClass}>DNS Domain</label>
-            <input
-              className={dnsDomainError ? inputErrorClass : inputClass}
-              placeholder="e.g. fs.fortilab.be"
-              value={(form.dns_domain as string) ?? ''}
-              onChange={(e) => setField('dns_domain', e.target.value)}
-            />
-            {dnsDomainError && <p className="text-xs text-red-400 mt-1">{dnsDomainError}</p>}
-          </div>
-          <div>
-            <label className={labelClass}>Instance FQDN prefix</label>
-            <input
-              className={fqdnPrefixError ? inputErrorClass : inputClass}
-              placeholder="e.g. lab"
-              value={(form.instance_fqdn_prefix as string) ?? ''}
-              onChange={(e) => setField('instance_fqdn_prefix', e.target.value)}
-            />
-            {fqdnPrefixError && <p className="text-xs text-red-400 mt-1">{fqdnPrefixError}</p>}
-          </div>
-        </div>
-
-        <div>
-          <label className={labelClass}>DNS Zone name</label>
-          <input
-            className={inputClass}
-            placeholder="e.g. fs-fortilab-be"
-            value={(form.dns_zone_name as string) ?? ''}
-            onChange={(e) => setField('dns_zone_name', e.target.value)}
-          />
-          <p className="text-xs text-slate-500 mt-1">The managed zone name in Google Cloud DNS</p>
-        </div>
-
-        <div>
-          <label className={labelClass}>SSH public key</label>
-          <textarea
-            rows={3}
-            className={inputClass + ' resize-none font-mono text-xs'}
-            placeholder="ssh-rsa AAAA..."
-            value={(form.ssh_public_key as string) ?? ''}
-            onChange={(e) => setField('ssh_public_key', e.target.value)}
-          />
-        </div>
-
-        <div className="flex items-center justify-between pt-2">
-          <button
-            onClick={() => setConfirmReset(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-red-400 hover:text-red-300 hover:bg-red-900/20 border border-transparent hover:border-red-800 transition-colors"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            Reset all settings
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={updateSettings.isPending || !!dnsDomainError || !!fqdnPrefixError}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium transition-colors"
-          >
-            {updateSettings.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : null}
-            Save settings
-          </button>
-        </div>
-      </div>
+      </div>{/* end right column */}
 
       </div>{/* end two-column grid */}
+
 
       {/* Reset confirmation dialog */}
       {confirmReset && (

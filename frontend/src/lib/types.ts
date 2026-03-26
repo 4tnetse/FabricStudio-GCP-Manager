@@ -43,7 +43,6 @@ export interface Settings {
   owner: string | null
   group: string | null
   ssh_public_key: string | null
-  license_server: string | null
   dns_domain: string | null
   instance_fqdn_prefix: string | null
   dns_zone_name: string | null

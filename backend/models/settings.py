@@ -9,7 +9,6 @@ class SettingsUpdate(BaseModel):
     owner: str | None = None
     group: str | None = None
     ssh_public_key: str | None = None
-    license_server: str | None = None
     dns_domain: str | None = None
     instance_fqdn_prefix: str | None = None
     dns_zone_name: str | None = None

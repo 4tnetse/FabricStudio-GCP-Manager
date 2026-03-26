@@ -562,7 +562,6 @@ class GCPComputeService:
         tags: list[str],
         poc_definitions: list[str],
         poc_launch: str,
-        license_server: str,
         subnetwork: str | None = None,
     ) -> None:
         client = compute_v1.InstancesClient(credentials=self._credentials)
@@ -574,10 +573,6 @@ class GCPComputeService:
             if trial_key:
                 metadata_items.append(
                     compute_v1.Items(key="FPTRAILKEY", value=trial_key)
-                )
-            if license_server:
-                metadata_items.append(
-                    compute_v1.Items(key="LICENSESERVER", value=license_server)
                 )
             if poc_launch:
                 metadata_items.append(

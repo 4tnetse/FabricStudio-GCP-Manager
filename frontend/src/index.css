@@ -269,6 +269,12 @@
 .security-fabric .bg-slate-950 .text-slate-500 { color: #aaaaaa !important; }
 .security-fabric .bg-slate-950 .text-slate-600 { color: #888888 !important; }
 
+/* Checkboxes & radio buttons — accent red */
+.security-fabric input[type="checkbox"],
+.security-fabric input[type="radio"] {
+  accent-color: #db291c;
+}
+
 /* Buttons — primary blue → Fortinet red */
 .security-fabric .bg-blue-600  { background-color: #db291c; }
 .security-fabric .hover\:bg-blue-500:hover { background-color: #c02218; }

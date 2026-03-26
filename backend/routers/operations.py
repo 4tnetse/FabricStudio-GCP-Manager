@@ -29,6 +29,10 @@ class BulkRequest(BaseModel):
     instances: list[BulkInstanceItem]
 
 
+class BulkShutdownRequest(BulkRequest):
+    admin_password: str | None = None
+
+
 def _get_service() -> GCPComputeService:
     if not cfg.settings.active_project_id:
         raise HTTPException(status_code=400, detail="No active project selected.")
@@ -85,7 +89,6 @@ async def _build_job(job_id: str, build_cfg: BuildConfig) -> None:
                 tags=["workshop-source-any", "workshop-source-networks"],
                 poc_definitions=build_cfg.poc_definitions,
                 poc_launch=build_cfg.poc_launch,
-                license_server=build_cfg.license_server or cfg.settings.license_server,
                 subnetwork=subnetwork,
             )
             await q.put(f"Instance {name} created successfully")
@@ -390,10 +393,10 @@ async def bulk_delete(body: BulkRequest, background_tasks: BackgroundTasks):
 
 
 @router.post("/bulk-shutdown")
-async def bulk_shutdown(body: BulkRequest):
+async def bulk_shutdown(body: BulkShutdownRequest):
     prefix = cfg.settings.instance_fqdn_prefix
     domain = cfg.settings.dns_domain
-    password = cfg.settings.fs_admin_password
+    password = body.admin_password or cfg.settings.fs_admin_password
 
     if not prefix or not domain:
         raise HTTPException(status_code=400, detail="DNS settings (Instance FQDN prefix / DNS Domain) are not configured in Settings.")
@@ -468,15 +471,29 @@ async def _bulk_configure_job(job_id: str, req: BulkConfigureRequest) -> None:
         await q.put(f"{tag} Connecting to {fqdn}…")
         try:
             async with FabricStudioClient(fqdn, default_password) as fs:
-                if req.license_server:
-                    await q.put(f"{tag} Setting license server…")
-                    await fs.set_license_server(req.license_server)
-                if req.trial_key:
-                    await q.put(f"{tag} Registering token…")
-                    await fs.register_token(req.trial_key)
                 if req.admin_password:
                     await q.put(f"{tag} Changing admin password…")
                     await fs.change_admin_password(default_password, req.admin_password)
+                if req.trial_key:
+                    await q.put(f"{tag} Registering token…")
+                    await fs.register_token(req.trial_key)
+                    await q.put(f"{tag} Waiting for registration to complete…")
+                    await fs.wait_for_tasks()
+                all_ssh_keys = list(req.ssh_keys)
+                if cfg.settings.ssh_public_key:
+                    all_ssh_keys.insert(0, cfg.settings.ssh_public_key)
+                if all_ssh_keys:
+                    await q.put(f"{tag} Setting {len(all_ssh_keys)} SSH key(s)…")
+                    if req.delete_existing_keys:
+                        await fs.clear_ssh_keys()
+                    for key in all_ssh_keys:
+                        await fs.add_ssh_key(key)
+                    await q.put(f"{tag} SSH keys set.")
+                if req.license_server:
+                    await q.put(f"{tag} Setting license server…")
+                    await fs.set_license_server(req.license_server)
+                    await q.put(f"{tag} Waiting for license server task to complete…")
+                    await fs.wait_for_tasks()
                 if req.guest_password:
                     await q.put(f"{tag} Setting guest password…")
                     await fs.change_user_password("guest", req.guest_password)
@@ -503,16 +520,6 @@ async def _bulk_configure_job(job_id: str, req: BulkConfigureRequest) -> None:
                         fabric_id = await fs.get_fabric_id_by_name(fabric_to_install["name"])
                         await fs.install_fabric(fabric_id)
                         await q.put(f"{tag} Fabric '{fabric_to_install['name']}' installation started.")
-                all_ssh_keys = list(req.ssh_keys)
-                if cfg.settings.ssh_public_key:
-                    all_ssh_keys.insert(0, cfg.settings.ssh_public_key)
-                if all_ssh_keys:
-                    await q.put(f"{tag} Setting {len(all_ssh_keys)} SSH key(s)…")
-                    if req.delete_existing_keys:
-                        await fs.clear_ssh_keys()
-                    for key in all_ssh_keys:
-                        await fs.add_ssh_key(key)
-                    await q.put(f"{tag} SSH keys set.")
             await q.put(f"{tag} Done.")
         except Exception as exc:
             await q.put(f"{tag} ERROR: {exc}")
@@ -558,6 +565,11 @@ async def get_fs_templates(instance_name: str = Query(...)):
         async with FabricStudioClient(fqdn, password) as fs:
             templates = await fs.list_templates()
         return {"templates": templates}
+    except httpx.ConnectError:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Cannot reach {fqdn} — make sure the instance is running and has a DNS record.",
+        )
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc))
 
