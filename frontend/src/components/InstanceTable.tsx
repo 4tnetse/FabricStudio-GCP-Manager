@@ -579,7 +579,7 @@ function RowActions({ instance }: RowActionsProps) {
             )}
             {instance.status === 'RUNNING' && (
               <button
-                onClick={handleShutdown}
+                onClick={() => handleShutdown()}
                 className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"
               >
                 <PowerOff className="w-3.5 h-3.5 text-orange-400" />
