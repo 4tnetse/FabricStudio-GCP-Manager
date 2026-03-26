@@ -4,7 +4,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 import config as cfg
@@ -110,3 +110,14 @@ _VERSION_FILE = Path(__file__).parent.parent / "VERSION"
 async def health():
     version = _VERSION_FILE.read_text().splitlines()[0].strip() if _VERSION_FILE.exists() else "0.000"
     return {"status": "ok", "active_project": cfg.settings.active_project_id, "version": version}
+
+
+_FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"
+
+if _FRONTEND_DIST.exists():
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def spa_fallback(full_path: str):
+        file_path = _FRONTEND_DIST / full_path
+        if file_path.exists() and file_path.is_file():
+            return FileResponse(str(file_path))
+        return FileResponse(str(_FRONTEND_DIST / "index.html"))

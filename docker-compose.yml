@@ -1,0 +1,10 @@
+services:
+  app:
+    image: ghcr.io/4tnetse/fabricstudio-gcp-manager:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - fabricstudio-data:/root/.fabricstudio
+
+volumes:
+  fabricstudio-data:
