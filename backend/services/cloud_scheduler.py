@@ -49,7 +49,6 @@ def _build_job_body(
     sa_email: str,
     cron_expression: str,
     timezone: str,
-    enabled: bool,
 ) -> dict[str, Any]:
     trigger_url = f"{backend_url.rstrip('/')}/api/schedules/{schedule_id}/trigger"
     return {
@@ -66,7 +65,6 @@ def _build_job_body(
                 "audience": backend_url,
             },
         },
-        "state": scheduler_v1.Job.State.ENABLED if enabled else scheduler_v1.Job.State.PAUSED,
     }
 
 
@@ -104,6 +102,7 @@ async def create_scheduler_job(schedule: dict) -> str:
     if not sa_email:
         raise ValueError("Cannot determine service account email for OIDC token.")
 
+    enabled = schedule.get("enabled", True)
     job_body = _build_job_body(
         schedule_id=schedule["id"],
         project_id=project_id,
@@ -112,13 +111,14 @@ async def create_scheduler_job(schedule: dict) -> str:
         sa_email=sa_email,
         cron_expression=schedule["cron_expression"],
         timezone=schedule.get("timezone", "UTC"),
-        enabled=schedule.get("enabled", True),
     )
 
     def _run() -> str:
         client = _get_client()
         parent = _location_path(project_id, region)
         job = client.create_job(parent=parent, job=job_body)
+        if not enabled:
+            client.pause_job(name=job.name)
         return job.name
 
     return await loop.run_in_executor(None, _run)
@@ -144,14 +144,13 @@ async def update_scheduler_job(schedule: dict) -> None:
         sa_email=sa_email,
         cron_expression=schedule["cron_expression"],
         timezone=schedule.get("timezone", "UTC"),
-        enabled=schedule.get("enabled", True),
     )
 
     def _run() -> None:
         client = _get_client()
         from google.protobuf import field_mask_pb2
         update_mask = field_mask_pb2.FieldMask(
-            paths=["schedule", "time_zone", "http_target", "state"]
+            paths=["schedule", "time_zone", "http_target"]
         )
         client.update_job(job=job_body, update_mask=update_mask)
 
