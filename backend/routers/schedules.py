@@ -83,7 +83,14 @@ async def _maybe_proxy(request: Request) -> Response | None:
 
 
 def _require_scheduling_configured():
-    """Raise 503 if no active project is configured (Firestore can't connect)."""
+    """Raise 503 if scheduling cannot proceed.
+
+    In backend (Cloud Run) mode ADC handles auth — no settings check needed.
+    In full mode both active_key_id and active_project_id must be set.
+    """
+    import os
+    if os.environ.get("APP_MODE") == "backend":
+        return
     if not cfg.settings.active_key_id or not cfg.settings.active_project_id:
         raise HTTPException(status_code=503, detail="No active project configured.")
 
@@ -148,16 +155,21 @@ async def create_schedule(body: ScheduleCreate, request: Request):
 
     from services.key_store import load_keys
 
+    project_id = body.project_id or cfg.settings.active_project_id or ""
+    key_id = cfg.settings.active_key_id or ""
+
     created_by = ""
     keys = load_keys()
-    key_meta = next((k for k in keys if k.id == cfg.settings.active_key_id), None)
+    key_meta = next((k for k in keys if k.id == key_id), None)
     if key_meta:
         created_by = key_meta.client_email
 
+    body_data = body.model_dump()
+    body_data.pop("project_id", None)   # don't store the injected field in Firestore
     data = {
-        **body.model_dump(),
-        "project_id": cfg.settings.active_project_id,
-        "key_id": cfg.settings.active_key_id,
+        **body_data,
+        "project_id": project_id,
+        "key_id": key_id,
         "cloud_scheduler_job_name": "",
         "created_by": created_by,
         "settings_snapshot": _build_settings_snapshot(),

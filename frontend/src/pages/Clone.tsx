@@ -355,6 +355,7 @@ export default function Clone() {
       {scheduleOpen && (
         <ScheduleDialog
           jobType="clone"
+          projectId={settings?.active_project_id ?? undefined}
           payload={{
             source_name: source,
             zone: sourceZone,

@@ -663,6 +663,7 @@ export default function Configure() {
       {scheduleOpen && (
         <ScheduleDialog
           jobType="configure"
+          projectId={settings?.active_project_id ?? undefined}
           payload={{
             instances: [...selectedNames].map((name) => {
               const inst = instances.find((i) => i.name === name)
