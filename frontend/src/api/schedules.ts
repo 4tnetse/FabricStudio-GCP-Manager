@@ -54,6 +54,7 @@ export function useSchedules() {
   return useQuery({
     queryKey: ['schedules'],
     queryFn: () => apiGet<Schedule[]>('/schedules'),
+    refetchInterval: 30_000,
   })
 }
 
@@ -111,6 +112,7 @@ export function useJobRuns(scheduleId: string | null) {
     queryKey: ['schedules', scheduleId, 'runs'],
     queryFn: () => apiGet<JobRun[]>(`/schedules/${scheduleId}/runs`),
     enabled: !!scheduleId,
+    refetchInterval: 5_000,
   })
 }
 

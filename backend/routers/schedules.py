@@ -176,8 +176,10 @@ async def create_schedule(body: ScheduleCreate, request: Request):
     }
     schedule = await fs.create_schedule(data)
 
+    import os as _os
     scheduler_warning = None
-    if cfg.settings.remote_scheduling_enabled and cfg.settings.remote_backend_url:
+    _is_backend = _os.environ.get("APP_MODE") == "backend"
+    if _is_backend or (cfg.settings.remote_scheduling_enabled and cfg.settings.remote_backend_url):
         try:
             from services.cloud_scheduler import create_scheduler_job
             job_name = await create_scheduler_job(schedule)
@@ -236,7 +238,7 @@ async def update_schedule(schedule_id: str, body: ScheduleUpdate, request: Reque
         raise HTTPException(status_code=404, detail="Schedule not found.")
 
     job_name = result.get("cloud_scheduler_job_name", "")
-    if job_name and cfg.settings.remote_scheduling_enabled:
+    if job_name:
         try:
             from services.cloud_scheduler import update_scheduler_job
             await update_scheduler_job(result)
