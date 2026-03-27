@@ -113,7 +113,7 @@ export default function Configure() {
       { instance_name: workspaceSource },
     )
       .then((data) => setWorkspaceTemplates(data.templates))
-      .catch((err) => toast.error(`Failed to fetch templates: ${err.message}`))
+      .catch((err) => toast.error(err.message ?? 'Failed to fetch templates'))
       .finally(() => setWorkspaceTemplatesLoading(false))
   }, [workspaceSource])
 

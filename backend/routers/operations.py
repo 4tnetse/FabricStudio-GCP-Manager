@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import AsyncGenerator
 
+import httpx
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
