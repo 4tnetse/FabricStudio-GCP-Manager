@@ -120,3 +120,19 @@ export function useJobRun(runId: string | null) {
     enabled: !!runId,
   })
 }
+
+export function useDetectCloudRunUrl() {
+  return useMutation({
+    mutationFn: () => apiGet<{ url: string }>('/schedules/cloud-run-url'),
+  })
+}
+
+export function useTriggerSchedule() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (scheduleId: string) => apiPost<{ run_id: string; schedule_id: string }>(`/schedules/${scheduleId}/trigger`),
+    onSuccess: (_data, scheduleId) => {
+      queryClient.invalidateQueries({ queryKey: ['schedules', scheduleId, 'runs'] })
+    },
+  })
+}

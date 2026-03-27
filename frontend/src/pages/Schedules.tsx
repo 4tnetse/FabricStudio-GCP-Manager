@@ -6,6 +6,7 @@ import {
   useDeleteSchedule,
   useEnableSchedule,
   useDisableSchedule,
+  useTriggerSchedule,
   useJobRuns,
   type Schedule,
   type JobRun,
@@ -110,6 +111,7 @@ function ScheduleRow({ schedule, selected, onSelect }: {
   const deleteSchedule = useDeleteSchedule()
   const enableSchedule = useEnableSchedule()
   const disableSchedule = useDisableSchedule()
+  const triggerSchedule = useTriggerSchedule()
 
   async function handleDelete() {
     if (!confirm(`Delete schedule "${schedule.name}"?`)) return
@@ -162,6 +164,23 @@ function ScheduleRow({ schedule, selected, onSelect }: {
         </div>
 
         <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={async () => {
+              try {
+                await triggerSchedule.mutateAsync(schedule.id)
+                toast.success('Job started')
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : 'Failed to trigger job')
+              }
+            }}
+            disabled={triggerSchedule.isPending}
+            title="Run now"
+            className="p-1.5 rounded text-slate-400 hover:text-blue-300 hover:bg-slate-700 transition-colors"
+          >
+            {triggerSchedule.isPending
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <Play className="w-3.5 h-3.5" />}
+          </button>
           <button
             onClick={handleToggle}
             title={schedule.enabled ? 'Disable' : 'Enable'}
