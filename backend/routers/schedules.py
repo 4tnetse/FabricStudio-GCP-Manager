@@ -61,6 +61,7 @@ async def _maybe_proxy(request: Request) -> Response | None:
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
+        "X-Triggered-By": "manual",
     }
     body = await request.body()
 
@@ -334,7 +335,7 @@ async def trigger_schedule(schedule_id: str, background_tasks: BackgroundTasks, 
         "schedule_id": schedule_id,
         "schedule_name": schedule.get("name", ""),
         "job_type": schedule.get("job_type", ""),
-        "triggered_by": "manual",
+        "triggered_by": "manual" if request.headers.get("X-Triggered-By") == "manual" else "scheduler",
         "project_id": schedule.get("project_id", ""),
         "log_lines": [],
         "error_summary": None,

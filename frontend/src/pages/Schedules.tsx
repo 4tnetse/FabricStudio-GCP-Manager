@@ -16,12 +16,12 @@ import { cn } from '@/lib/utils'
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    running: 'bg-blue-900/40 text-blue-300 border-blue-800',
-    completed: 'bg-green-900/40 text-green-300 border-green-800',
-    failed: 'bg-red-900/40 text-red-300 border-red-800',
+    running: 'bg-blue-900/40 text-blue-300',
+    completed: 'bg-green-900/40 text-green-300',
+    failed: 'bg-red-900/40 text-red-300',
   }
   return (
-    <span className={cn('px-2 py-0.5 rounded text-xs border font-medium', colors[status] ?? 'bg-slate-800 text-slate-400 border-slate-700')}>
+    <span className={cn('px-2 py-0.5 rounded text-xs font-medium', colors[status] ?? 'bg-slate-800 text-slate-400')}>
       {status}
     </span>
   )
@@ -94,9 +94,9 @@ function RunsPanel({ schedule }: { schedule: Schedule }) {
   return (
     <div className="space-y-1">
       {runs.map((run) => (
-        <div key={run.id} className="rounded-lg border border-slate-700 bg-slate-800/40 overflow-hidden">
+        <div key={run.id} className="rounded-lg bg-slate-800/40 overflow-hidden">
           <button
-            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-800/60 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 text-left"
             onClick={() => setExpandedRun(expandedRun === run.id ? null : run.id)}
           >
             <StatusBadge status={run.status} />
@@ -123,13 +123,15 @@ function ScheduleRow({ schedule, selected, onSelect }: {
 }) {
   const { theme } = useTheme()
   const isSF = theme === 'security-fabric'
+  const { data: runs = [] } = useJobRuns(schedule.id)
+  const latestRun = runs[0] ?? null
   const deleteSchedule = useDeleteSchedule()
   const enableSchedule = useEnableSchedule()
   const disableSchedule = useDisableSchedule()
   const triggerSchedule = useTriggerSchedule()
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   async function handleDelete() {
-    if (!confirm(`Delete schedule "${schedule.name}"?`)) return
     try {
       await deleteSchedule.mutateAsync(schedule.id)
       toast.success('Schedule deleted')
@@ -155,10 +157,8 @@ function ScheduleRow({ schedule, selected, onSelect }: {
   return (
     <div
       className={cn(
-        'rounded-lg border p-4 cursor-pointer transition-colors',
-        selected
-          ? isSF ? 'border-[#db291c] bg-[#db291c]/10' : 'border-blue-600 bg-blue-900/20'
-          : 'border-slate-700 bg-slate-800/30',
+        'rounded-lg p-4 cursor-pointer',
+        selected ? (isSF ? 'bg-[#db291c]/10' : 'bg-blue-900/20') : 'bg-slate-800/30',
       )}
       onClick={onSelect}
     >
@@ -170,9 +170,18 @@ function ScheduleRow({ schedule, selected, onSelect }: {
               {schedule.job_type}
             </span>
             {schedule.enabled ? (
-              <span className="px-1.5 py-0.5 rounded text-xs bg-green-900/40 text-green-400 border border-green-800 shrink-0">enabled</span>
+              <span className="px-1.5 py-0.5 rounded text-xs bg-green-900/40 text-green-400 shrink-0">enabled</span>
             ) : (
-              <span className="px-1.5 py-0.5 rounded text-xs bg-slate-800 text-slate-500 border border-slate-700 shrink-0">disabled</span>
+              <span className="px-1.5 py-0.5 rounded text-xs bg-slate-800 text-slate-500 shrink-0">disabled</span>
+            )}
+            {latestRun && (
+              latestRun.status === 'completed'
+                ? <span className="px-1.5 py-0.5 rounded text-xs bg-green-900/40 text-green-400 shrink-0">last run: ok</span>
+                : latestRun.status === 'failed'
+                ? <span className="px-1.5 py-0.5 rounded text-xs bg-red-900/40 text-red-400 shrink-0">last run: error</span>
+                : latestRun.status === 'running'
+                ? <span className="px-1.5 py-0.5 rounded text-xs bg-blue-900/40 text-blue-300 shrink-0">running</span>
+                : null
             )}
           </div>
           <div className="text-xs text-slate-500">{formatCron(schedule.cron_expression, schedule.timezone)}</div>
@@ -206,7 +215,7 @@ function ScheduleRow({ schedule, selected, onSelect }: {
               : <ToggleLeft className="w-4 h-4" />}
           </button>
           <button
-            onClick={handleDelete}
+            onClick={() => setConfirmDelete(true)}
             title="Delete schedule"
             className="p-1.5 rounded text-slate-500 hover:text-red-400 hover:bg-slate-700 transition-colors"
           >
@@ -214,6 +223,31 @@ function ScheduleRow({ schedule, selected, onSelect }: {
           </button>
         </div>
       </div>
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setConfirmDelete(false)}>
+          <div className="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-base font-semibold text-slate-100 mb-2">Delete schedule</h2>
+            <p className="text-sm text-slate-400 mb-4">Delete <span className="text-slate-200 font-medium">"{schedule.name}"</span>? This will also remove the Cloud Scheduler job.</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="px-3 py-1.5 rounded-lg text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { setConfirmDelete(false); handleDelete() }}
+                disabled={deleteSchedule.isPending}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white"
+              >
+                {deleteSchedule.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

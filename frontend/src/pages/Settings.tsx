@@ -103,12 +103,46 @@ export default function SettingsPage() {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
-  async function handleSave() {
+  const [isSavingPrefs, setIsSavingPrefs] = useState(false)
+  const [isSavingScheduling, setIsSavingScheduling] = useState(false)
+
+  async function handleSavePrefs() {
+    setIsSavingPrefs(true)
     try {
-      await updateSettings.mutateAsync(form)
+      await updateSettings.mutateAsync({
+        initials: form.initials,
+        default_zone: form.default_zone,
+        default_type: form.default_type,
+        owner: form.owner,
+        group: form.group,
+        ssh_public_key: form.ssh_public_key,
+        dns_domain: form.dns_domain,
+        instance_fqdn_prefix: form.instance_fqdn_prefix,
+        dns_zone_name: form.dns_zone_name,
+        fs_admin_password: form.fs_admin_password,
+      })
       toast.success('Settings saved')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save settings')
+    } finally {
+      setIsSavingPrefs(false)
+    }
+  }
+
+  async function handleSaveScheduling() {
+    setIsSavingScheduling(true)
+    try {
+      await updateSettings.mutateAsync({
+        remote_scheduling_enabled: form.remote_scheduling_enabled,
+        remote_backend_url: form.remote_backend_url,
+        cloud_run_region: form.cloud_run_region,
+        firestore_project_id: form.firestore_project_id,
+      })
+      toast.success('Settings saved')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save settings')
+    } finally {
+      setIsSavingScheduling(false)
     }
   }
 
@@ -328,13 +362,11 @@ export default function SettingsPage() {
             Reset all settings
           </button>
           <button
-            onClick={handleSave}
-            disabled={updateSettings.isPending || !!dnsDomainError || !!fqdnPrefixError || !!instancePrefixError}
+            onClick={handleSavePrefs}
+            disabled={isSavingPrefs || !!dnsDomainError || !!fqdnPrefixError || !!instancePrefixError}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium transition-colors"
           >
-            {updateSettings.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : null}
+            {isSavingPrefs ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             Save settings
           </button>
         </div>
@@ -527,6 +559,17 @@ export default function SettingsPage() {
             </div>
           </div>
         )}
+
+        <div className="flex justify-end pt-1">
+          <button
+            onClick={handleSaveScheduling}
+            disabled={isSavingScheduling}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+          >
+            {isSavingScheduling ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            Save settings
+          </button>
+        </div>
       </div>
 
       </div>{/* end right column */}
