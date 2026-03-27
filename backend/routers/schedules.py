@@ -190,9 +190,8 @@ async def create_schedule(body: ScheduleCreate, request: Request):
             schedule = await fs.update_schedule(schedule["id"], {"cloud_scheduler_job_name": job_name})
             logger.info("create_schedule: Cloud Scheduler job created: %s", job_name)
         except Exception as exc:
-            import traceback
             scheduler_warning = f"Schedule saved but Cloud Scheduler job creation failed: {exc}"
-            logger.error("create_schedule: Cloud Scheduler job creation failed: %s\n%s", exc, traceback.format_exc())
+            logger.error("create_schedule: Cloud Scheduler job creation failed: %s", exc)
 
     result = schedule or data
     if scheduler_warning:
