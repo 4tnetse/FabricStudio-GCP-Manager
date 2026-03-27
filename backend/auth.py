@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from fastapi import HTTPException
@@ -6,9 +7,20 @@ from google.oauth2 import service_account
 import config as cfg
 
 SCOPES = ["https://www.googleapis.com/auth/cloud-platform"]
+APP_MODE = os.environ.get("APP_MODE", "full")
 
 
-def get_credentials() -> service_account.Credentials:
+def get_credentials():
+    """Return GCP credentials.
+
+    In Cloud Run (APP_MODE=backend) uses Application Default Credentials.
+    In local mode uses the active service account key file.
+    """
+    if APP_MODE == "backend":
+        import google.auth
+        creds, _ = google.auth.default(scopes=SCOPES)
+        return creds
+
     # New multi-key path
     active_key_id = cfg.settings.active_key_id
     if active_key_id:

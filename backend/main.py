@@ -1,4 +1,5 @@
 import asyncio
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -10,6 +11,8 @@ from fastapi.staticfiles import StaticFiles
 import config as cfg
 from auth import get_credentials
 from services.gcp_billing import refresh_fallback_prices
+
+APP_MODE = os.environ.get("APP_MODE", "full")  # "full" or "backend"
 from routers import (
     configs,
     costs,
@@ -59,7 +62,8 @@ async def lifespan(app: FastAPI):
             cfg.settings = updated
             cfg.save_settings(updated)
 
-    asyncio.create_task(_daily_price_refresh())
+    if APP_MODE == "full":
+        asyncio.create_task(_daily_price_refresh())
     yield
 
 
@@ -119,7 +123,7 @@ async def health():
 
 _FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"
 
-if _FRONTEND_DIST.exists():
+if APP_MODE == "full" and _FRONTEND_DIST.exists():
     @app.get("/{full_path:path}", include_in_schema=False)
     async def spa_fallback(full_path: str):
         if full_path.startswith("api/") or full_path.startswith("manual"):
