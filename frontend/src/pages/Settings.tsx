@@ -472,7 +472,31 @@ export default function SettingsPage() {
         {form.remote_scheduling_enabled && (
           <div className="space-y-3 pt-1">
             <div>
-              <label className={labelClass}>Cloud Run Region</label>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const result = await detectCloudRunUrl.mutateAsync()
+                    setField('remote_backend_url', result.url)
+                    if (result.region) setField('cloud_run_region', result.region)
+                    toast.success('Cloud Run URL detected')
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : 'Detection failed')
+                  }
+                }}
+                disabled={detectCloudRunUrl.isPending}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-600 hover:border-slate-400 disabled:opacity-50 text-sm text-slate-300 hover:text-slate-100 transition-colors"
+                title="Auto-detect Cloud Run URL and region"
+              >
+                {detectCloudRunUrl.isPending
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : <Search className="w-3.5 h-3.5" />}
+                Detect Cloud Run
+              </button>
+            </div>
+
+            <div>
+              <label className={labelClass}>GCP Cloud Run Region</label>
               <input
                 className={inputClass}
                 placeholder="e.g. europe-west1"
@@ -482,40 +506,17 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className={labelClass}>Remote Backend URL</label>
-              <div className="flex gap-2">
-                <input
-                  className={inputClass}
-                  placeholder="https://fabricstudio-scheduler-xxx-ew.a.run.app"
-                  value={(form.remote_backend_url as string) ?? ''}
-                  onChange={(e) => setField('remote_backend_url', e.target.value)}
-                />
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      const result = await detectCloudRunUrl.mutateAsync()
-                      setField('remote_backend_url', result.url)
-                      toast.success('Cloud Run URL detected')
-                    } catch (err) {
-                      toast.error(err instanceof Error ? err.message : 'Detection failed')
-                    }
-                  }}
-                  disabled={detectCloudRunUrl.isPending}
-                  className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-600 hover:border-slate-400 disabled:opacity-50 text-sm text-slate-300 hover:text-slate-100 transition-colors"
-                  title="Detect Cloud Run URL automatically"
-                >
-                  {detectCloudRunUrl.isPending
-                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    : <Search className="w-3.5 h-3.5" />}
-                  Detect
-                </button>
-              </div>
-              <p className="text-xs text-slate-500 mt-1">Cloud Run URL for the scheduling backend.</p>
+              <label className={labelClass}>GCP Remote Backend URL</label>
+              <input
+                className={inputClass}
+                placeholder="https://fabricstudio-scheduler-xxx-ew.a.run.app"
+                value={(form.remote_backend_url as string) ?? ''}
+                onChange={(e) => setField('remote_backend_url', e.target.value)}
+              />
             </div>
 
             <div>
-              <label className={labelClass}>Firestore Project ID</label>
+              <label className={labelClass}>GCP Firestore Project ID</label>
               <input
                 className={inputClass}
                 placeholder="e.g. my-gcp-project"

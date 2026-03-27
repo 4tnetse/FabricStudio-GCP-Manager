@@ -37,4 +37,8 @@ nav:
       - SSH Configurations: screens/configurations.md
       - Images: screens/images.md
       - Costs: screens/costs.md
+      - Schedules: screens/schedules.md
       - Settings: screens/settings.md
+  - Developer:
+      - Application Design: dev/app-design.md
+      - Scheduling Design: dev/scheduling-design.md

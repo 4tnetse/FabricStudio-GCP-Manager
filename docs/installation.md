@@ -6,6 +6,8 @@
 - Node.js 18 or higher
 - One or more GCP service account JSON keys with sufficient permissions (Compute Engine, Cloud DNS, Resource Manager)
 
+**Scheduling (optional):** Remote scheduling requires additional GCP services. See [Scheduling setup](configuration.md#scheduling-setup-optional) in the Configuration guide.
+
 ## Setup
 
 Clone the repository and run the setup script once:

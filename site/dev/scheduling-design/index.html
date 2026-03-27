@@ -1,0 +1,2519 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Web-based management interface for Fabric Studio instances on Google Cloud Platform">
+      
+      
+      
+      
+        <link rel="prev" href="../app-design/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Scheduling Design - Fabric Studio GCP Manager</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/security-fabric.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#scheduling-feature-technical-design" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Fabric Studio GCP Manager" class="md-header__button md-logo" aria-label="Fabric Studio GCP Manager" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Fabric Studio GCP Manager
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Scheduling Design
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/4tnetse/FabricStudio-GCP-Manager" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FabricStudio-GCP-Manager
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Fabric Studio GCP Manager" class="md-nav__button md-logo" aria-label="Fabric Studio GCP Manager" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Fabric Studio GCP Manager
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/4tnetse/FabricStudio-GCP-Manager" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FabricStudio-GCP-Manager
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Screens
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Screens
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/instances/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Instances
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/configure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/clone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clone
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/firewall/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Firewall
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/labels/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Labels
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/ssh/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SSH
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/configurations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SSH Configurations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/images/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Images
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/costs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Costs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/schedules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Schedules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../app-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Application Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scheduling Design
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scheduling Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#firestore-data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Firestore Data Model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Firestore Data Model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schedulesschedule_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        schedules/{schedule_id}
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job_runsrun_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        job_runs/{run_id}
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-api-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New API Endpoints
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="New API Endpoints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schedule-crud" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedule CRUD
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job Execution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#proxy-behaviour-local-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Proxy behaviour (local backend)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cloud-run-url-auto-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloud Run URL auto-detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#local-cloud-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local → Cloud Run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cloud-scheduler-cloud-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloud Scheduler → Cloud Run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cloud-run-ingress" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloud Run ingress
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cloud-run-backend-only-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloud Run — Backend-Only Mode
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#settings-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings Changes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Settings Changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#new-appsettings-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New AppSettings fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#settings-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings UI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#frontend-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend Changes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Frontend Changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schedule-button-clone-screen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedule button — Clone screen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schedule-button-configure-screen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedule button — Configure screen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scheduledialog-component" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ScheduleDialog component
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schedules-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedules page
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sidebar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sidebar
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gcp-infrastructure-setup-one-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GCP Infrastructure Setup (one-time)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="GCP Infrastructure Setup (one-time)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-enable-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Enable APIs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-create-firestore-database" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Create Firestore database
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-required-iam-roles-for-service-account" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Required IAM roles for service account
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-deploy-cloud-run-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Deploy Cloud Run service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-grant-invoker-permission-to-cloud-scheduler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Grant invoker permission to Cloud Scheduler
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New Files
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="New Files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frontend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#new-python-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New Python dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#new-npm-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New npm dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-phases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Phases
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#firestore-data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Firestore Data Model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Firestore Data Model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schedulesschedule_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        schedules/{schedule_id}
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job_runsrun_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        job_runs/{run_id}
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-api-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New API Endpoints
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="New API Endpoints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schedule-crud" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedule CRUD
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#job-execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job Execution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#proxy-behaviour-local-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Proxy behaviour (local backend)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cloud-run-url-auto-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloud Run URL auto-detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#local-cloud-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local → Cloud Run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cloud-scheduler-cloud-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloud Scheduler → Cloud Run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cloud-run-ingress" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloud Run ingress
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cloud-run-backend-only-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloud Run — Backend-Only Mode
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#settings-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings Changes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Settings Changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#new-appsettings-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New AppSettings fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#settings-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings UI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#frontend-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend Changes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Frontend Changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schedule-button-clone-screen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedule button — Clone screen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schedule-button-configure-screen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedule button — Configure screen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scheduledialog-component" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ScheduleDialog component
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schedules-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedules page
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sidebar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sidebar
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gcp-infrastructure-setup-one-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GCP Infrastructure Setup (one-time)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="GCP Infrastructure Setup (one-time)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-enable-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Enable APIs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-create-firestore-database" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Create Firestore database
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-required-iam-roles-for-service-account" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Required IAM roles for service account
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-deploy-cloud-run-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Deploy Cloud Run service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-grant-invoker-permission-to-cloud-scheduler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Grant invoker permission to Cloud Scheduler
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New Files
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="New Files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frontend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#new-python-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New Python dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#new-npm-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New npm dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-phases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Phases
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="scheduling-feature-technical-design">Scheduling Feature — Technical Design</h1>
+<p><strong>Branch:</strong> <code>feature/scheduling</code>
+<strong>Status:</strong> Draft</p>
+<hr />
+<h2 id="overview">Overview</h2>
+<p>Add scheduling of Clone and Configure jobs via GCP Cloud Run + Cloud Scheduler + Firestore. The local backend proxies schedule operations to a Cloud Run backend; Cloud Scheduler triggers jobs on a cron schedule; Firestore stores schedule definitions and job history.</p>
+<hr />
+<h2 id="architecture">Architecture</h2>
+<pre><code>┌──────────────────────────────────────────────────────────────────┐
+│                      LOCAL MACHINE                               │
+│                                                                  │
+│  Browser                                                         │
+│  ┌────────────────┐  HTTP   ┌────────────────────────────────┐  │
+│  │ React Frontend │────────▶│ Local Backend (FastAPI)        │  │
+│  │ /clone         │         │ port 1981                      │  │
+│  │ /configure     │         │ ┌────────────────────────────┐ │  │
+│  │ /schedules     │         │ │ Proxy layer                │ │  │
+│  │ /settings      │         │ │ If remote_backend_url set: │ │  │
+│  └────────────────┘         │ │  forward /api/schedules/*  │ │  │
+│                             │ │  attach ID token header    │ │  │
+│                             │ └────────────────────────────┘ │  │
+│                             └────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────┘
+                                      │ HTTPS + Bearer token
+                                      ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                        GCP PROJECT                               │
+│                                                                  │
+│  ┌────────────────────────────────────────────────────────────┐  │
+│  │  Cloud Run  &quot;fabricstudio-scheduler&quot;                       │  │
+│  │  Same Docker image, APP_MODE=backend                       │  │
+│  │  Auth: require Google ID token                             │  │
+│  │                                                            │  │
+│  │  POST /api/schedules/trigger/{id}  ◀── Cloud Scheduler     │  │
+│  │  GET/POST/PUT/DELETE /api/schedules/* ◀── Local backend    │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                                                                  │
+│  ┌──────────────────────┐   ┌──────────────────────────────┐    │
+│  │  Cloud Scheduler     │   │  Firestore                   │    │
+│  │  one job per         │──▶│  schedules/                  │    │
+│  │  schedule            │   │  job_runs/                   │    │
+│  └──────────────────────┘   └──────────────────────────────┘    │
+└──────────────────────────────────────────────────────────────────┘
+</code></pre>
+<hr />
+<h2 id="firestore-data-model">Firestore Data Model</h2>
+<h3 id="schedulesschedule_id"><code>schedules/{schedule_id}</code></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>string</td>
+<td>Document ID</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>string</td>
+<td>Human label, e.g. "Nightly workshop clone"</td>
+</tr>
+<tr>
+<td><code>job_type</code></td>
+<td>string</td>
+<td><code>"clone"</code> or <code>"configure"</code></td>
+</tr>
+<tr>
+<td><code>cron_expression</code></td>
+<td>string</td>
+<td>5-part cron, e.g. <code>"0 20 * * 1-5"</code></td>
+</tr>
+<tr>
+<td><code>timezone</code></td>
+<td>string</td>
+<td>IANA timezone, e.g. <code>"Europe/Brussels"</code></td>
+</tr>
+<tr>
+<td><code>enabled</code></td>
+<td>bool</td>
+<td>Whether Cloud Scheduler job is active</td>
+</tr>
+<tr>
+<td><code>project_id</code></td>
+<td>string</td>
+<td>GCP project to operate on</td>
+</tr>
+<tr>
+<td><code>key_id</code></td>
+<td>string</td>
+<td>Which service account key to use</td>
+</tr>
+<tr>
+<td><code>payload</code></td>
+<td>map</td>
+<td>Job-type-specific parameters (see below)</td>
+</tr>
+<tr>
+<td><code>settings_snapshot</code></td>
+<td>map</td>
+<td>Copy of relevant AppSettings at save time</td>
+</tr>
+<tr>
+<td><code>cloud_scheduler_job_name</code></td>
+<td>string</td>
+<td>Full resource name of the Cloud Scheduler job</td>
+</tr>
+<tr>
+<td><code>created_at</code></td>
+<td>timestamp</td>
+<td></td>
+</tr>
+<tr>
+<td><code>updated_at</code></td>
+<td>timestamp</td>
+<td></td>
+</tr>
+<tr>
+<td><code>created_by</code></td>
+<td>string</td>
+<td><code>client_email</code> of the service account</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Clone payload fields:</strong> <code>source_name</code>, <code>zone</code>, <code>target_zone</code>, <code>clone_base_name</code>, <code>purpose</code>, <code>count_start</code>, <code>count_end</code>, <code>overwrite</code></p>
+<p><strong>Configure payload fields:</strong> <code>instances</code>, <code>old_admin_password</code>, <code>admin_password</code>, <code>guest_password</code>, <code>trial_key</code>, <code>license_server</code>, <code>hostname_template</code>, <code>ssh_keys</code>, <code>delete_existing_keys</code>, <code>delete_all_workspaces</code>, <code>workspace_fabrics</code></p>
+<p><strong>Settings snapshot fields:</strong> <code>dns_domain</code>, <code>instance_fqdn_prefix</code>, <code>dns_zone_name</code>, <code>fs_admin_password</code>, <code>default_zone</code>, <code>owner</code></p>
+<p>!!! note
+    Passwords in the payload and settings snapshot are stored encrypted at rest by Firestore (GCP default AES-256). Migration to Cloud Secret Manager is a future improvement.</p>
+<h3 id="job_runsrun_id"><code>job_runs/{run_id}</code></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>string</td>
+<td>Document ID</td>
+</tr>
+<tr>
+<td><code>schedule_id</code></td>
+<td>string</td>
+<td>Reference to <code>schedules/{id}</code></td>
+</tr>
+<tr>
+<td><code>schedule_name</code></td>
+<td>string</td>
+<td>Denormalized for display</td>
+</tr>
+<tr>
+<td><code>job_type</code></td>
+<td>string</td>
+<td><code>"clone"</code> or <code>"configure"</code></td>
+</tr>
+<tr>
+<td><code>triggered_by</code></td>
+<td>string</td>
+<td><code>"scheduler"</code> or <code>"manual"</code></td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>string</td>
+<td><code>"running"</code>, <code>"completed"</code>, <code>"failed"</code></td>
+</tr>
+<tr>
+<td><code>started_at</code></td>
+<td>timestamp</td>
+<td></td>
+</tr>
+<tr>
+<td><code>finished_at</code></td>
+<td>timestamp or null</td>
+<td></td>
+</tr>
+<tr>
+<td><code>log_lines</code></td>
+<td>list[string]</td>
+<td>Up to 1000 lines: <code>"ISO_timestamp message"</code></td>
+</tr>
+<tr>
+<td><code>error_summary</code></td>
+<td>string or null</td>
+<td>Last error if failed</td>
+</tr>
+<tr>
+<td><code>project_id</code></td>
+<td>string</td>
+<td>Which project was targeted</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Retention:</strong> last 50 runs per schedule. A daily Cloud Scheduler cleanup job deletes older documents.</p>
+<hr />
+<h2 id="new-api-endpoints">New API Endpoints</h2>
+<p>All endpoints live in <code>backend/routers/schedules.py</code> under <code>/api/schedules</code>.</p>
+<h3 id="schedule-crud">Schedule CRUD</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/schedules</code></td>
+<td>List all schedules</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/schedules</code></td>
+<td>Create schedule + Cloud Scheduler job</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/schedules/{id}</code></td>
+<td>Get single schedule</td>
+</tr>
+<tr>
+<td><code>PUT</code></td>
+<td><code>/api/schedules/{id}</code></td>
+<td>Update schedule</td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td><code>/api/schedules/{id}</code></td>
+<td>Delete schedule + Cloud Scheduler job</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/schedules/{id}/enable</code></td>
+<td>Re-enable (resume Cloud Scheduler job)</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/schedules/{id}/disable</code></td>
+<td>Disable (pause Cloud Scheduler job)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="job-execution">Job Execution</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/schedules/{id}/trigger</code></td>
+<td>Run now (called by Cloud Scheduler or manually)</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/schedules/{id}/runs</code></td>
+<td>List run history for a schedule</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/schedules/runs/{run_id}</code></td>
+<td>Get single run</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/schedules/runs/{run_id}/logs</code></td>
+<td>Get log lines for a run</td>
+</tr>
+</tbody>
+</table>
+<h3 id="proxy-behaviour-local-backend">Proxy behaviour (local backend)</h3>
+<p>When <code>settings.remote_scheduling_enabled</code> is <code>true</code> and <code>settings.remote_backend_url</code> is set, all <code>/api/schedules/*</code> requests are proxied via <code>httpx.AsyncClient</code> to Cloud Run with <code>Authorization: Bearer &lt;id_token&gt;</code>. Otherwise returns HTTP 503 with an appropriate message ("Remote scheduling is disabled" or "Remote backend URL not configured").</p>
+<h3 id="cloud-run-url-auto-detection">Cloud Run URL auto-detection</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/schedules/cloud-run-url</code></td>
+<td>Queries Cloud Run API for the URL of <code>fabricstudio-scheduler</code> in the configured region</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="authentication">Authentication</h2>
+<h3 id="local-cloud-run">Local → Cloud Run</h3>
+<ol>
+<li>Load service account credentials from the active key file</li>
+<li>Generate an ID token targeting the Cloud Run URL using <code>google.oauth2.service_account.IDTokenCredentials</code></li>
+<li>Cache token (valid 1 hour); refresh when expiry &lt; 5 minutes</li>
+<li>Attach as <code>Authorization: Bearer &lt;token&gt;</code> on all proxied requests</li>
+</ol>
+<h3 id="cloud-scheduler-cloud-run">Cloud Scheduler → Cloud Run</h3>
+<p>Cloud Scheduler uses an OIDC token generated automatically from the service account email configured on the scheduler job. No application-level validation needed — Cloud Run's built-in ingress handles it.</p>
+<h3 id="cloud-run-ingress">Cloud Run ingress</h3>
+<p>Deployed with <code>--no-allow-unauthenticated</code>. GCP validates the Bearer token before forwarding to the application. No JWT validation code needed in the app.</p>
+<hr />
+<h2 id="cloud-run-backend-only-mode">Cloud Run — Backend-Only Mode</h2>
+<p>The same Docker image runs in two modes controlled by the <code>APP_MODE</code> environment variable:</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Frontend</th>
+<th>Scheduling</th>
+<th>Background tasks</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>full</code> (default)</td>
+<td>Served from <code>frontend/dist</code></td>
+<td>Handled locally if Firestore configured</td>
+<td>Daily price refresh</td>
+</tr>
+<tr>
+<td><code>backend</code></td>
+<td>Not served</td>
+<td>Always handled directly</td>
+<td>Skipped</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>main.py</code> change:</strong></p>
+<pre><code class="language-python">import os
+MODE = os.environ.get(&quot;APP_MODE&quot;, &quot;full&quot;)
+
+# Only start background tasks in full mode
+if MODE == &quot;full&quot;:
+    asyncio.create_task(_daily_price_refresh())
+
+# Only serve frontend in full mode
+if MODE == &quot;full&quot; and _FRONTEND_DIST.exists():
+    @app.get(&quot;/{full_path:path}&quot;, ...)
+    async def spa_fallback(...): ...
+</code></pre>
+<p><strong>Cloud Run deployment:</strong></p>
+<pre><code class="language-bash">gcloud run deploy fabricstudio-scheduler \
+  --image ghcr.io/4tnetse/fabricstudio-gcp-manager:latest \
+  --no-allow-unauthenticated \
+  --set-env-vars APP_MODE=backend \
+  --memory 512Mi \
+  --max-instances 3 \
+  --region europe-west1
+</code></pre>
+<hr />
+<h2 id="settings-changes">Settings Changes</h2>
+<h3 id="new-appsettings-fields">New <code>AppSettings</code> fields</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>remote_scheduling_enabled</code></td>
+<td>bool</td>
+<td><code>false</code></td>
+<td>Master switch — enables remote scheduling</td>
+</tr>
+<tr>
+<td><code>remote_backend_url</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Cloud Run URL, auto-detected or manually set</td>
+</tr>
+<tr>
+<td><code>cloud_run_region</code></td>
+<td>string</td>
+<td><code>"europe-west1"</code></td>
+<td>Region for Cloud Run + Cloud Scheduler jobs</td>
+</tr>
+<tr>
+<td><code>firestore_project_id</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>GCP project hosting Firestore — auto-filled from active project ID when scheduling is enabled</td>
+</tr>
+</tbody>
+</table>
+<h3 id="settings-ui">Settings UI</h3>
+<p>New <strong>Scheduling</strong> section in Settings:</p>
+<p><strong>Toggle (always visible):</strong></p>
+<ul>
+<li><strong>Enable remote scheduling</strong> — switch button. When off, the scheduling section fields are hidden/disabled and all <code>/api/schedules/*</code> calls return 503.</li>
+</ul>
+<p><strong>Fields (only shown when toggle is on):</strong></p>
+<ul>
+<li><strong>Cloud Run Region</strong> — text input, default <code>europe-west1</code></li>
+<li><strong>Remote Backend URL</strong> — text input with a <strong>Detect</strong> button that calls <code>GET /api/schedules/cloud-run-url</code> to auto-fetch the URL from the Cloud Run API using the loaded service account key</li>
+<li><strong>Firestore Project ID</strong> — text input, auto-filled with the active project ID when the toggle is switched on. Editable in case Firestore lives in a different project.</li>
+</ul>
+<p><strong>Behaviour:</strong></p>
+<ul>
+<li>When the toggle is switched <strong>off</strong>: <code>remote_scheduling_enabled = false</code> is saved; the proxy layer in <code>schedules.py</code> returns 503; the <strong>Schedules</strong> nav item is greyed out (same <code>disabled</code> style as other nav items when no key is loaded)</li>
+<li>When the toggle is switched <strong>on</strong>: fields become editable; user must fill in or detect the Remote Backend URL before schedules can be created</li>
+</ul>
+<hr />
+<h2 id="frontend-changes">Frontend Changes</h2>
+<h3 id="schedule-button-clone-screen">Schedule button — Clone screen</h3>
+<p>A <strong>Schedule</strong> button appears next to the Clone button, enabled when the form is valid. Opens <code>ScheduleDialog</code> pre-populated with current form values.</p>
+<h3 id="schedule-button-configure-screen">Schedule button — Configure screen</h3>
+<p>Same pattern — Schedule button next to Configure button, enabled when instances are selected.</p>
+<h3 id="scheduledialog-component">ScheduleDialog component</h3>
+<p>New <code>frontend/src/components/ScheduleDialog.tsx</code>:</p>
+<ul>
+<li><strong>Name</strong> field</li>
+<li><strong>Cron expression</strong> field with human-readable preview (using <code>cronstrue</code> npm package)</li>
+<li><strong>Timezone</strong> selector (pre-filled with browser timezone)</li>
+<li><strong>Enabled</strong> toggle</li>
+<li>Read-only summary of job parameters</li>
+<li><strong>Save Schedule</strong> → <code>POST /api/schedules</code></li>
+</ul>
+<h3 id="schedules-page">Schedules page</h3>
+<p>New <code>frontend/src/pages/Schedules.tsx</code> with two sections:</p>
+<p><strong>Top — Schedule list:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name</td>
+<td>Schedule name</td>
+</tr>
+<tr>
+<td>Type</td>
+<td>Clone or Configure</td>
+</tr>
+<tr>
+<td>Schedule</td>
+<td>Cron + human-readable form</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>Enabled / Disabled toggle</td>
+</tr>
+<tr>
+<td>Actions</td>
+<td>Edit, Delete, Run now</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Bottom — Run history</strong> (shown when a schedule is selected):</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Started</td>
+<td>Timestamp</td>
+</tr>
+<tr>
+<td>Duration</td>
+<td>Time to complete</td>
+</tr>
+<tr>
+<td>Triggered by</td>
+<td>Scheduler or Manual</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>Completed / Failed</td>
+</tr>
+<tr>
+<td>Actions</td>
+<td>View logs</td>
+</tr>
+</tbody>
+</table>
+<p>Log viewer shows the <code>log_lines</code> array from Firestore, styled like the existing <code>LogStream</code> component.</p>
+<h3 id="sidebar">Sidebar</h3>
+<p>New nav item: <strong>Schedules</strong> with <code>CalendarClock</code> icon, positioned between SSH Configurations and Images.</p>
+<hr />
+<h2 id="gcp-infrastructure-setup-one-time">GCP Infrastructure Setup (one-time)</h2>
+<h3 id="1-enable-apis">1. Enable APIs</h3>
+<pre><code class="language-bash">gcloud services enable \
+  firestore.googleapis.com \
+  cloudscheduler.googleapis.com \
+  run.googleapis.com \
+  artifactregistry.googleapis.com \
+  --project {project_id}
+</code></pre>
+<h3 id="2-create-firestore-database">2. Create Firestore database</h3>
+<pre><code class="language-bash">gcloud firestore databases create \
+  --location=europe-west1 \
+  --project={project_id}
+</code></pre>
+<h3 id="3-required-iam-roles-for-service-account">3. Required IAM roles for service account</h3>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>roles/compute.instanceAdmin.v1</code></td>
+<td>Compute Engine (existing)</td>
+</tr>
+<tr>
+<td><code>roles/dns.admin</code></td>
+<td>Cloud DNS (existing)</td>
+</tr>
+<tr>
+<td><code>roles/datastore.user</code></td>
+<td>Read/write Firestore</td>
+</tr>
+<tr>
+<td><code>roles/cloudscheduler.admin</code></td>
+<td>Create/manage scheduler jobs</td>
+</tr>
+<tr>
+<td><code>roles/run.invoker</code></td>
+<td>Invoke Cloud Run</td>
+</tr>
+</tbody>
+</table>
+<h3 id="4-deploy-cloud-run-service">4. Deploy Cloud Run service</h3>
+<pre><code class="language-bash">gcloud run deploy fabricstudio-scheduler \
+  --image ghcr.io/4tnetse/fabricstudio-gcp-manager:latest \
+  --platform managed \
+  --region europe-west1 \
+  --no-allow-unauthenticated \
+  --service-account {sa_email} \
+  --set-env-vars APP_MODE=backend \
+  --memory 512Mi \
+  --max-instances 3 \
+  --project {project_id}
+</code></pre>
+<h3 id="5-grant-invoker-permission-to-cloud-scheduler">5. Grant invoker permission to Cloud Scheduler</h3>
+<pre><code class="language-bash">gcloud run services add-iam-policy-binding fabricstudio-scheduler \
+  --member=&quot;serviceAccount:{sa_email}&quot; \
+  --role=&quot;roles/run.invoker&quot; \
+  --region=europe-west1 \
+  --project={project_id}
+</code></pre>
+<hr />
+<h2 id="new-files">New Files</h2>
+<h3 id="backend">Backend</h3>
+<pre><code>backend/
+├── routers/
+│   └── schedules.py          # CRUD + trigger + proxy
+├── services/
+│   ├── firestore_client.py   # Async Firestore wrapper
+│   ├── cloud_scheduler.py    # Cloud Scheduler CRUD
+│   └── id_token.py           # ID token generation + caching
+└── models/
+    └── schedule.py           # Pydantic models
+</code></pre>
+<h3 id="frontend">Frontend</h3>
+<pre><code>frontend/src/
+├── api/
+│   └── schedules.ts          # TanStack Query hooks
+├── components/
+│   └── ScheduleDialog.tsx    # Create/edit schedule modal
+└── pages/
+    └── Schedules.tsx         # Schedules list + run history
+</code></pre>
+<h3 id="new-python-dependencies">New Python dependencies</h3>
+<pre><code>google-cloud-firestore==2.19.0
+google-cloud-scheduler==2.13.0
+</code></pre>
+<h3 id="new-npm-dependencies">New npm dependencies</h3>
+<pre><code>cronstrue  # cron expression to human-readable text
+</code></pre>
+<hr />
+<h2 id="implementation-phases">Implementation Phases</h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Goal</th>
+<th>Key deliverables</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1</strong></td>
+<td>Backend Firestore CRUD</td>
+<td><code>schedules.py</code> router, Firestore client, Pydantic models, no Cloud Scheduler yet</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>Frontend Schedules screen</td>
+<td>Schedule list, ScheduleDialog, Schedule buttons on Clone/Configure, Settings fields</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>Cloud Run backend mode</td>
+<td><code>APP_MODE</code> env var, settings-snapshot injection, key loading from Firestore, Firestore log writing</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td>Cloud Scheduler integration</td>
+<td>Create/update/delete Cloud Scheduler jobs on schedule CRUD</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td>Local proxy + ID token auth</td>
+<td>Proxy layer in <code>schedules.py</code>, ID token service, end-to-end local→Cloud Run test</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td>Job history UI</td>
+<td>Run history panel, log viewer, Run now button</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.top", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../javascripts/external-links.js"></script>
+      
+    
+  </body>
+</html>

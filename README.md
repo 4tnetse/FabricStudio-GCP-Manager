@@ -10,6 +10,8 @@ A web-based management interface for deploying, configuring, and managing Fabric
 - Node.js 18 or higher
 - One or more GCP service account JSON keys with sufficient permissions (Compute Engine, Cloud DNS, Resource Manager)
 
+> **Scheduling (optional):** Remote scheduling requires a `fabricstudio-scheduler` Cloud Run service deployed with `APP_MODE=backend`, a Firestore database, and Cloud Scheduler enabled in your GCP project.
+
 ---
 
 ## Installation
@@ -137,4 +139,4 @@ FabricStudio-GCP-Manager/
 
 **Backend:** FastAPI, Uvicorn, Pydantic, AsyncSSH
 
-**GCP:** Compute Engine, Cloud DNS, Cloud Storage, Resource Manager (via `google-cloud-*` Python libraries)
+**GCP:** Compute Engine, Cloud DNS, Cloud Storage, Resource Manager, Firestore, Cloud Scheduler, Cloud Run (via `google-cloud-*` Python libraries)

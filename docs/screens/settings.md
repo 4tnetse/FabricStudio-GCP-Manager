@@ -40,3 +40,17 @@ Choose between three UI themes:
 | **Dark** | Dark slate theme (default) |
 | **Light** | Light theme |
 | **Security Fabric** | Fortinet Security Fabric style |
+
+## Scheduling
+
+Configure remote scheduling via GCP Cloud Run and Cloud Scheduler.
+
+| Setting | Description |
+|---|---|
+| **Enable remote scheduling** | Toggle to enable scheduled Clone and Configure jobs |
+| **Detect Cloud Run** | Auto-detects the Cloud Run service URL and region by searching all GCP regions for the `fabricstudio-scheduler` service |
+| **GCP Cloud Run Region** | Region where the scheduler Cloud Run service is deployed (auto-filled by Detect) |
+| **GCP Remote Backend URL** | HTTPS URL of the `fabricstudio-scheduler` Cloud Run service (auto-filled by Detect) |
+| **GCP Firestore Project ID** | GCP project that hosts Firestore. Defaults to the active project when scheduling is enabled |
+
+Scheduling requires the `fabricstudio-scheduler` Cloud Run service to be deployed separately with `APP_MODE=backend`.
