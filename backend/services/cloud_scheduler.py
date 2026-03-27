@@ -41,7 +41,7 @@ def _job_name(project_id: str, region: str, schedule_id: str) -> str:
     return f"{_location_path(project_id, region)}/jobs/fabricstudio-schedule-{schedule_id}"
 
 
-def _build_job_body(
+def _build_job(
     schedule_id: str,
     project_id: str,
     region: str,
@@ -49,23 +49,23 @@ def _build_job_body(
     sa_email: str,
     cron_expression: str,
     timezone: str,
-) -> dict[str, Any]:
+) -> scheduler_v1.Job:
     trigger_url = f"{backend_url.rstrip('/')}/api/schedules/{schedule_id}/trigger"
-    return {
-        "name": _job_name(project_id, region, schedule_id),
-        "schedule": cron_expression,
-        "time_zone": timezone,
-        "http_target": {
-            "uri": trigger_url,
-            "http_method": scheduler_v1.HttpMethod.POST,
-            "headers": {"Content-Type": "application/json"},
-            "body": b"{}",
-            "oidc_token": {
-                "service_account_email": sa_email,
-                "audience": backend_url,
-            },
-        },
-    }
+    return scheduler_v1.Job(
+        name=_job_name(project_id, region, schedule_id),
+        schedule=cron_expression,
+        time_zone=timezone,
+        http_target=scheduler_v1.HttpTarget(
+            uri=trigger_url,
+            http_method=scheduler_v1.HttpMethod.POST,
+            headers={"Content-Type": "application/json"},
+            body=b"{}",
+            oidc_token=scheduler_v1.OidcToken(
+                service_account_email=sa_email,
+                audience=backend_url,
+            ),
+        ),
+    )
 
 
 def _resolve_backend_url() -> str:
@@ -103,7 +103,7 @@ async def create_scheduler_job(schedule: dict) -> str:
         raise ValueError("Cannot determine service account email for OIDC token.")
 
     enabled = schedule.get("enabled", True)
-    job_body = _build_job_body(
+    job = _build_job(
         schedule_id=schedule["id"],
         project_id=project_id,
         region=region,
@@ -116,10 +116,10 @@ async def create_scheduler_job(schedule: dict) -> str:
     def _run() -> str:
         client = _get_client()
         parent = _location_path(project_id, region)
-        job = client.create_job(parent=parent, job=job_body)
+        created = client.create_job(parent=parent, job=job)
         if not enabled:
-            client.pause_job(name=job.name)
-        return job.name
+            client.pause_job(name=created.name)
+        return created.name
 
     return await loop.run_in_executor(None, _run)
 
@@ -136,7 +136,7 @@ async def update_scheduler_job(schedule: dict) -> None:
     if not backend_url:
         return  # Cannot update without the URL
 
-    job_body = _build_job_body(
+    job = _build_job(
         schedule_id=schedule["id"],
         project_id=project_id,
         region=region,
@@ -152,7 +152,7 @@ async def update_scheduler_job(schedule: dict) -> None:
         update_mask = field_mask_pb2.FieldMask(
             paths=["schedule", "time_zone", "http_target"]
         )
-        client.update_job(job=job_body, update_mask=update_mask)
+        client.update_job(job=job, update_mask=update_mask)
 
     await loop.run_in_executor(None, _run)
 
