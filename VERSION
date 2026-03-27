@@ -1,7 +1,8 @@
-1.12
+2.0
 
 # Version history
 # ---------------
+# 2.0    Scheduling: automate Clone and Configure jobs via GCP Cloud Scheduler and Cloud Run; Firestore-backed schedule management and run history with live log streaming; manual trigger, enable/disable, run history with expandable log output
 # 1.12   Scheduling: fix OIDC SA email, settings snapshot forwarding, triggered_by field, SF theme date picker, custom date/time picker, split Settings save buttons, sort schedules by date, live log flushing, internal IPs on Cloud Run, fix log line duplication
 # 1.11   Fix Cloud Scheduler job creation: use proto objects (scheduler_v1.Job/HttpTarget/OidcToken) instead of plain dicts
 # 1.10   Cloud Run region auto-detection; scheduling settings UI improvements (Detect button, GCP field labels); google-cloud-run dependency; full scheduling documentation
