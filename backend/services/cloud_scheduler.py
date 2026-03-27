@@ -8,6 +8,7 @@ The Cloud Run service must be deployed as "fabricstudio-scheduler" and the
 caller service account needs roles/cloudscheduler.admin.
 """
 import asyncio
+import logging
 import os
 from typing import Any
 
@@ -15,6 +16,8 @@ from google.cloud import scheduler_v1
 from google.oauth2 import service_account
 
 import config as cfg
+
+logger = logging.getLogger(__name__)
 
 APP_MODE = os.environ.get("APP_MODE", "full")
 
@@ -103,15 +106,22 @@ async def create_scheduler_job(schedule: dict) -> str:
         raise ValueError("Cannot determine service account email for OIDC token.")
 
     enabled = schedule.get("enabled", True)
+    cron_expression = schedule["cron_expression"]
+    timezone = schedule.get("timezone", "UTC")
+    logger.info(
+        "create_scheduler_job: project=%s region=%s backend_url=%s sa_email=%s cron=%s tz=%s",
+        project_id, region, backend_url, sa_email, cron_expression, timezone,
+    )
     job = _build_job(
         schedule_id=schedule["id"],
         project_id=project_id,
         region=region,
         backend_url=backend_url,
         sa_email=sa_email,
-        cron_expression=schedule["cron_expression"],
-        timezone=schedule.get("timezone", "UTC"),
+        cron_expression=cron_expression,
+        timezone=timezone,
     )
+    logger.info("create_scheduler_job: job proto = %s", job)
 
     def _run() -> str:
         client = _get_client()
