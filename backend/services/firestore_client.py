@@ -5,6 +5,7 @@ google-cloud-firestore is synchronous, so we run all blocking calls in
 a thread pool executor to avoid blocking the event loop.
 """
 import asyncio
+import os
 import uuid
 from datetime import datetime, timezone
 from typing import Any
@@ -13,18 +14,31 @@ from google.cloud import firestore
 from google.oauth2 import service_account
 
 import config as cfg
-from services.key_store import get_key_path
+
+APP_MODE = os.environ.get("APP_MODE", "full")
 
 
-def _get_client() -> firestore.Client:
-    """Return an authenticated Firestore client for the active project."""
+def _get_client(project_id: str | None = None) -> firestore.Client:
+    """Return an authenticated Firestore client.
+
+    In Cloud Run (APP_MODE=backend) uses Application Default Credentials.
+    In local mode loads the active service account key file.
+    """
+    pid = project_id or cfg.settings.active_project_id
+    if not pid:
+        raise RuntimeError("No active project configured.")
+
+    if APP_MODE == "backend":
+        # Cloud Run: ADC is available automatically
+        return firestore.Client(project=pid)
+
     key_id = cfg.settings.active_key_id
-    project_id = cfg.settings.active_project_id
-    if not key_id or not project_id:
-        raise RuntimeError("No active key / project configured.")
+    if not key_id:
+        raise RuntimeError("No active key configured.")
+    from services.key_store import get_key_path
     key_path = get_key_path(key_id)
     creds = service_account.Credentials.from_service_account_file(str(key_path))
-    return firestore.Client(project=project_id, credentials=creds)
+    return firestore.Client(project=pid, credentials=creds)
 
 
 def _now() -> datetime:
@@ -167,6 +181,49 @@ async def get_job_run(run_id: str) -> dict | None:
         return _doc_to_dict(doc) if doc.exists else None
 
     return await loop.run_in_executor(None, _run)
+
+
+# ---------------------------------------------------------------------------
+# Log writing helpers (used by schedule_runner during triggered job execution)
+# ---------------------------------------------------------------------------
+
+async def append_log_lines(run_id: str, lines: list[str]) -> None:
+    """Append log lines to an existing job_run document."""
+    if not lines:
+        return
+    loop = asyncio.get_event_loop()
+
+    def _run():
+        db = _get_client()
+        ref = db.collection("job_runs").document(run_id)
+        doc = ref.get()
+        if not doc.exists:
+            return
+        existing = (doc.to_dict() or {}).get("log_lines", [])
+        # Cap at 1000 total lines
+        combined = (existing + lines)[-1000:]
+        ref.update({"log_lines": combined})
+
+    await loop.run_in_executor(None, _run)
+
+
+async def mark_run_status(
+    run_id: str,
+    status: str,
+    error_summary: str | None = None,
+) -> None:
+    """Update status and finished_at on a job_run document."""
+    loop = asyncio.get_event_loop()
+    now = _now()
+
+    def _run():
+        db = _get_client()
+        update: dict[str, Any] = {"status": status, "finished_at": now}
+        if error_summary is not None:
+            update["error_summary"] = error_summary
+        db.collection("job_runs").document(run_id).update(update)
+
+    await loop.run_in_executor(None, _run)
 
 
 # ---------------------------------------------------------------------------

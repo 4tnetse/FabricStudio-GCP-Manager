@@ -1,9 +1,13 @@
 """
-Schedules router — Phase 1: Firestore CRUD only.
-Cloud Scheduler integration added in Phase 4.
-Proxy to Cloud Run added in Phase 5.
+Schedules router.
+Phase 1: Firestore CRUD.
+Phase 3: Trigger endpoint (runs job + writes logs to Firestore).
+Phase 4: Cloud Scheduler integration.
+Phase 5: Proxy to Cloud Run.
 """
-from fastapi import APIRouter, HTTPException
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 import config as cfg
 from models.schedule import ScheduleCreate, ScheduleUpdate
@@ -115,6 +119,43 @@ async def disable_schedule(schedule_id: str):
     if result is None:
         raise HTTPException(status_code=404, detail="Schedule not found.")
     return result
+
+
+# ---------------------------------------------------------------------------
+# Trigger (called by Cloud Scheduler or "Run now" from the UI)
+# ---------------------------------------------------------------------------
+
+@router.post("/{schedule_id}/trigger", status_code=202)
+async def trigger_schedule(schedule_id: str, background_tasks: BackgroundTasks):
+    """Execute a schedule immediately.
+
+    Returns 202 Accepted immediately; the job runs in the background and
+    writes its logs + final status to the job_runs Firestore collection.
+    """
+    _require_scheduling_configured()
+    schedule = await fs.get_schedule(schedule_id)
+    if schedule is None:
+        raise HTTPException(status_code=404, detail="Schedule not found.")
+
+    # Create a job_run document (status=running)
+    run_data = {
+        "schedule_id": schedule_id,
+        "schedule_name": schedule.get("name", ""),
+        "job_type": schedule.get("job_type", ""),
+        "triggered_by": "manual",
+        "project_id": schedule.get("project_id", ""),
+        "log_lines": [],
+        "error_summary": None,
+        "finished_at": None,
+    }
+    run = await fs.create_job_run(run_data)
+    run_id = run["id"]
+
+    # Import here to avoid circular imports at module load time
+    from services.schedule_runner import run_triggered_job
+    background_tasks.add_task(run_triggered_job, schedule, run_id)
+
+    return {"run_id": run_id, "schedule_id": schedule_id}
 
 
 # ---------------------------------------------------------------------------
