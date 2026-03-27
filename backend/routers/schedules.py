@@ -6,10 +6,13 @@ Phase 4: Cloud Scheduler integration.
 Phase 5: Proxy layer (local → Cloud Run) + cloud-run-url auto-detect.
 """
 import asyncio
+import logging
 
 import httpx
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses import Response
+
+logger = logging.getLogger(__name__)
 
 import config as cfg
 from models.schedule import ScheduleCreate, ScheduleUpdate
@@ -179,13 +182,16 @@ async def create_schedule(body: ScheduleCreate, request: Request):
     import os as _os
     scheduler_warning = None
     _is_backend = _os.environ.get("APP_MODE") == "backend"
+    logger.info("create_schedule: APP_MODE=%s is_backend=%s", _os.environ.get("APP_MODE"), _is_backend)
     if _is_backend or (cfg.settings.remote_scheduling_enabled and cfg.settings.remote_backend_url):
         try:
             from services.cloud_scheduler import create_scheduler_job
             job_name = await create_scheduler_job(schedule)
             schedule = await fs.update_schedule(schedule["id"], {"cloud_scheduler_job_name": job_name})
+            logger.info("create_schedule: Cloud Scheduler job created: %s", job_name)
         except Exception as exc:
             scheduler_warning = f"Schedule saved but Cloud Scheduler job creation failed: {exc}"
+            logger.error("create_schedule: Cloud Scheduler job creation failed: %s", exc)
 
     result = schedule or data
     if scheduler_warning:
