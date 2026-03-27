@@ -111,6 +111,107 @@ Required for automatic DNS record creation during cloning:
 | DNS Zone name | `labs-yourdomain-com` | Managed zone name in Google Cloud DNS |
 
 
+## Scheduling setup (optional)
+
+Scheduling allows Clone and Configure jobs to run automatically on a cron schedule. It uses GCP Cloud Scheduler to trigger jobs and a Cloud Run service (`fabricstudio-scheduler`) to execute them.
+
+### 1. Enable required GCP APIs
+
+Enable the following APIs in your GCP project:
+
+- [Cloud Run API](https://console.cloud.google.com/apis/library/run.googleapis.com)
+- [Cloud Scheduler API](https://console.cloud.google.com/apis/library/cloudscheduler.googleapis.com)
+- [Firestore API](https://console.cloud.google.com/apis/library/firestore.googleapis.com)
+- [Artifact Registry API](https://console.cloud.google.com/apis/library/artifactregistry.googleapis.com)
+
+### 2. Create a Firestore database
+
+Go to [Firestore](https://console.cloud.google.com/firestore) and create a new **Native mode** database. Choose the same region you plan to deploy the Cloud Run service in (e.g. `europe-west1`).
+
+### 3. Grant IAM roles to the service account
+
+The service account used by FS GCP Manager needs the following additional roles:
+
+| Role | Purpose |
+|---|---|
+| `roles/datastore.user` | Read/write Firestore schedules and run logs |
+| `roles/cloudscheduler.admin` | Create and manage Cloud Scheduler jobs |
+| `roles/run.invoker` | Invoke the Cloud Run scheduling backend |
+| `roles/run.viewer` | Auto-detect the Cloud Run service URL and region |
+| `roles/iam.serviceAccountTokenCreator` | Generate OIDC tokens so Cloud Scheduler can authenticate to Cloud Run |
+
+Grant these via the [IAM console](https://console.cloud.google.com/iam-admin/iam) or with `gcloud`:
+
+```bash
+SA="<your-service-account>@<project>.iam.gserviceaccount.com"
+PROJECT="<your-project-id>"
+
+for ROLE in roles/datastore.user roles/cloudscheduler.admin roles/run.invoker roles/run.viewer roles/iam.serviceAccountTokenCreator; do
+  gcloud projects add-iam-policy-binding $PROJECT \
+    --member="serviceAccount:$SA" \
+    --role="$ROLE"
+done
+```
+
+### 4. Make the Docker image available to Cloud Run
+
+Cloud Run cannot pull images directly from `ghcr.io`. Create an Artifact Registry **remote repository** that proxies GitHub Container Registry:
+
+```bash
+gcloud artifacts repositories create fabricstudio-remote \
+  --repository-format=docker \
+  --location=europe-west1 \
+  --description="Remote proxy for ghcr.io" \
+  --mode=remote-repository \
+  --remote-docker-repo=CUSTOM \
+  --remote-docker-repo-uri=https://ghcr.io
+```
+
+Grant the service account read access to this repository:
+
+```bash
+gcloud artifacts repositories add-iam-policy-binding fabricstudio-remote \
+  --location=europe-west1 \
+  --member="serviceAccount:$SA" \
+  --role="roles/artifactregistry.reader"
+```
+
+The image path to use in Cloud Run will be:
+
+```
+europe-west1-docker.pkg.dev/<project>/fabricstudio-remote/4tnetse/fabricstudio-gcp-manager:latest
+```
+
+### 5. Deploy the scheduling backend to Cloud Run
+
+Deploy the `fabricstudio-scheduler` Cloud Run service using the Artifact Registry image path from the previous step:
+
+```bash
+gcloud run deploy fabricstudio-scheduler \
+  --image europe-west1-docker.pkg.dev/<project>/fabricstudio-remote/4tnetse/fabricstudio-gcp-manager:latest \
+  --region europe-west1 \
+  --set-env-vars APP_MODE=backend \
+  --no-allow-unauthenticated \
+  --service-account <your-service-account>@<project>.iam.gserviceaccount.com \
+  --memory 512Mi \
+  --timeout 3600
+```
+
+> **Note:** The `--timeout 3600` is important — scheduled jobs (especially Configure jobs across many instances) can run for a long time. Cloud Run's default timeout of 300 seconds is too short.
+
+### 6. Configure scheduling in the app
+
+In **Settings → Scheduling**:
+
+1. Toggle **Enable remote scheduling** on.
+2. Click **Detect Cloud Run** — this searches all GCP regions for the `fabricstudio-scheduler` service and auto-fills **GCP Cloud Run Region** and **GCP Remote Backend URL**.
+3. Verify **GCP Firestore Project ID** (defaults to the active project).
+4. Click **Save settings**.
+
+Once saved, use the **Schedule** button on the Clone or Configure screens to create scheduled jobs, and monitor them from the [Schedules](screens/schedules.md) screen.
+
+---
+
 ## Create a Fabric Studio License Server
 
 All Fabric Studio instances will connect to this license server to obtain licenses needed in your labs.

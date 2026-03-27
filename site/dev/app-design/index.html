@@ -1,0 +1,3210 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Web-based management interface for Fabric Studio instances on Google Cloud Platform">
+      
+      
+      
+      
+        <link rel="prev" href="../../screens/settings/">
+      
+      
+        <link rel="next" href="../scheduling-design/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Application Design - Fabric Studio GCP Manager</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/security-fabric.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#application-design-technical-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Fabric Studio GCP Manager" class="md-header__button md-logo" aria-label="Fabric Studio GCP Manager" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Fabric Studio GCP Manager
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Application Design
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/4tnetse/FabricStudio-GCP-Manager" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FabricStudio-GCP-Manager
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Fabric Studio GCP Manager" class="md-nav__button md-logo" aria-label="Fabric Studio GCP Manager" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Fabric Studio GCP Manager
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/4tnetse/FabricStudio-GCP-Manager" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FabricStudio-GCP-Manager
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Screens
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Screens
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/instances/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Instances
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/configure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/clone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clone
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/firewall/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Firewall
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/labels/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Labels
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/ssh/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SSH
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/configurations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SSH Configurations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/images/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Images
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/costs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Costs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/schedules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Schedules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../screens/settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Application Design
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Application Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Settings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#appsettings-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AppSettings fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#service-account-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service Account Keys
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Service Account Keys">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-store" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Store
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keymeta-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        KeyMeta model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#upload-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upload flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#instance-naming-convention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Instance Naming Convention
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Endpoints
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API Endpoints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#settings-apisettings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings — /api/settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#projects-apiprojects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Projects — /api/projects
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#instances-apiinstances" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Instances — /api/instances
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#labels-tags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Labels &amp; Tags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#operations-apiops" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operations — /api/ops
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ssh-apissh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSH — /api/ssh
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#firewall-apifirewall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Firewall — /api/firewall
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Models
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Models">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#instance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Instance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#buildconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BuildConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#clonerequest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CloneRequest
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bulkconfigurerequest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BulkConfigureRequest
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backend-services" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend Services
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Backend Services">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gcpcomputeservice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GCPComputeService
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fabricstudioclient" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FabricStudioClient
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jobmanager" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JobManager
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sshrunner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSHRunner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gcpdnsservice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GCPDnsService
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gcpbillingservice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GCPBillingService
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#long-running-operations-sse-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Long-Running Operations — SSE Pattern
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build Flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#clone-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clone Flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configure-flow-single-instance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configure Flow (single instance)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#frontend-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Frontend Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#framework" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Framework
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Components
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#api-hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Hooks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sse-hook" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSE Hook
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#theme" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Theme
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#static-file-serving" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Static File Serving
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#background-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background Tasks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#firewall-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Firewall Rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-files-conf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Files (conf/)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scheduling-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scheduling Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Settings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#appsettings-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AppSettings fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#service-account-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service Account Keys
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Service Account Keys">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-store" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Store
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keymeta-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        KeyMeta model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#upload-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upload flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#instance-naming-convention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Instance Naming Convention
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Endpoints
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API Endpoints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#settings-apisettings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings — /api/settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#projects-apiprojects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Projects — /api/projects
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#instances-apiinstances" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Instances — /api/instances
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#labels-tags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Labels &amp; Tags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#operations-apiops" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operations — /api/ops
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ssh-apissh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSH — /api/ssh
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#firewall-apifirewall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Firewall — /api/firewall
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Models
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Models">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#instance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Instance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#buildconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BuildConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#clonerequest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CloneRequest
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bulkconfigurerequest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BulkConfigureRequest
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backend-services" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend Services
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Backend Services">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gcpcomputeservice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GCPComputeService
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fabricstudioclient" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FabricStudioClient
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jobmanager" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JobManager
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sshrunner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSHRunner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gcpdnsservice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GCPDnsService
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gcpbillingservice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GCPBillingService
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#long-running-operations-sse-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Long-Running Operations — SSE Pattern
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build Flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#clone-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clone Flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configure-flow-single-instance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configure Flow (single instance)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#frontend-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Frontend Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#framework" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Framework
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Components
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#api-hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Hooks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sse-hook" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSE Hook
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#theme" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Theme
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#static-file-serving" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Static File Serving
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#background-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background Tasks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#firewall-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Firewall Rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-files-conf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Files (conf/)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="application-design-technical-reference">Application Design — Technical Reference</h1>
+<p><strong>Status:</strong> Living document</p>
+<hr />
+<h2 id="overview">Overview</h2>
+<p>Fabric Studio GCP Manager is a full-stack web application for deploying, configuring, and managing Fabric Studio instances on Google Cloud Platform. The frontend is a React SPA; the backend is a FastAPI Python app that proxies GCP API calls using service account credentials.</p>
+<hr />
+<h2 id="architecture">Architecture</h2>
+<pre><code>┌────────────────────────────────────────────────────┐
+│                   LOCAL MACHINE                     │
+│                                                     │
+│  Browser (port 1980)                                │
+│  ┌──────────────────┐  HTTP   ┌──────────────────┐  │
+│  │ React + Vite     │────────▶│ FastAPI          │  │
+│  │ TanStack Query   │         │ port 1981        │  │
+│  │ React Router     │◀────────│ uvicorn          │  │
+│  └──────────────────┘   SSE   └────────┬─────────┘  │
+│                                        │             │
+└────────────────────────────────────────┼─────────────┘
+                                         │ HTTPS
+                                         ▼
+                              ┌──────────────────────┐
+                              │   GCP APIs           │
+                              │  Compute Engine      │
+                              │  Cloud DNS           │
+                              │  Cloud Billing       │
+                              │  Resource Manager    │
+                              └──────────────────────┘
+</code></pre>
+<p>In development, Vite proxies <code>/api</code> to the backend. In Docker mode, the built frontend is served as a SPA fallback from the backend itself.</p>
+<hr />
+<h2 id="project-structure">Project Structure</h2>
+<pre><code>fabricstudio-ui/
+├── backend/
+│   ├── main.py              # App entry point, lifespan, static serving
+│   ├── config.py            # AppSettings, load/save functions
+│   ├── auth.py              # get_credentials() — returns GCP credentials
+│   ├── models/
+│   │   ├── settings.py      # SettingsUpdate Pydantic model
+│   │   ├── instance.py      # Instance, BuildConfig, CloneRequest, ConfigureRequest, …
+│   │   ├── firewall.py      # FirewallRule, IpAclRequest, TagRequest, …
+│   │   └── schedule.py      # Schedule, ScheduleCreate, ScheduleUpdate, JobRun
+│   ├── routers/             # One file per feature area
+│   │   ├── settings.py      # /api/settings, /api/settings/keys
+│   │   ├── projects.py      # /api/projects
+│   │   ├── instances.py     # /api/instances
+│   │   ├── operations.py    # /api/ops (build, clone, configure, bulk)
+│   │   ├── firewall.py      # /api/firewall
+│   │   ├── labels.py        # /api/instances/{zone}/{name}/labels
+│   │   ├── tags.py          # /api/instances/{zone}/{name}/tags
+│   │   ├── ssh.py           # /api/ssh
+│   │   ├── images.py        # /api/images
+│   │   ├── configs.py       # /api/configs
+│   │   ├── costs.py         # /api/costs
+│   │   └── schedules.py     # /api/schedules — CRUD, trigger, run history, proxy layer
+│   └── services/
+│       ├── gcp_compute.py   # GCPComputeService — all Compute Engine operations
+│       ├── gcp_dns.py       # GCPDnsService — A record management
+│       ├── gcp_billing.py   # GCPBillingService — pricing and billing info
+│       ├── fs_api.py        # FabricStudioClient — Fabric Studio HTTP API
+│       ├── key_store.py     # KeyStoreService — multi-key management
+│       ├── ssh_runner.py    # SSHRunner — asyncssh-based SSH execution
+│       ├── parallel_runner.py # JobManager — SSE job queue
+│       ├── instance_naming.py # InstanceName — naming convention
+│       ├── dns_helpers.py   # create/delete DNS A records for instances
+│       ├── firestore_client.py # Async Firestore wrapper (schedules + job_runs)
+│       ├── cloud_scheduler.py  # Cloud Scheduler job management
+│       ├── schedule_runner.py  # Executes triggered schedule jobs, writes logs
+│       └── id_token.py      # ID token generation for local → Cloud Run auth
+├── frontend/
+│   ├── src/
+│   │   ├── App.tsx          # Router, sidebar, nav
+│   │   ├── pages/           # One file per screen
+│   │   ├── components/      # Reusable components
+│   │   ├── api/             # TanStack Query hooks
+│   │   ├── hooks/           # useSSEStream
+│   │   ├── context/         # ThemeContext
+│   │   └── lib/             # types.ts, utils.ts, zones.ts
+│   └── dist/                # Built output (Docker / production)
+├── conf/                    # SSH configuration files (*.conf)
+├── docs/                    # MkDocs source
+└── site/                    # Built documentation (served at /manual)
+</code></pre>
+<hr />
+<h2 id="settings">Settings</h2>
+<h3 id="storage">Storage</h3>
+<p>Settings are stored in <code>~/.fabricstudio/settings.json</code>. The file is read at startup and written on every change.</p>
+<h3 id="appsettings-fields">AppSettings fields</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>active_key_id</code></td>
+<td>str | None</td>
+<td><code>None</code></td>
+<td>ID of the currently selected service account key</td>
+</tr>
+<tr>
+<td><code>active_project_id</code></td>
+<td>str | None</td>
+<td><code>None</code></td>
+<td>Currently selected GCP project ID</td>
+</tr>
+<tr>
+<td><code>initials</code></td>
+<td>str</td>
+<td><code>""</code></td>
+<td>Workshop ID / prepend (e.g., <code>tve</code>)</td>
+</tr>
+<tr>
+<td><code>default_zone</code></td>
+<td>str</td>
+<td><code>"europe-west4-a"</code></td>
+<td>Default GCP zone for new instances</td>
+</tr>
+<tr>
+<td><code>default_type</code></td>
+<td>str</td>
+<td><code>"fs"</code></td>
+<td>Instance type prefix</td>
+</tr>
+<tr>
+<td><code>owner</code></td>
+<td>str</td>
+<td><code>""</code></td>
+<td>Owner label applied to built instances</td>
+</tr>
+<tr>
+<td><code>group</code></td>
+<td>str</td>
+<td><code>""</code></td>
+<td>Group label applied to built instances</td>
+</tr>
+<tr>
+<td><code>ssh_public_key</code></td>
+<td>str</td>
+<td><code>""</code></td>
+<td>SSH public key or path for SSH operations</td>
+</tr>
+<tr>
+<td><code>dns_domain</code></td>
+<td>str</td>
+<td><code>""</code></td>
+<td>DNS domain (e.g., <code>fs.fortilab.be</code>)</td>
+</tr>
+<tr>
+<td><code>instance_fqdn_prefix</code></td>
+<td>str</td>
+<td><code>""</code></td>
+<td>FQDN prefix before the instance number (e.g., <code>lab</code>)</td>
+</tr>
+<tr>
+<td><code>dns_zone_name</code></td>
+<td>str</td>
+<td><code>""</code></td>
+<td>Cloud DNS managed zone name</td>
+</tr>
+<tr>
+<td><code>fs_admin_password</code></td>
+<td>str</td>
+<td><code>""</code></td>
+<td>Default admin password for Fabric Studio API operations</td>
+</tr>
+<tr>
+<td><code>remote_scheduling_enabled</code></td>
+<td>bool</td>
+<td><code>False</code></td>
+<td>Enable remote scheduling via Cloud Run + Cloud Scheduler</td>
+</tr>
+<tr>
+<td><code>remote_backend_url</code></td>
+<td>str</td>
+<td><code>""</code></td>
+<td>HTTPS URL of the <code>fabricstudio-scheduler</code> Cloud Run service</td>
+</tr>
+<tr>
+<td><code>cloud_run_region</code></td>
+<td>str</td>
+<td><code>"europe-west1"</code></td>
+<td>GCP region of the scheduler Cloud Run service</td>
+</tr>
+<tr>
+<td><code>firestore_project_id</code></td>
+<td>str</td>
+<td><code>""</code></td>
+<td>GCP project hosting Firestore (defaults to active project)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Validation:</strong></p>
+<ul>
+<li><code>dns_domain</code>: must match <code>^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$</code></li>
+<li><code>instance_fqdn_prefix</code>: must match <code>^[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?$</code></li>
+</ul>
+<hr />
+<h2 id="service-account-keys">Service Account Keys</h2>
+<h3 id="key-store">Key Store</h3>
+<p>Multiple GCP service account keys are supported. Keys are stored in <code>~/.fabricstudio/keys/</code>:</p>
+<pre><code>~/.fabricstudio/
+├── settings.json
+└── keys/
+    ├── metadata.json          # Array of KeyMeta objects
+    ├── {key_id}.json          # Service account JSON key (permissions: 600)
+    └── …
+</code></pre>
+<h3 id="keymeta-model">KeyMeta model</h3>
+<pre><code class="language-python">class KeyMeta(BaseModel):
+    id: str                     # UUID
+    display_name: str           # User-visible label
+    filename: str               # Original uploaded filename
+    client_email: str           # Service account email
+    projects: list[ProjectInfo] # Accessible GCP projects
+</code></pre>
+<h3 id="upload-flow">Upload flow</h3>
+<ol>
+<li>User uploads JSON key file via <code>POST /api/settings/keys</code></li>
+<li><code>KeyStoreService.add_key()</code> probes GCP (<code>ProjectsClient.search_projects()</code>) to enumerate accessible projects</li>
+<li>Key saved to <code>~/.fabricstudio/keys/{key_id}.json</code> (600 permissions)</li>
+<li>Metadata appended to <code>metadata.json</code></li>
+<li>Frontend invalidates keys + projects queries</li>
+</ol>
+<h3 id="authentication">Authentication</h3>
+<p><code>auth.get_credentials()</code> is called in every router that talks to GCP:</p>
+<ol>
+<li>Checks <code>active_key_id</code> → loads key from key store</li>
+<li>Falls back to legacy <code>service_account_key_path</code></li>
+<li>Raises <code>HTTP 400</code> if no key is available</li>
+<li>Returns <code>service_account.Credentials</code> with scope <code>https://www.googleapis.com/auth/cloud-platform</code></li>
+</ol>
+<hr />
+<h2 id="instance-naming-convention">Instance Naming Convention</h2>
+<p><strong>Format:</strong> <code>{type}-{prepend}-{product}-{number}</code></p>
+<table>
+<thead>
+<tr>
+<th>Segment</th>
+<th>Example</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>type</code></td>
+<td><code>fs</code></td>
+<td>Fixed prefix (default "fs")</td>
+</tr>
+<tr>
+<td><code>prepend</code></td>
+<td><code>tve</code></td>
+<td>Workshop ID / initials</td>
+</tr>
+<tr>
+<td><code>product</code></td>
+<td><code>fwb</code></td>
+<td>Product or course code</td>
+</tr>
+<tr>
+<td><code>number</code></td>
+<td><code>001</code></td>
+<td>3-digit zero-padded integer</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Examples:</strong></p>
+<ul>
+<li><code>fs-tve-fwb-001</code> — participant instance #1</li>
+<li><code>fs-tve-fwb-000</code> — golden image (template for cloning)</li>
+<li><code>fs-tve-tve-advanced-003</code> — product with dashes</li>
+</ul>
+<p><strong>FQDN format:</strong> <code>{prefix}{number}.{product}.{domain}</code>
+→ <code>lab001.fwb.fs.fortilab.be</code></p>
+<p>The <code>InstanceName</code> dataclass in <code>services/instance_naming.py</code> parses and constructs these names. It is the authoritative implementation.</p>
+<hr />
+<h2 id="api-endpoints">API Endpoints</h2>
+<p>All endpoints are under the <code>/api</code> prefix.</p>
+<h3 id="settings-apisettings">Settings — <code>/api/settings</code></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/settings</code></td>
+<td>Get all settings + <code>has_keys</code> flag</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td><code>/settings</code></td>
+<td>Update settings (partial)</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/settings</code></td>
+<td>Reset to defaults</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/settings/keys</code></td>
+<td>List all stored keys</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/settings/keys</code></td>
+<td>Upload new key (multipart form)</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/settings/keys/{key_id}</code></td>
+<td>Delete key</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/settings/keys/{key_id}</code></td>
+<td>Rename key (<code>{display_name}</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="projects-apiprojects">Projects — <code>/api/projects</code></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/projects</code></td>
+<td>List all projects across all keys</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/projects/select</code></td>
+<td>Set active project (<code>{project_id}</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="instances-apiinstances">Instances — <code>/api/instances</code></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/instances</code></td>
+<td>List instances (filters: <code>zone</code>, <code>product</code>, <code>status</code>, <code>prepend</code>)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/instances/zones</code></td>
+<td>List available GCP zones</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/instances/zone-locations</code></td>
+<td>Get zone → location mapping (cached JSON)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/instances/machine-types?zone=</code></td>
+<td>List machine types in a zone</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/instances/public-ips</code></td>
+<td>List running instances with public IPs</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/instances/{zone}/{name}</code></td>
+<td>Get single instance</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/instances/{zone}/{name}/start</code></td>
+<td>Start instance + create DNS</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/instances/{zone}/{name}/stop</code></td>
+<td>Stop instance + delete DNS</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/instances/{zone}/{name}</code></td>
+<td>Delete instance + delete DNS</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/instances/{zone}/{name}/machine-type</code></td>
+<td>Change machine type</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/instances/{zone}/{name}/rename</code></td>
+<td>Rename instance</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/instances/{zone}/{name}/move</code></td>
+<td>Move to another zone</td>
+</tr>
+</tbody>
+</table>
+<h3 id="labels-tags">Labels &amp; Tags</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/instances/{zone}/{name}/labels</code></td>
+<td>Get labels</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/instances/{zone}/{name}/labels</code></td>
+<td>Add label (<code>{key, value}</code>)</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/instances/{zone}/{name}/labels/{key}</code></td>
+<td>Remove label</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/instances/{zone}/{name}/tags</code></td>
+<td>Get tags</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/instances/{zone}/{name}/tags</code></td>
+<td>Add tag (<code>{tag}</code>)</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/instances/{zone}/{name}/tags/{tag}</code></td>
+<td>Remove tag</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td><code>/instances/{zone}/{name}/tags</code></td>
+<td>Replace tag (<code>{old_tag, new_tag}</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="operations-apiops">Operations — <code>/api/ops</code></h3>
+<p>All operations return <code>{job_id}</code> and stream output as SSE.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><code>/ops/build</code></td>
+<td>Build N instances from image</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/ops/clone</code></td>
+<td>Clone from golden image</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/ops/configure</code></td>
+<td>Configure single instance via FS API</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/ops/bulk-configure</code></td>
+<td>Bulk configure multiple instances</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/ops/bulk-start</code></td>
+<td>Bulk start instances</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/ops/bulk-stop</code></td>
+<td>Bulk stop instances</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/ops/bulk-delete</code></td>
+<td>Bulk delete instances</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/ops/bulk-shutdown</code></td>
+<td>Graceful shutdown via FS API</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/ops/fs-templates?instance_name=</code></td>
+<td>Fetch fabric templates from instance</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/ops/{job_id}/stream</code></td>
+<td>SSE stream of job output</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/ops/{job_id}/status</code></td>
+<td>Job status (<code>running</code>/<code>completed</code>/<code>failed</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ssh-apissh">SSH — <code>/api/ssh</code></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><code>/ssh/execute</code></td>
+<td>Execute commands (<code>{addresses, commands, config_name?, parallel}</code>)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/ssh/test</code></td>
+<td>Test connectivity</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/ssh/{job_id}/stream</code></td>
+<td>SSE output stream</td>
+</tr>
+</tbody>
+</table>
+<h3 id="firewall-apifirewall">Firewall — <code>/api/firewall</code></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/firewall/acl</code></td>
+<td>Get source IP allowlist rule</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/firewall/acl/add</code></td>
+<td>Add IP to allowlist (auto-detect if no body)</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/firewall/acl/remove</code></td>
+<td>Remove IP (<code>{ip_address}</code>)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/firewall/global-access</code></td>
+<td>Get global access rule status</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/firewall/global-access</code></td>
+<td>Enable/disable global access (<code>{enabled}</code>)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/firewall/rules</code></td>
+<td>List all firewall rules</td>
+</tr>
+</tbody>
+</table>
+<h3 id="other">Other</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/images</code></td>
+<td>List custom images in project</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/configs</code></td>
+<td>List config files</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/configs/{name}</code></td>
+<td>Get config file content + parsed key=value pairs</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/configs</code></td>
+<td>Create config file</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td><code>/configs/{name}</code></td>
+<td>Update config file</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/configs/{name}</code></td>
+<td>Delete config file</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/costs/machine-type-price?machine_type=&amp;zone=</code></td>
+<td>Hourly price for machine type</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/costs/summary</code></td>
+<td>Billing account info</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/health</code></td>
+<td>Health check + version + active project</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="data-models">Data Models</h2>
+<h3 id="instance">Instance</h3>
+<pre><code class="language-python">class Instance(BaseModel):
+    name: str
+    zone: str
+    status: InstanceStatus          # RUNNING | TERMINATED | STAGING | …
+    machine_type: str
+    public_ip: str | None
+    internal_ip: str | None
+    labels: dict[str, str]
+    tags: list[str]
+    creation_timestamp: str | None
+    boot_disk_gb: int | None
+</code></pre>
+<h3 id="buildconfig">BuildConfig</h3>
+<pre><code class="language-python">class BuildConfig(BaseModel):
+    prepend: str
+    product: str
+    zone: str
+    machine_type: str = &quot;n1-standard-4&quot;
+    image: str
+    trial_key: str = &quot;&quot;
+    group: str = &quot;&quot;
+    poc_definitions: list[str] = []   # up to 8 fabric workspace definitions
+    poc_launch: str = &quot;&quot;
+    labels: dict[str, str] = {}
+    count_start: int = 0
+    count_end: int = 0
+    title: str = &quot;&quot;
+</code></pre>
+<h3 id="clonerequest">CloneRequest</h3>
+<pre><code class="language-python">class CloneRequest(BaseModel):
+    source_name: str
+    zone: str
+    target_zone: str | None = None
+    clone_base_name: str | None = None
+    purpose: str | None = None
+    count_start: int = 1
+    count_end: int = 1
+    overwrite: bool = False
+</code></pre>
+<h3 id="bulkconfigurerequest">BulkConfigureRequest</h3>
+<pre><code class="language-python">class BulkConfigureRequest(BaseModel):
+    instances: list[BulkConfigureItem]      # [{zone, name}]
+    old_admin_password: str = &quot;&quot;
+    admin_password: str = &quot;&quot;
+    guest_password: str = &quot;&quot;
+    trial_key: str = &quot;&quot;
+    license_server: str = &quot;&quot;
+    poc_launch: str = &quot;&quot;
+    poc_definitions: list[str] = []
+    ssh_keys: list[str] = []
+    delete_existing_keys: bool = False
+    hostname_template: str = &quot;&quot;             # supports {count} placeholder
+    delete_all_workspaces: bool = False
+    workspace_fabrics: list[dict] = []      # [{name, template_id, install}]
+</code></pre>
+<hr />
+<h2 id="backend-services">Backend Services</h2>
+<h3 id="gcpcomputeservice">GCPComputeService</h3>
+<p>Wraps all Compute Engine API calls. Instantiated per-request using the active credentials.</p>
+<p>Key methods:</p>
+<pre><code class="language-python">async list_instances(zone, filter_str) -&gt; list[Instance]
+async get_instance(zone, name) -&gt; Instance
+async start_instance(zone, name)
+async stop_instance(zone, name)
+async delete_instance(zone, name)               # honours delete=no label
+async wait_until_deleted(zone, name, interval, max_attempts)
+async set_machine_type(zone, name, machine_type)
+async rename_instance(zone, name, new_name)
+async move_instance(zone, name, destination_zone)   # via machine image
+async add_labels(zone, name, labels)
+async remove_labels(zone, name, label_keys)
+async add_tags(zone, name, tags)
+async remove_tags(zone, name, tags)
+async list_firewall_rules() -&gt; list[FirewallRule]
+async get_firewall_rule(name) -&gt; FirewallRule
+async update_firewall_source_ranges(rule_name, source_ranges)
+async set_firewall_disabled(rule_name, disabled)
+async list_images() -&gt; list[dict]
+async list_zones() -&gt; list[str]
+async list_machine_types(zone) -&gt; list[str]
+async get_machine_type_specs(zone, machine_type) -&gt; dict  # {vcpus, memory_gib}
+async get_subnetwork_for_zone(zone) -&gt; str
+async create_machine_image(name, source_instance, source_zone)
+async delete_machine_image(name)
+async create_instance_from_machine_image(name, machine_image, zone)
+async build_instance(...)
+</code></pre>
+<h3 id="fabricstudioclient">FabricStudioClient</h3>
+<p>Async context manager for the Fabric Studio HTTP REST API. Handles CSRF token management, login/logout.</p>
+<pre><code class="language-python">async with FabricStudioClient(fqdn, password) as fs:
+    await fs.change_admin_password(current, new)
+    await fs.register_token(token_secret)        # &quot;token:secret&quot; format
+    await fs.set_license_server(ip)
+    await fs.change_user_password(username, new_password)
+    await fs.list_templates() -&gt; list[dict]
+    await fs.uninstall_fabric()
+    await fs.delete_all_fabrics()
+    await fs.create_fabric(name, template_id)
+    await fs.get_fabric_id_by_name(name) -&gt; int
+    await fs.install_fabric(fabric_id)
+    await fs.wait_for_tasks(timeout, interval)   # polls /api/v1/task
+    await fs.shutdown()
+</code></pre>
+<p><strong>Session flow:</strong>
+1. GET <code>/api/v1/session/check</code> — extract CSRF token
+2. POST <code>/api/v1/session/open</code> — login with credentials + CSRF token
+3. All subsequent calls include session cookie + rotated CSRF token
+4. POST <code>/api/v1/session/close</code> — logout on <code>__aexit__</code></p>
+<p><strong>Readiness polling:</strong> <code>wait_until_ready(fqdn, log, timeout=300, interval=10)</code> polls <code>/api/v1/session/check</code> until HTTP 200.</p>
+<h3 id="jobmanager">JobManager</h3>
+<p>Manages long-running async jobs and SSE streaming. Lives as a module-level singleton (<code>parallel_runner.job_manager</code>).</p>
+<pre><code class="language-python">job_manager.create_job(job_id) -&gt; asyncio.Queue
+async job_manager.stream_job(job_id) -&gt; AsyncGenerator[str, None]
+async job_manager.mark_done(job_id, failed=False)
+job_manager.status: dict[str, str]  # &quot;running&quot; | &quot;completed&quot; | &quot;failed&quot;
+</code></pre>
+<ul>
+<li>Queue messages are plain strings. Sentinels: <code>__DONE__</code>, <code>__FAILED__</code></li>
+<li>SSE format: <code>data: {line}\n\n</code></li>
+</ul>
+<h3 id="sshrunner">SSHRunner</h3>
+<p>Uses <code>asyncssh</code> with PTY emulation.</p>
+<pre><code class="language-python">async run_ssh_commands(
+    addresses: list[str],
+    commands: list[str],
+    parallel: bool,
+    ssh_key_path: str | None,
+    log_queue: asyncio.Queue
+)
+</code></pre>
+<ul>
+<li>Connects with <code>known_hosts=None</code>, <code>request_pty=True</code>, <code>term_type="vt100"</code></li>
+<li>Reads banner output until <code>#</code> prompt before sending commands</li>
+<li>Supports <code>sleep N</code> in command list: pauses N seconds between commands</li>
+<li>Strips ANSI escape codes from all output</li>
+<li>Connect timeout: 15s, command timeout: 30s</li>
+</ul>
+<h3 id="gcpdnsservice">GCPDnsService</h3>
+<pre><code class="language-python">async upsert_a_record(zone_name, fqdn, public_ip, ttl=300)
+async delete_a_record(zone_name, fqdn)
+</code></pre>
+<h3 id="gcpbillingservice">GCPBillingService</h3>
+<pre><code class="language-python">async get_project_billing_info() -&gt; dict
+async get_billing_account_display_name(billing_account_id) -&gt; str
+async get_hourly_price(machine_type, zone, vcpus, memory_gib) -&gt; dict | None
+# Returns: {price_usd: float, source: &quot;catalog&quot; | &quot;fallback&quot;}
+</code></pre>
+<hr />
+<h2 id="long-running-operations-sse-pattern">Long-Running Operations — SSE Pattern</h2>
+<p>All build / clone / configure / SSH operations use the same pattern:</p>
+<ol>
+<li><strong>POST</strong> to start operation → returns <code>{"job_id": "..."}</code></li>
+<li>Frontend opens <code>EventSource</code> at <code>/api/ops/{job_id}/stream</code> (or <code>/api/ssh/{job_id}/stream</code>)</li>
+<li>Backend queues log lines: <code>await queue.put("message")</code></li>
+<li>On completion: <code>await job_manager.mark_done(job_id)</code> or <code>mark_done(job_id, failed=True)</code></li>
+<li>Stream yields <code>__DONE__</code> or <code>__FAILED__</code> sentinel → frontend closes the EventSource</li>
+</ol>
+<p>The <code>LogStream</code> component handles this pattern on the frontend side.</p>
+<hr />
+<h2 id="build-flow">Build Flow</h2>
+<ol>
+<li>Parse <code>BuildConfig</code></li>
+<li>Auto-detect subnetwork for the selected zone</li>
+<li>Merge labels: user labels + <code>group</code>, <code>owner</code>, <code>title</code>, <code>purpose=golden_image</code>, <code>expire</code> date</li>
+<li>Create N instances in parallel using <code>build_instance()</code></li>
+<li>Apply network tags: <code>workshop-source-any</code>, <code>workshop-source-networks</code></li>
+<li>Create DNS A records if <code>dns_domain</code> and <code>dns_zone_name</code> are configured</li>
+<li>Stream progress via SSE</li>
+</ol>
+<hr />
+<h2 id="clone-flow">Clone Flow</h2>
+<ol>
+<li>Parse source instance name → extract base name via <code>InstanceName.parse()</code></li>
+<li>For each target number: check if instance already exists (skip if <code>delete=no</code> label, or overwrite if <code>overwrite=True</code>)</li>
+<li>Create machine image from source (batched, 5 at a time)</li>
+<li>Create target instances from machine image in destination zone</li>
+<li>Apply labels: <code>delete=yes</code>, <code>purpose</code> if provided</li>
+<li>Create DNS A records</li>
+<li>Delete temporary machine image</li>
+</ol>
+<hr />
+<h2 id="configure-flow-single-instance">Configure Flow (single instance)</h2>
+<ol>
+<li>Build FQDN for instance (golden image uses number=0)</li>
+<li>Poll <code>wait_until_ready()</code> — retries every 10s up to 5 minutes</li>
+<li>Open <code>FabricStudioClient</code> session</li>
+<li>Apply in order:</li>
+<li>License server (if provided)</li>
+<li>Registration token (if provided)</li>
+<li>Admin password change (if provided)</li>
+<li>SSH keys: add/delete existing keys</li>
+<li>Hostname (if template provided, <code>{count}</code> → instance number)</li>
+<li>Delete all workspaces (if requested)</li>
+<li>Create + install workspace fabrics (sequential, wait for tasks)</li>
+<li>Stream progress via SSE</li>
+</ol>
+<hr />
+<h2 id="frontend-architecture">Frontend Architecture</h2>
+<h3 id="framework">Framework</h3>
+<table>
+<thead>
+<tr>
+<th>Library</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>React 18</td>
+<td>UI framework</td>
+</tr>
+<tr>
+<td>TypeScript</td>
+<td>Type safety</td>
+</tr>
+<tr>
+<td>Vite</td>
+<td>Build tool + dev server</td>
+</tr>
+<tr>
+<td>TanStack Query</td>
+<td>Server state, caching, refetching</td>
+</tr>
+<tr>
+<td>React Router</td>
+<td>Client-side routing</td>
+</tr>
+<tr>
+<td>Tailwind CSS</td>
+<td>Styling</td>
+</tr>
+<tr>
+<td>Lucide React</td>
+<td>Icons</td>
+</tr>
+<tr>
+<td>Axios</td>
+<td>HTTP client</td>
+</tr>
+</tbody>
+</table>
+<h3 id="pages">Pages</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Route</th>
+<th>Screen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Dashboard.tsx</code></td>
+<td><code>/</code></td>
+<td>Instance list with filters and bulk operations</td>
+</tr>
+<tr>
+<td><code>Build.tsx</code></td>
+<td><code>/build</code></td>
+<td>Build new instances from a GCP image</td>
+</tr>
+<tr>
+<td><code>Clone.tsx</code></td>
+<td><code>/clone</code></td>
+<td>Clone from golden image (cross-zone supported)</td>
+</tr>
+<tr>
+<td><code>Configure.tsx</code></td>
+<td><code>/configure</code></td>
+<td>Bulk configure instances via Fabric Studio API</td>
+</tr>
+<tr>
+<td><code>Firewall.tsx</code></td>
+<td><code>/firewall</code></td>
+<td>Source IP allowlist, global access, rule list</td>
+</tr>
+<tr>
+<td><code>Labels.tsx</code></td>
+<td><code>/labels</code></td>
+<td>Add/remove labels on instances</td>
+</tr>
+<tr>
+<td><code>SSH.tsx</code></td>
+<td><code>/ssh</code></td>
+<td>Execute SSH commands on instances</td>
+</tr>
+<tr>
+<td><code>Configurations.tsx</code></td>
+<td><code>/configurations</code></td>
+<td>Edit SSH command config files (<code>conf/*.conf</code>)</td>
+</tr>
+<tr>
+<td><code>Images.tsx</code></td>
+<td><code>/images</code></td>
+<td>List custom GCP images</td>
+</tr>
+<tr>
+<td><code>Costs.tsx</code></td>
+<td><code>/costs</code></td>
+<td>Billing account info and machine type pricing</td>
+</tr>
+<tr>
+<td><code>Settings.tsx</code></td>
+<td><code>/settings</code></td>
+<td>Keys, preferences, DNS, passwords</td>
+</tr>
+</tbody>
+</table>
+<h3 id="key-components">Key Components</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>InstanceTable.tsx</code></td>
+<td>Reusable table for listing and selecting instances</td>
+</tr>
+<tr>
+<td><code>LogStream.tsx</code></td>
+<td>SSE streaming output panel with status badges</td>
+</tr>
+<tr>
+<td><code>ProjectSelector.tsx</code></td>
+<td>Project picker in the header bar</td>
+</tr>
+<tr>
+<td><code>CustomSelect.tsx</code></td>
+<td>Searchable dropdown used across forms</td>
+</tr>
+<tr>
+<td><code>StatusBadge.tsx</code></td>
+<td>Color-coded instance status pill</td>
+</tr>
+<tr>
+<td><code>SwitchProjectDialog.tsx</code></td>
+<td>Modal for confirming project switch on key upload</td>
+</tr>
+</tbody>
+</table>
+<h3 id="api-hooks">API Hooks</h3>
+<p>All hooks are in <code>src/api/</code>. Each file exports TanStack Query hooks.</p>
+<pre><code class="language-typescript">// Pattern for read hooks
+const { data, isLoading, error } = useInstances(filters)
+
+// Pattern for mutation hooks
+const { mutate, isPending } = useStartInstance()
+mutate({ zone, name })
+</code></pre>
+<p>The base client in <code>src/api/client.ts</code> provides:</p>
+<pre><code class="language-typescript">apiGet&lt;T&gt;(url, params?) -&gt; Promise&lt;T&gt;
+apiPost&lt;T&gt;(url, data?) -&gt; Promise&lt;T&gt;
+apiPut&lt;T&gt;(url, data?) -&gt; Promise&lt;T&gt;
+apiPatch&lt;T&gt;(url, data?) -&gt; Promise&lt;T&gt;
+apiDelete&lt;T&gt;(url, data?) -&gt; Promise&lt;T&gt;
+</code></pre>
+<h3 id="sse-hook">SSE Hook</h3>
+<p><code>useSSEStream(url: string | null)</code> in <code>src/hooks/</code>:</p>
+<ul>
+<li>Opens an <code>EventSource</code> when url is non-null</li>
+<li>Accumulates lines into a <code>string[]</code> state</li>
+<li>Closes on <code>__DONE__</code> or <code>__FAILED__</code> sentinel</li>
+<li>Returns <code>{ lines, isStreaming, error }</code></li>
+</ul>
+<h3 id="theme">Theme</h3>
+<p><code>ThemeContext</code> provides a <code>theme</code> value: <code>"default"</code> or <code>"security-fabric"</code>. The <code>isSF</code> boolean is derived from this and used in every component for conditional Tailwind classes.</p>
+<hr />
+<h2 id="static-file-serving">Static File Serving</h2>
+<p>In Docker / production mode (<code>frontend/dist</code> exists):</p>
+<pre><code>GET /manual          → redirect to /manual/
+GET /manual/*        → serve from site/ (MkDocs built output)
+GET /{anything}      → serve frontend/dist/{path} or fallback to index.html
+GET /api/*           → not intercepted (handled by routers)
+</code></pre>
+<p>In development mode, Vite proxies <code>/api</code> and <code>/manual</code> to the backend (port 1981).</p>
+<hr />
+<h2 id="background-tasks">Background Tasks</h2>
+<p>One background task runs at startup (full mode only):</p>
+<ul>
+<li><strong><code>_daily_price_refresh()</code></strong> — refreshes the GCP SKU pricing cache every 24 hours for fallback machine type pricing in the Costs screen.</li>
+</ul>
+<hr />
+<h2 id="firewall-rules">Firewall Rules</h2>
+<p>The app manages two named firewall rules:</p>
+<table>
+<thead>
+<tr>
+<th>Rule name</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>workshop-source-networks</code></td>
+<td>Source IP allowlist — only specific IPs can access instances</td>
+</tr>
+<tr>
+<td><code>workshop-source-any</code></td>
+<td>Global access — allows all IPs (0.0.0.0/0) when enabled</td>
+</tr>
+</tbody>
+</table>
+<p>Both rules use network tag <code>workshop-source-networks</code> as the target. Instances are tagged with both <code>workshop-source-any</code> and <code>workshop-source-networks</code> at build time.</p>
+<hr />
+<h2 id="configuration-files-conf">Configuration Files (conf/)</h2>
+<p><code>.conf</code> files contain Fabric Studio CLI commands, one per line. Blank lines and <code>#</code> comments are ignored. They are used in the SSH screen to run pre-defined command sets across multiple instances.</p>
+<p>Key=value pairs on each line are parsed and displayed in the Configurations screen for preview.</p>
+<p>The file <code>example.conf</code> is protected from deletion.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.top", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../javascripts/external-links.js"></script>
+      
+    
+  </body>
+</html>

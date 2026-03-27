@@ -94,32 +94,36 @@ def _require_scheduling_configured():
 
 @router.get("/cloud-run-url")
 async def get_cloud_run_url():
-    """Query the Cloud Run API to find the URL of 'fabricstudio-scheduler'."""
+    """Query the Cloud Run API to find the URL and region of 'fabricstudio-scheduler'.
+
+    Uses the locations/- wildcard to search all regions at once.
+    """
     _require_scheduling_configured()
 
-    region = cfg.settings.cloud_run_region or "europe-west1"
     project_id = cfg.settings.active_project_id
-
     loop = asyncio.get_event_loop()
 
-    def _run() -> str:
+    def _run() -> dict:
         from auth import get_credentials
         from google.cloud import run_v2
 
         creds = get_credentials()
         client = run_v2.ServicesClient(credentials=creds)
-        parent = f"projects/{project_id}/locations/{region}"
+        # Use '-' wildcard to search all regions in one call
+        parent = f"projects/{project_id}/locations/-"
         for service in client.list_services(parent=parent):
             if service.name.endswith("/fabricstudio-scheduler"):
-                return service.uri
+                # service.name format: projects/P/locations/REGION/services/NAME
+                parts = service.name.split("/")
+                region = parts[3] if len(parts) > 3 else ""
+                return {"url": service.uri, "region": region}
         raise ValueError(
-            f"Service 'fabricstudio-scheduler' not found in {region}. "
+            "Service 'fabricstudio-scheduler' not found in any region. "
             "Deploy it first with APP_MODE=backend."
         )
 
     try:
-        url = await loop.run_in_executor(None, _run)
-        return {"url": url}
+        return await loop.run_in_executor(None, _run)
     except Exception as exc:
         raise HTTPException(status_code=404, detail=str(exc))
 

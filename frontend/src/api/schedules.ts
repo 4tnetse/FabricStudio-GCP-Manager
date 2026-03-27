@@ -123,7 +123,7 @@ export function useJobRun(runId: string | null) {
 
 export function useDetectCloudRunUrl() {
   return useMutation({
-    mutationFn: () => apiGet<{ url: string }>('/schedules/cloud-run-url'),
+    mutationFn: () => apiGet<{ url: string; region: string }>('/schedules/cloud-run-url'),
   })
 }
 

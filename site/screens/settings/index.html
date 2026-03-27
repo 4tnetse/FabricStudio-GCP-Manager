@@ -11,8 +11,10 @@
       
       
       
-        <link rel="prev" href="../costs/">
+        <link rel="prev" href="../schedules/">
       
+      
+        <link rel="next" href="../../dev/app-design/">
       
       
         
@@ -669,6 +671,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../schedules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Schedules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -764,10 +794,136 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#scheduling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scheduling
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
       
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dev/app-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Application Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dev/scheduling-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scheduling Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -833,6 +989,17 @@
     <span class="md-ellipsis">
       
         Appearance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scheduling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scheduling
       
     </span>
   </a>
@@ -946,6 +1113,39 @@
 </tr>
 </tbody>
 </table>
+<h2 id="scheduling">Scheduling</h2>
+<p>Configure remote scheduling via GCP Cloud Run and Cloud Scheduler.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Enable remote scheduling</strong></td>
+<td>Toggle to enable scheduled Clone and Configure jobs</td>
+</tr>
+<tr>
+<td><strong>Detect Cloud Run</strong></td>
+<td>Auto-detects the Cloud Run service URL and region by searching all GCP regions for the <code>fabricstudio-scheduler</code> service</td>
+</tr>
+<tr>
+<td><strong>GCP Cloud Run Region</strong></td>
+<td>Region where the scheduler Cloud Run service is deployed (auto-filled by Detect)</td>
+</tr>
+<tr>
+<td><strong>GCP Remote Backend URL</strong></td>
+<td>HTTPS URL of the <code>fabricstudio-scheduler</code> Cloud Run service (auto-filled by Detect)</td>
+</tr>
+<tr>
+<td><strong>GCP Firestore Project ID</strong></td>
+<td>GCP project that hosts Firestore. Defaults to the active project when scheduling is enabled</td>
+</tr>
+</tbody>
+</table>
+<p>Scheduling requires the <code>fabricstudio-scheduler</code> Cloud Run service to be deployed separately with <code>APP_MODE=backend</code>.</p>
 
 
 
