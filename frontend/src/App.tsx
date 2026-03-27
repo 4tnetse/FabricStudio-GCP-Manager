@@ -18,6 +18,7 @@ import {
   Settings,
   ChevronRight,
   BookOpen,
+  CalendarClock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ProjectSelector } from '@/components/ProjectSelector'
@@ -35,6 +36,7 @@ import Images from '@/pages/Images'
 import Configurations from '@/pages/Configurations'
 import SettingsPage from '@/pages/Settings'
 import Costs from '@/pages/Costs'
+import Schedules from '@/pages/Schedules'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Instances', icon: LayoutDashboard, exact: true },
@@ -45,6 +47,7 @@ const NAV_ITEMS = [
   { to: '/labels', label: 'Labels', icon: Tag },
   { to: '/ssh', label: 'SSH', icon: Terminal },
   { to: '/configurations', label: 'SSH Configurations', icon: FileCode },
+  { to: '/schedules', label: 'Schedules', icon: CalendarClock },
   { to: '/images', label: 'Images', icon: HardDrive },
   { to: '/costs', label: 'Costs', icon: Receipt },
 ]
@@ -295,6 +298,7 @@ export default function App() {
             <Route path="/ssh" element={<SSH />} />
             <Route path="/images" element={<Images />} />
             <Route path="/configurations" element={<Configurations />} />
+            <Route path="/schedules" element={<Schedules />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/costs" element={<Costs />} />
           </Routes>

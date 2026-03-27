@@ -19,6 +19,7 @@ from routers import (
     labels,
     operations,
     projects,
+    schedules,
     settings,
     ssh,
     tags,
@@ -97,6 +98,7 @@ app.include_router(ssh.router, prefix="/api")
 app.include_router(images.router, prefix="/api")
 app.include_router(configs.router, prefix="/api")
 app.include_router(costs.router, prefix="/api")
+app.include_router(schedules.router, prefix="/api")
 
 
 _DOCS_DIR = Path(__file__).parent.parent / "site"

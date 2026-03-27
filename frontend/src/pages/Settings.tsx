@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Upload, Loader2, Trash2, Key, Settings2, Palette, Pencil } from 'lucide-react'
+import { Upload, Loader2, Trash2, Key, Settings2, Palette, Pencil, CalendarClock } from 'lucide-react'
 import { useSettings, useUpdateSettings, useResetSettings } from '@/api/settings'
 import { useKeys, useUploadKey, useDeleteKey, useRenameKey } from '@/api/keys'
 import { useZones, useZoneLocations } from '@/api/instances'
@@ -89,6 +89,10 @@ export default function SettingsPage() {
         instance_fqdn_prefix: settings.instance_fqdn_prefix ?? '',
         dns_zone_name: settings.dns_zone_name ?? '',
         fs_admin_password: settings.fs_admin_password ?? '',
+        remote_scheduling_enabled: settings.remote_scheduling_enabled ?? false,
+        remote_backend_url: settings.remote_backend_url ?? '',
+        cloud_run_region: settings.cloud_run_region ?? 'europe-west1',
+        firestore_project_id: settings.firestore_project_id ?? '',
       })
     }
   }, [settings])
@@ -435,6 +439,70 @@ export default function SettingsPage() {
 
       {/* Appearance */}
       <ThemeSelector />
+
+      {/* Scheduling */}
+      <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <CalendarClock className="w-4 h-4 text-slate-400" />
+          <h2 className="text-sm font-semibold text-slate-200">Scheduling</h2>
+        </div>
+
+        {/* Toggle */}
+        <label className="flex items-center justify-between cursor-pointer select-none">
+          <div>
+            <span className="text-sm text-slate-300">Enable remote scheduling</span>
+            <p className="text-xs text-slate-500 mt-0.5">Schedule Clone and Configure jobs via Cloud Run + Cloud Scheduler</p>
+          </div>
+          <div
+            className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ml-4 ${form.remote_scheduling_enabled ? 'bg-blue-600' : 'bg-slate-700'}`}
+            onClick={() => {
+              const next = !form.remote_scheduling_enabled
+              setField('remote_scheduling_enabled', next)
+              if (next && !form.firestore_project_id && settings?.active_project_id) {
+                setField('firestore_project_id', settings.active_project_id)
+              }
+            }}
+          >
+            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${form.remote_scheduling_enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+          </div>
+        </label>
+
+        {form.remote_scheduling_enabled && (
+          <div className="space-y-3 pt-1">
+            <div>
+              <label className={labelClass}>Cloud Run Region</label>
+              <input
+                className={inputClass}
+                placeholder="e.g. europe-west1"
+                value={(form.cloud_run_region as string) ?? ''}
+                onChange={(e) => setField('cloud_run_region', e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Remote Backend URL</label>
+              <input
+                className={inputClass}
+                placeholder="https://fabricstudio-scheduler-xxx-ew.a.run.app"
+                value={(form.remote_backend_url as string) ?? ''}
+                onChange={(e) => setField('remote_backend_url', e.target.value)}
+              />
+              <p className="text-xs text-slate-500 mt-1">Cloud Run URL for the scheduling backend. Auto-detect coming in a future phase.</p>
+            </div>
+
+            <div>
+              <label className={labelClass}>Firestore Project ID</label>
+              <input
+                className={inputClass}
+                placeholder="e.g. my-gcp-project"
+                value={(form.firestore_project_id as string) ?? ''}
+                onChange={(e) => setField('firestore_project_id', e.target.value)}
+              />
+              <p className="text-xs text-slate-500 mt-1">GCP project that hosts Firestore. Defaults to the active project.</p>
+            </div>
+          </div>
+        )}
+      </div>
 
       </div>{/* end right column */}
 
