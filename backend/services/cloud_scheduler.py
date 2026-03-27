@@ -112,6 +112,10 @@ async def create_scheduler_job(schedule: dict) -> str:
     enabled = schedule.get("enabled", True)
     cron_expression = schedule["cron_expression"]
     timezone = schedule.get("timezone", "UTC")
+    logger.warning(
+        "create_scheduler_job: project=%s region=%s backend_url=%s sa_email=%s cron=%s tz=%s",
+        project_id, region, backend_url, sa_email, cron_expression, timezone,
+    )
     job = _build_job(
         schedule_id=schedule["id"],
         project_id=project_id,
@@ -121,6 +125,7 @@ async def create_scheduler_job(schedule: dict) -> str:
         cron_expression=cron_expression,
         timezone=timezone,
     )
+    logger.warning("create_scheduler_job: job proto = %s", job)
 
     def _run() -> str:
         client = _get_client()
