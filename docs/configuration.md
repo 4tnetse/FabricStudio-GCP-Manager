@@ -194,12 +194,48 @@ gcloud run deploy fabricstudio-scheduler \
   --no-allow-unauthenticated \
   --service-account <your-service-account>@<project>.iam.gserviceaccount.com \
   --memory 512Mi \
-  --timeout 3600
+  --timeout 3600 \
+  --network default \
+  --subnet default \
+  --vpc-egress private-ranges-only \
+  --network-tags fs-gcp-manager-gcpbackend
 ```
 
 > **Note:** The `--timeout 3600` is important — scheduled jobs (especially Configure jobs across many instances) can run for a long time. Cloud Run's default timeout of 300 seconds is too short.
 
-### 6. Configure scheduling in the app
+### 6. Allow Cloud Run to reach Fabric Studio instances
+
+When a scheduled job runs, the Cloud Run backend connects directly to each Fabric Studio instance over its **internal IP** (staying within the VPC). This requires VPC access and a matching firewall rule.
+
+The deploy command in step 5 already configures VPC egress and attaches the network tag `fs-gcp-manager-gcpbackend`. You now need to create a firewall rule that allows traffic from that tag to reach your Fabric Studio instances:
+
+```bash
+gcloud compute firewall-rules create fs-gcpbackend-to-instances \
+  --network default \
+  --direction INGRESS \
+  --priority 950 \
+  --action ALLOW \
+  --source-tags fs-gcp-manager-gcpbackend \
+  --target-tags workshop-source-networks,workshop-source-any \
+  --rules tcp:80,tcp:443
+```
+
+Or via the GCP Console at [GCP Network Security Firewall Policies](https://console.cloud.google.com/net-security/firewall-manager/firewall-policies):
+
+| Field | Value |
+|---|---|
+| **Name** | `fs-gcpbackend-to-instances` |
+| **Network** | `default` |
+| **Priority** | `950` |
+| **Direction** | Ingress |
+| **Action** | Allow |
+| **Source tags** | `fs-gcp-manager-gcpbackend` |
+| **Target tags** | `workshop-source-networks`, `workshop-source-any` |
+| **TCP ports** | `80`, `443` |
+
+> **Why this is needed:** Fabric Studio instances are not publicly reachable by the Cloud Run backend. By routing only private-range traffic through the VPC and tagging the Cloud Run service, the backend can reach instances on their internal IPs without exposing them to the internet.
+
+### 7. Configure scheduling in the app
 
 In **Settings → Scheduling**:
 

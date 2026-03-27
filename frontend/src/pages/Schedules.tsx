@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils'
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
     running: 'bg-blue-900/40 text-blue-300',
-    completed: 'bg-green-900/40 text-green-300',
+    completed: 'bg-[rgb(74,222,128)] text-black',
     failed: 'bg-red-900/40 text-red-300',
   }
   return (
@@ -170,13 +170,13 @@ function ScheduleRow({ schedule, selected, onSelect }: {
               {schedule.job_type}
             </span>
             {schedule.enabled ? (
-              <span className="px-1.5 py-0.5 rounded text-xs bg-green-900/40 text-green-400 shrink-0">enabled</span>
+              <span className="px-1.5 py-0.5 rounded text-xs bg-[rgb(74,222,128)] text-black shrink-0">enabled</span>
             ) : (
               <span className="px-1.5 py-0.5 rounded text-xs bg-slate-800 text-slate-500 shrink-0">disabled</span>
             )}
             {latestRun && (
               latestRun.status === 'completed'
-                ? <span className="px-1.5 py-0.5 rounded text-xs bg-green-900/40 text-green-400 shrink-0">last run: ok</span>
+                ? <span className="px-1.5 py-0.5 rounded text-xs bg-[rgb(74,222,128)] text-black shrink-0">last run: ok</span>
                 : latestRun.status === 'failed'
                 ? <span className="px-1.5 py-0.5 rounded text-xs bg-red-900/40 text-red-400 shrink-0">last run: error</span>
                 : latestRun.status === 'running'
