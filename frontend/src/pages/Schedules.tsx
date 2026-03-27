@@ -27,6 +27,21 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+function formatCron(expr: string, timezone: string): string {
+  const parts = expr.trim().split(/\s+/)
+  if (parts.length !== 5) return `${expr} (${timezone})`
+  const [min, hour, day, month, dow] = parts
+  // One-time schedule: specific min/hour/day/month, wildcard dow
+  if (min !== '*' && hour !== '*' && day !== '*' && month !== '*' && dow === '*') {
+    const m = parseInt(month)
+    const monthLabel = MONTHS[(m - 1)] ?? month
+    return `${monthLabel} ${day} at ${hour.padStart(2, '0')}:${min.padStart(2, '0')} (${timezone})`
+  }
+  return `${expr} (${timezone})`
+}
+
 function formatTs(ts: string | null): string {
   if (!ts) return '—'
   return new Date(ts).toLocaleString()
@@ -143,7 +158,7 @@ function ScheduleRow({ schedule, selected, onSelect }: {
         'rounded-lg border p-4 cursor-pointer transition-colors',
         selected
           ? isSF ? 'border-[#db291c] bg-[#db291c]/10' : 'border-blue-600 bg-blue-900/20'
-          : 'border-slate-700 bg-slate-800/30 hover:bg-slate-800/60',
+          : 'border-slate-700 bg-slate-800/30',
       )}
       onClick={onSelect}
     >
@@ -160,7 +175,7 @@ function ScheduleRow({ schedule, selected, onSelect }: {
               <span className="px-1.5 py-0.5 rounded text-xs bg-slate-800 text-slate-500 border border-slate-700 shrink-0">disabled</span>
             )}
           </div>
-          <div className="text-xs text-slate-500 font-mono">{schedule.cron_expression} ({schedule.timezone})</div>
+          <div className="text-xs text-slate-500">{formatCron(schedule.cron_expression, schedule.timezone)}</div>
         </div>
 
         <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -216,7 +231,7 @@ export default function Schedules() {
         <p className="text-sm text-slate-400 mt-0.5">Scheduled Clone and Configure jobs</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Schedule list */}
         <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-3">
