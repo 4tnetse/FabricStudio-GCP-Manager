@@ -75,6 +75,7 @@ async def run_triggered_job(schedule: dict, run_id: str) -> None:
             await q.put(f"ERROR: unknown job_type '{job_type}'")
             await job_manager.mark_done(job_id, failed=True)
 
+        flushed = 0
         # Drain queue until sentinel
         while True:
             try:
@@ -91,10 +92,11 @@ async def run_triggered_job(schedule: dict, run_id: str) -> None:
                 break
             log_lines.append(line)
 
-            # Flush to Firestore every 5 lines to give live visibility
+            # Flush new lines to Firestore every 5 lines to give live visibility
             if len(log_lines) % 5 == 0:
                 try:
-                    await fs.append_log_lines(run_id, log_lines[-5:])
+                    await fs.append_log_lines(run_id, log_lines[flushed:])
+                    flushed = len(log_lines)
                 except Exception:
                     pass  # best-effort
 
@@ -105,9 +107,9 @@ async def run_triggered_job(schedule: dict, run_id: str) -> None:
     finally:
         cfg.settings = original_settings
 
-    # Final Firestore write
+    # Final Firestore write — only unflushed lines
     try:
-        await fs.append_log_lines(run_id, log_lines)
+        await fs.append_log_lines(run_id, log_lines[flushed:])
         error_summary = next(
             (l for l in reversed(log_lines) if l.startswith("ERROR")), None
         )
