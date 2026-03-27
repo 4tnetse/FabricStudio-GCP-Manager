@@ -23,9 +23,9 @@ APP_MODE = os.environ.get("APP_MODE", "full")
 
 
 def _get_client() -> scheduler_v1.CloudSchedulerClient:
-    """Return an authenticated Cloud Scheduler client (REST transport for richer errors)."""
+    """Return an authenticated Cloud Scheduler client."""
     if APP_MODE == "backend":
-        return scheduler_v1.CloudSchedulerClient(transport="rest")
+        return scheduler_v1.CloudSchedulerClient()
 
     key_id = cfg.settings.active_key_id
     if not key_id:
@@ -33,7 +33,7 @@ def _get_client() -> scheduler_v1.CloudSchedulerClient:
     from services.key_store import get_key_path
     key_path = get_key_path(key_id)
     creds = service_account.Credentials.from_service_account_file(str(key_path))
-    return scheduler_v1.CloudSchedulerClient(credentials=creds, transport="rest")
+    return scheduler_v1.CloudSchedulerClient(credentials=creds)
 
 
 def _location_path(project_id: str, region: str) -> str:
@@ -77,15 +77,19 @@ def _resolve_backend_url() -> str:
 
 
 def _resolve_sa_email(schedule: dict) -> str:
-    """Return the service account email for OIDC, falling back to ADC on Cloud Run."""
+    """Return the service account email for OIDC, falling back to the GCE metadata server on Cloud Run."""
     email = schedule.get("created_by", "")
     if email:
         return email
     if APP_MODE == "backend":
         try:
-            import google.auth
-            creds, _ = google.auth.default()
-            return getattr(creds, "service_account_email", "") or ""
+            import urllib.request
+            req = urllib.request.Request(
+                "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email",
+                headers={"Metadata-Flavor": "Google"},
+            )
+            with urllib.request.urlopen(req, timeout=2) as resp:
+                return resp.read().decode().strip()
         except Exception:
             pass
     return ""
@@ -108,10 +112,6 @@ async def create_scheduler_job(schedule: dict) -> str:
     enabled = schedule.get("enabled", True)
     cron_expression = schedule["cron_expression"]
     timezone = schedule.get("timezone", "UTC")
-    logger.warning(
-        "create_scheduler_job: project=%s region=%s backend_url=%s sa_email=%s cron=%s tz=%s",
-        project_id, region, backend_url, sa_email, cron_expression, timezone,
-    )
     job = _build_job(
         schedule_id=schedule["id"],
         project_id=project_id,
@@ -121,7 +121,6 @@ async def create_scheduler_job(schedule: dict) -> str:
         cron_expression=cron_expression,
         timezone=timezone,
     )
-    logger.warning("create_scheduler_job: job proto = %s", job)
 
     def _run() -> str:
         client = _get_client()
