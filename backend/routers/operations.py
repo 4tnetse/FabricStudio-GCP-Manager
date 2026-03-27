@@ -28,8 +28,9 @@ async def _resolve_host(zone: str, instance_name: str, fqdn: str) -> str:
     if _APP_MODE != "backend":
         return fqdn
     try:
+        creds = get_credentials()
         project_id = cfg.settings.active_project_id
-        svc = GCPComputeService(project_id)
+        svc = GCPComputeService(creds, project_id)
         instance = await svc.get_instance(zone=zone, name=instance_name)
         if instance.internal_ip:
             return instance.internal_ip
