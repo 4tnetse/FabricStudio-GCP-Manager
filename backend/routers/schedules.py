@@ -153,8 +153,42 @@ async def list_schedules(request: Request):
 
 @router.post("", status_code=201)
 async def create_schedule(body: ScheduleCreate, request: Request):
-    if (resp := await _maybe_proxy(request)):
-        return resp
+    # Build settings snapshot locally (before proxying — Cloud Run has no local settings)
+    if body.settings_snapshot is None:
+        body = body.model_copy(update={"settings_snapshot": _build_settings_snapshot()})
+
+    if cfg.settings.remote_scheduling_enabled:
+        if not cfg.settings.remote_backend_url:
+            raise HTTPException(
+                status_code=503,
+                detail="Remote scheduling is enabled but Remote Backend URL is not configured.",
+            )
+        from services.id_token import get_id_token
+        import json as _json
+        try:
+            token = await get_id_token(cfg.settings.remote_backend_url)
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail=f"Failed to generate ID token for Cloud Run: {exc}")
+
+        path = request.url.path
+        query = str(request.url.query)
+        target = f"{cfg.settings.remote_backend_url.rstrip('/')}{path}"
+        if query:
+            target += f"?{query}"
+
+        import httpx as _httpx
+        try:
+            async with _httpx.AsyncClient(timeout=300.0) as client:
+                resp = await client.post(
+                    target,
+                    headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json", "X-Triggered-By": "manual"},
+                    content=_json.dumps(body.model_dump()).encode(),
+                )
+        except _httpx.RequestError as exc:
+            raise HTTPException(status_code=502, detail=f"Could not reach Cloud Run backend: {exc}")
+        return Response(content=resp.content, status_code=resp.status_code,
+                        media_type=resp.headers.get("content-type", "application/json"))
+
     _require_scheduling_configured()
 
     from services.key_store import load_keys
@@ -176,7 +210,7 @@ async def create_schedule(body: ScheduleCreate, request: Request):
         "key_id": key_id,
         "cloud_scheduler_job_name": "",
         "created_by": created_by,
-        "settings_snapshot": _build_settings_snapshot(),
+        "settings_snapshot": body.settings_snapshot if body.settings_snapshot else _build_settings_snapshot(),
     }
     schedule = await fs.create_schedule(data)
 

@@ -83,6 +83,7 @@ class ScheduleCreate(BaseModel):
     enabled: bool = True
     payload: dict[str, Any] = {}
     project_id: str | None = None       # injected by frontend; used by Cloud Run backend
+    settings_snapshot: dict[str, Any] | None = None  # built locally, forwarded to Cloud Run
 
 
 class ScheduleUpdate(BaseModel):
