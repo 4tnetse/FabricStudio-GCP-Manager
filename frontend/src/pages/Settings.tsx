@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Upload, Loader2, Trash2, Key, Settings2, Palette, Pencil, CalendarClock } from 'lucide-react'
+import { Upload, Loader2, Trash2, Key, Settings2, Palette, Pencil, CalendarClock, Search } from 'lucide-react'
+import { useDetectCloudRunUrl } from '@/api/schedules'
 import { useSettings, useUpdateSettings, useResetSettings } from '@/api/settings'
 import { useKeys, useUploadKey, useDeleteKey, useRenameKey } from '@/api/keys'
 import { useZones, useZoneLocations } from '@/api/instances'
@@ -67,6 +68,7 @@ export default function SettingsPage() {
   const uploadKey = useUploadKey()
   const deleteKey = useDeleteKey()
   const renameKey = useRenameKey()
+  const detectCloudRunUrl = useDetectCloudRunUrl()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState<Partial<Settings>>({})
@@ -481,13 +483,35 @@ export default function SettingsPage() {
 
             <div>
               <label className={labelClass}>Remote Backend URL</label>
-              <input
-                className={inputClass}
-                placeholder="https://fabricstudio-scheduler-xxx-ew.a.run.app"
-                value={(form.remote_backend_url as string) ?? ''}
-                onChange={(e) => setField('remote_backend_url', e.target.value)}
-              />
-              <p className="text-xs text-slate-500 mt-1">Cloud Run URL for the scheduling backend. Auto-detect coming in a future phase.</p>
+              <div className="flex gap-2">
+                <input
+                  className={inputClass}
+                  placeholder="https://fabricstudio-scheduler-xxx-ew.a.run.app"
+                  value={(form.remote_backend_url as string) ?? ''}
+                  onChange={(e) => setField('remote_backend_url', e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const result = await detectCloudRunUrl.mutateAsync()
+                      setField('remote_backend_url', result.url)
+                      toast.success('Cloud Run URL detected')
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : 'Detection failed')
+                    }
+                  }}
+                  disabled={detectCloudRunUrl.isPending}
+                  className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-600 hover:border-slate-400 disabled:opacity-50 text-sm text-slate-300 hover:text-slate-100 transition-colors"
+                  title="Detect Cloud Run URL automatically"
+                >
+                  {detectCloudRunUrl.isPending
+                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    : <Search className="w-3.5 h-3.5" />}
+                  Detect
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">Cloud Run URL for the scheduling backend.</p>
             </div>
 
             <div>

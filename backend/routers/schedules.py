@@ -3,11 +3,13 @@ Schedules router.
 Phase 1: Firestore CRUD.
 Phase 3: Trigger endpoint (runs job + writes logs to Firestore).
 Phase 4: Cloud Scheduler integration.
-Phase 5: Proxy to Cloud Run.
+Phase 5: Proxy layer (local → Cloud Run) + cloud-run-url auto-detect.
 """
-from datetime import datetime, timezone
+import asyncio
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+import httpx
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi.responses import Response
 
 import config as cfg
 from models.schedule import ScheduleCreate, ScheduleUpdate
@@ -16,10 +18,110 @@ from services import firestore_client as fs
 router = APIRouter(prefix="/schedules", tags=["schedules"])
 
 
+# ---------------------------------------------------------------------------
+# Proxy helpers (Phase 5)
+# ---------------------------------------------------------------------------
+
+async def _maybe_proxy(request: Request) -> Response | None:
+    """If remote scheduling is enabled, forward to Cloud Run and return the response.
+
+    Returns None to indicate that local handling should proceed.
+    Returns a Response when the proxy handled the request.
+    Raises HTTPException 503 if remote scheduling is enabled but not fully configured.
+    """
+    if not cfg.settings.remote_scheduling_enabled:
+        return None
+
+    backend_url = cfg.settings.remote_backend_url
+    if not backend_url:
+        raise HTTPException(
+            status_code=503,
+            detail="Remote scheduling is enabled but Remote Backend URL is not configured.",
+        )
+
+    from services.id_token import get_id_token
+    try:
+        token = await get_id_token(backend_url)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Failed to generate ID token for Cloud Run: {exc}",
+        )
+
+    # Build the target URL (keep the same path + query string)
+    path = request.url.path
+    query = str(request.url.query)
+    target = f"{backend_url.rstrip('/')}{path}"
+    if query:
+        target += f"?{query}"
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    body = await request.body()
+
+    try:
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            resp = await client.request(
+                method=request.method,
+                url=target,
+                headers=headers,
+                content=body,
+            )
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not reach Cloud Run backend: {exc}",
+        )
+
+    return Response(
+        content=resp.content,
+        status_code=resp.status_code,
+        media_type=resp.headers.get("content-type", "application/json"),
+    )
+
+
 def _require_scheduling_configured():
-    """Raise 503 if Firestore / scheduling is not ready."""
+    """Raise 503 if no active project is configured (Firestore can't connect)."""
     if not cfg.settings.active_key_id or not cfg.settings.active_project_id:
         raise HTTPException(status_code=503, detail="No active project configured.")
+
+
+# ---------------------------------------------------------------------------
+# Cloud Run URL auto-detection (local-only — never proxied)
+# ---------------------------------------------------------------------------
+
+@router.get("/cloud-run-url")
+async def get_cloud_run_url():
+    """Query the Cloud Run API to find the URL of 'fabricstudio-scheduler'."""
+    _require_scheduling_configured()
+
+    region = cfg.settings.cloud_run_region or "europe-west1"
+    project_id = cfg.settings.active_project_id
+
+    loop = asyncio.get_event_loop()
+
+    def _run() -> str:
+        from auth import get_credentials
+        from google.cloud import run_v2
+
+        creds = get_credentials()
+        client = run_v2.ServicesClient(credentials=creds)
+        parent = f"projects/{project_id}/locations/{region}"
+        for service in client.list_services(parent=parent):
+            if service.name.endswith("/fabricstudio-scheduler"):
+                return service.uri
+        raise ValueError(
+            f"Service 'fabricstudio-scheduler' not found in {region}. "
+            "Deploy it first with APP_MODE=backend."
+        )
+
+    try:
+        url = await loop.run_in_executor(None, _run)
+        return {"url": url}
+    except Exception as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
 
 
 # ---------------------------------------------------------------------------
@@ -27,18 +129,21 @@ def _require_scheduling_configured():
 # ---------------------------------------------------------------------------
 
 @router.get("")
-async def list_schedules():
+async def list_schedules(request: Request):
+    if (resp := await _maybe_proxy(request)):
+        return resp
     _require_scheduling_configured()
     return await fs.list_schedules()
 
 
 @router.post("", status_code=201)
-async def create_schedule(body: ScheduleCreate):
+async def create_schedule(body: ScheduleCreate, request: Request):
+    if (resp := await _maybe_proxy(request)):
+        return resp
     _require_scheduling_configured()
 
     from services.key_store import load_keys
 
-    # Resolve client_email for created_by field
     created_by = ""
     keys = load_keys()
     key_meta = next((k for k in keys if k.id == cfg.settings.active_key_id), None)
@@ -55,7 +160,6 @@ async def create_schedule(body: ScheduleCreate):
     }
     schedule = await fs.create_schedule(data)
 
-    # Create Cloud Scheduler job if remote scheduling is enabled
     scheduler_warning = None
     if cfg.settings.remote_scheduling_enabled and cfg.settings.remote_backend_url:
         try:
@@ -72,7 +176,9 @@ async def create_schedule(body: ScheduleCreate):
 
 
 @router.get("/runs/{run_id}")
-async def get_run(run_id: str):
+async def get_run(run_id: str, request: Request):
+    if (resp := await _maybe_proxy(request)):
+        return resp
     _require_scheduling_configured()
     run = await fs.get_job_run(run_id)
     if run is None:
@@ -81,7 +187,9 @@ async def get_run(run_id: str):
 
 
 @router.get("/runs/{run_id}/logs")
-async def get_run_logs(run_id: str):
+async def get_run_logs(run_id: str, request: Request):
+    if (resp := await _maybe_proxy(request)):
+        return resp
     _require_scheduling_configured()
     run = await fs.get_job_run(run_id)
     if run is None:
@@ -90,7 +198,9 @@ async def get_run_logs(run_id: str):
 
 
 @router.get("/{schedule_id}")
-async def get_schedule(schedule_id: str):
+async def get_schedule(schedule_id: str, request: Request):
+    if (resp := await _maybe_proxy(request)):
+        return resp
     _require_scheduling_configured()
     schedule = await fs.get_schedule(schedule_id)
     if schedule is None:
@@ -99,7 +209,9 @@ async def get_schedule(schedule_id: str):
 
 
 @router.put("/{schedule_id}")
-async def update_schedule(schedule_id: str, body: ScheduleUpdate):
+async def update_schedule(schedule_id: str, body: ScheduleUpdate, request: Request):
+    if (resp := await _maybe_proxy(request)):
+        return resp
     _require_scheduling_configured()
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
     updates["settings_snapshot"] = _build_settings_snapshot()
@@ -107,26 +219,26 @@ async def update_schedule(schedule_id: str, body: ScheduleUpdate):
     if result is None:
         raise HTTPException(status_code=404, detail="Schedule not found.")
 
-    # Sync Cloud Scheduler job if it exists
     job_name = result.get("cloud_scheduler_job_name", "")
     if job_name and cfg.settings.remote_scheduling_enabled:
         try:
             from services.cloud_scheduler import update_scheduler_job
             await update_scheduler_job(result)
         except Exception:
-            pass  # best-effort
+            pass
 
     return result
 
 
 @router.delete("/{schedule_id}", status_code=204)
-async def delete_schedule(schedule_id: str):
+async def delete_schedule(schedule_id: str, request: Request):
+    if (resp := await _maybe_proxy(request)):
+        return resp
     _require_scheduling_configured()
     schedule = await fs.get_schedule(schedule_id)
     if schedule is None:
         raise HTTPException(status_code=404, detail="Schedule not found.")
 
-    # Delete Cloud Scheduler job first (best-effort)
     job_name = schedule.get("cloud_scheduler_job_name", "")
     if job_name:
         try:
@@ -139,7 +251,9 @@ async def delete_schedule(schedule_id: str):
 
 
 @router.post("/{schedule_id}/enable")
-async def enable_schedule(schedule_id: str):
+async def enable_schedule(schedule_id: str, request: Request):
+    if (resp := await _maybe_proxy(request)):
+        return resp
     _require_scheduling_configured()
     result = await fs.update_schedule(schedule_id, {"enabled": True})
     if result is None:
@@ -155,7 +269,9 @@ async def enable_schedule(schedule_id: str):
 
 
 @router.post("/{schedule_id}/disable")
-async def disable_schedule(schedule_id: str):
+async def disable_schedule(schedule_id: str, request: Request):
+    if (resp := await _maybe_proxy(request)):
+        return resp
     _require_scheduling_configured()
     result = await fs.update_schedule(schedule_id, {"enabled": False})
     if result is None:
@@ -171,22 +287,25 @@ async def disable_schedule(schedule_id: str):
 
 
 # ---------------------------------------------------------------------------
-# Trigger (called by Cloud Scheduler or "Run now" from the UI)
+# Trigger (Cloud Scheduler → Cloud Run, or manual "Run now")
 # ---------------------------------------------------------------------------
 
 @router.post("/{schedule_id}/trigger", status_code=202)
-async def trigger_schedule(schedule_id: str, background_tasks: BackgroundTasks):
+async def trigger_schedule(schedule_id: str, background_tasks: BackgroundTasks, request: Request):
     """Execute a schedule immediately.
 
-    Returns 202 Accepted immediately; the job runs in the background and
-    writes its logs + final status to the job_runs Firestore collection.
+    When called via the UI (manual trigger), proxies to Cloud Run if remote
+    scheduling is enabled. When called directly by Cloud Scheduler on Cloud Run,
+    runs the job in the background and writes logs to Firestore.
     """
+    if (resp := await _maybe_proxy(request)):
+        return resp
+
     _require_scheduling_configured()
     schedule = await fs.get_schedule(schedule_id)
     if schedule is None:
         raise HTTPException(status_code=404, detail="Schedule not found.")
 
-    # Create a job_run document (status=running)
     run_data = {
         "schedule_id": schedule_id,
         "schedule_name": schedule.get("name", ""),
@@ -200,7 +319,6 @@ async def trigger_schedule(schedule_id: str, background_tasks: BackgroundTasks):
     run = await fs.create_job_run(run_data)
     run_id = run["id"]
 
-    # Import here to avoid circular imports at module load time
     from services.schedule_runner import run_triggered_job
     background_tasks.add_task(run_triggered_job, schedule, run_id)
 
@@ -212,7 +330,9 @@ async def trigger_schedule(schedule_id: str, background_tasks: BackgroundTasks):
 # ---------------------------------------------------------------------------
 
 @router.get("/{schedule_id}/runs")
-async def list_runs(schedule_id: str):
+async def list_runs(schedule_id: str, request: Request):
+    if (resp := await _maybe_proxy(request)):
+        return resp
     _require_scheduling_configured()
     schedule = await fs.get_schedule(schedule_id)
     if schedule is None:
