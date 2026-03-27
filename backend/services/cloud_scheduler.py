@@ -23,9 +23,9 @@ APP_MODE = os.environ.get("APP_MODE", "full")
 
 
 def _get_client() -> scheduler_v1.CloudSchedulerClient:
-    """Return an authenticated Cloud Scheduler client."""
+    """Return an authenticated Cloud Scheduler client (REST transport for richer errors)."""
     if APP_MODE == "backend":
-        return scheduler_v1.CloudSchedulerClient()
+        return scheduler_v1.CloudSchedulerClient(transport="rest")
 
     key_id = cfg.settings.active_key_id
     if not key_id:
@@ -33,7 +33,7 @@ def _get_client() -> scheduler_v1.CloudSchedulerClient:
     from services.key_store import get_key_path
     key_path = get_key_path(key_id)
     creds = service_account.Credentials.from_service_account_file(str(key_path))
-    return scheduler_v1.CloudSchedulerClient(credentials=creds)
+    return scheduler_v1.CloudSchedulerClient(credentials=creds, transport="rest")
 
 
 def _location_path(project_id: str, region: str) -> str:
@@ -108,7 +108,7 @@ async def create_scheduler_job(schedule: dict) -> str:
     enabled = schedule.get("enabled", True)
     cron_expression = schedule["cron_expression"]
     timezone = schedule.get("timezone", "UTC")
-    logger.info(
+    logger.warning(
         "create_scheduler_job: project=%s region=%s backend_url=%s sa_email=%s cron=%s tz=%s",
         project_id, region, backend_url, sa_email, cron_expression, timezone,
     )
@@ -121,7 +121,7 @@ async def create_scheduler_job(schedule: dict) -> str:
         cron_expression=cron_expression,
         timezone=timezone,
     )
-    logger.info("create_scheduler_job: job proto = %s", job)
+    logger.warning("create_scheduler_job: job proto = %s", job)
 
     def _run() -> str:
         client = _get_client()
