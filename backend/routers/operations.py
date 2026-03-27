@@ -1,4 +1,5 @@
 import asyncio
+import os
 import uuid
 from datetime import datetime, timedelta
 from typing import AsyncGenerator
@@ -17,6 +18,24 @@ from services.gcp_compute import GCPComputeService
 from services.gcp_dns import GCPDnsService
 from services.instance_naming import InstanceName
 from services.parallel_runner import job_manager
+
+_APP_MODE = os.environ.get("APP_MODE", "full")
+
+
+async def _resolve_host(zone: str, instance_name: str, fqdn: str) -> str:
+    """In backend (Cloud Run) mode, return the instance's internal IP to stay within the VPC.
+    Otherwise return the FQDN."""
+    if _APP_MODE != "backend":
+        return fqdn
+    try:
+        project_id = cfg.settings.active_project_id
+        svc = GCPComputeService(project_id)
+        instance = await svc.get_instance(zone=zone, name=instance_name)
+        if instance.internal_ip:
+            return instance.internal_ip
+    except Exception:
+        pass
+    return fqdn
 
 router = APIRouter(prefix="/ops", tags=["operations"])
 
@@ -458,20 +477,21 @@ async def _bulk_configure_job(job_id: str, req: BulkConfigureRequest) -> None:
             return
 
         fqdn = f"{prefix}{parsed.number}.{parsed.product}.{domain}"
+        host = await _resolve_host(item.zone, item.name, fqdn)
 
         async def log(msg: str) -> None:
             await q.put(f"{tag} {msg}")
 
         try:
-            await wait_until_ready(fqdn, log=log)
+            await wait_until_ready(host, log=log)
         except TimeoutError as exc:
             await q.put(f"{tag} ERROR: {exc}")
             failures.append(item.name)
             return
 
-        await q.put(f"{tag} Connecting to {fqdn}…")
+        await q.put(f"{tag} Connecting to {host}…")
         try:
-            async with FabricStudioClient(fqdn, default_password) as fs:
+            async with FabricStudioClient(host, default_password) as fs:
                 if req.admin_password:
                     await q.put(f"{tag} Changing admin password…")
                     await fs.change_admin_password(default_password, req.admin_password)
