@@ -11,32 +11,34 @@ interface Props {
   onClose: () => void
 }
 
-function defaultDatetime(): string {
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+function daysInMonth(month: number, year: number): number {
+  return new Date(year, month, 0).getDate()
+}
+
+function defaultParts() {
   const d = new Date()
   d.setDate(d.getDate() + 1)
   d.setHours(8, 0, 0, 0)
-  // Format as "YYYY-MM-DDTHH:mm" for datetime-local input
+  return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate(), hour: d.getHours(), minute: d.getMinutes() }
+}
+
+function partsToDt(year: number, month: number, day: number, hour: number, minute: number): string {
   const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${year}-${pad(month)}-${pad(day)}T${pad(hour)}:${pad(minute)}`
 }
 
 function datetimeToCron(dt: string): string {
-  // dt is "YYYY-MM-DDTHH:mm" — interpret as-is in the chosen timezone
-  const [, timePart] = dt.split('T')
-  const datePart = dt.split('T')[0]
-  const [year, month, day] = datePart.split('-').map(Number)
+  const [datePart, timePart] = dt.split('T')
+  const [, month, day] = datePart.split('-').map(Number)
   const [hour, minute] = timePart.split(':').map(Number)
-  void year
   return `${minute} ${hour} ${day} ${month} *`
 }
 
-function formatPreview(dt: string): string {
-  if (!dt) return ''
-  const [datePart, timePart] = dt.split('T')
-  const [year, month, day] = datePart.split('-').map(Number)
-  const [hour, minute] = timePart.split(':').map(Number)
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  return `${months[month - 1]} ${day}, ${year} at ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+function formatPreview(year: number, month: number, day: number, hour: number, minute: number): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${MONTHS[month - 1]} ${day}, ${year} at ${pad(hour)}:${pad(minute)}`
 }
 
 const TZ_OPTIONS = [
@@ -53,6 +55,56 @@ const TZ_OPTIONS = [
   'UTC',
 ]
 
+interface DateTimePickerProps {
+  year: number; month: number; day: number; hour: number; minute: number
+  onChange: (year: number, month: number, day: number, hour: number, minute: number) => void
+  selectClass: string
+}
+
+function DateTimePicker({ year, month, day, hour, minute, onChange, selectClass }: DateTimePickerProps) {
+  const currentYear = new Date().getFullYear()
+  const years = Array.from({ length: 6 }, (_, i) => currentYear + i)
+  const maxDay = daysInMonth(month, year)
+  const clampedDay = Math.min(day, maxDay)
+
+  function set(field: 'year' | 'month' | 'day' | 'hour' | 'minute', val: number) {
+    const next = { year, month, day: clampedDay, hour, minute, [field]: val }
+    const md = daysInMonth(next.month, next.year)
+    onChange(next.year, next.month, Math.min(next.day, md), next.hour, next.minute)
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-2">
+        <select className={selectClass} value={month} onChange={(e) => set('month', +e.target.value)}>
+          {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+        </select>
+        <select className={selectClass} value={clampedDay} onChange={(e) => set('day', +e.target.value)}>
+          {Array.from({ length: maxDay }, (_, i) => i + 1).map((d) => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </select>
+        <select className={selectClass} value={year} onChange={(e) => set('year', +e.target.value)}>
+          {years.map((y) => <option key={y} value={y}>{y}</option>)}
+        </select>
+      </div>
+      <div className="flex gap-2 items-center">
+        <select className={selectClass} value={hour} onChange={(e) => set('hour', +e.target.value)}>
+          {Array.from({ length: 24 }, (_, i) => i).map((h) => (
+            <option key={h} value={h}>{String(h).padStart(2, '0')}</option>
+          ))}
+        </select>
+        <span className="text-slate-400 text-sm font-medium">:</span>
+        <select className={selectClass} value={minute} onChange={(e) => set('minute', +e.target.value)}>
+          {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
+            <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  )
+}
+
 export function ScheduleDialog({ jobType, payload, projectId, onClose }: Props) {
   const { theme } = useTheme()
   const isSF = theme === 'security-fabric'
@@ -61,22 +113,31 @@ export function ScheduleDialog({ jobType, payload, projectId, onClose }: Props) 
   const defaultTz = TZ_OPTIONS.includes(browserTz) ? browserTz : 'UTC'
 
   const [name, setName] = useState('')
-  const [scheduledAt, setScheduledAt] = useState(defaultDatetime)
+  const init = defaultParts()
+  const [year, setYear] = useState(init.year)
+  const [month, setMonth] = useState(init.month)
+  const [day, setDay] = useState(init.day)
+  const [hour, setHour] = useState(init.hour)
+  const [minute, setMinute] = useState(0)
   const [timezone, setTimezone] = useState(defaultTz)
 
   const createSchedule = useCreateSchedule()
+  const isValid = !!name.trim()
 
-  const isValid = !!name.trim() && !!scheduledAt
+  function handleDateTimeChange(y: number, mo: number, d: number, h: number, mi: number) {
+    setYear(y); setMonth(mo); setDay(d); setHour(h); setMinute(mi)
+  }
 
   async function handleSave() {
     if (!name.trim()) {
       toast.error('Name is required')
       return
     }
+    const dt = partsToDt(year, month, day, hour, minute)
     const body: ScheduleCreate = {
       name: name.trim(),
       job_type: jobType,
-      cron_expression: datetimeToCron(scheduledAt),
+      cron_expression: datetimeToCron(dt),
       timezone,
       enabled: true,
       payload,
@@ -94,6 +155,9 @@ export function ScheduleDialog({ jobType, payload, projectId, onClose }: Props) 
   const inputClass = isSF
     ? 'w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-[#db291c] placeholder:text-slate-500'
     : 'w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500'
+  const selectClass = isSF
+    ? 'flex-1 px-2 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-[#db291c]'
+    : 'flex-1 px-2 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500'
   const labelClass = 'block text-xs font-medium text-slate-400 mb-1'
 
   return (
@@ -130,15 +194,14 @@ export function ScheduleDialog({ jobType, payload, projectId, onClose }: Props) 
         {/* Date/time */}
         <div>
           <label className={labelClass}>Run at</label>
-          <input
-            type="datetime-local"
-            className={inputClass}
-            value={scheduledAt}
-            onChange={(e) => setScheduledAt(e.target.value)}
+          <DateTimePicker
+            year={year} month={month} day={day} hour={hour} minute={minute}
+            onChange={handleDateTimeChange}
+            selectClass={selectClass}
           />
-          {scheduledAt && (
-            <p className={`text-xs mt-1.5 ${isSF ? 'text-[#db291c]' : 'text-blue-400'}`}>{formatPreview(scheduledAt)} ({timezone})</p>
-          )}
+          <p className={`text-xs mt-1.5 ${isSF ? 'text-[#db291c]' : 'text-blue-400'}`}>
+            {formatPreview(year, month, day, hour, minute)} ({timezone})
+          </p>
         </div>
 
         {/* Timezone */}
