@@ -36,7 +36,6 @@ async def list_schedules():
 async def create_schedule(body: ScheduleCreate):
     _require_scheduling_configured()
 
-    from auth import get_credentials
     from services.key_store import load_keys
 
     # Resolve client_email for created_by field
@@ -54,7 +53,22 @@ async def create_schedule(body: ScheduleCreate):
         "created_by": created_by,
         "settings_snapshot": _build_settings_snapshot(),
     }
-    return await fs.create_schedule(data)
+    schedule = await fs.create_schedule(data)
+
+    # Create Cloud Scheduler job if remote scheduling is enabled
+    scheduler_warning = None
+    if cfg.settings.remote_scheduling_enabled and cfg.settings.remote_backend_url:
+        try:
+            from services.cloud_scheduler import create_scheduler_job
+            job_name = await create_scheduler_job(schedule)
+            schedule = await fs.update_schedule(schedule["id"], {"cloud_scheduler_job_name": job_name})
+        except Exception as exc:
+            scheduler_warning = f"Schedule saved but Cloud Scheduler job creation failed: {exc}"
+
+    result = schedule or data
+    if scheduler_warning:
+        result = {**result, "_warning": scheduler_warning}
+    return result
 
 
 @router.get("/runs/{run_id}")
@@ -92,15 +106,36 @@ async def update_schedule(schedule_id: str, body: ScheduleUpdate):
     result = await fs.update_schedule(schedule_id, updates)
     if result is None:
         raise HTTPException(status_code=404, detail="Schedule not found.")
+
+    # Sync Cloud Scheduler job if it exists
+    job_name = result.get("cloud_scheduler_job_name", "")
+    if job_name and cfg.settings.remote_scheduling_enabled:
+        try:
+            from services.cloud_scheduler import update_scheduler_job
+            await update_scheduler_job(result)
+        except Exception:
+            pass  # best-effort
+
     return result
 
 
 @router.delete("/{schedule_id}", status_code=204)
 async def delete_schedule(schedule_id: str):
     _require_scheduling_configured()
-    found = await fs.delete_schedule(schedule_id)
-    if not found:
+    schedule = await fs.get_schedule(schedule_id)
+    if schedule is None:
         raise HTTPException(status_code=404, detail="Schedule not found.")
+
+    # Delete Cloud Scheduler job first (best-effort)
+    job_name = schedule.get("cloud_scheduler_job_name", "")
+    if job_name:
+        try:
+            from services.cloud_scheduler import delete_scheduler_job
+            await delete_scheduler_job(job_name)
+        except Exception:
+            pass
+
+    await fs.delete_schedule(schedule_id)
 
 
 @router.post("/{schedule_id}/enable")
@@ -109,6 +144,13 @@ async def enable_schedule(schedule_id: str):
     result = await fs.update_schedule(schedule_id, {"enabled": True})
     if result is None:
         raise HTTPException(status_code=404, detail="Schedule not found.")
+    job_name = result.get("cloud_scheduler_job_name", "")
+    if job_name:
+        try:
+            from services.cloud_scheduler import resume_scheduler_job
+            await resume_scheduler_job(job_name)
+        except Exception:
+            pass
     return result
 
 
@@ -118,6 +160,13 @@ async def disable_schedule(schedule_id: str):
     result = await fs.update_schedule(schedule_id, {"enabled": False})
     if result is None:
         raise HTTPException(status_code=404, detail="Schedule not found.")
+    job_name = result.get("cloud_scheduler_job_name", "")
+    if job_name:
+        try:
+            from services.cloud_scheduler import pause_scheduler_job
+            await pause_scheduler_job(job_name)
+        except Exception:
+            pass
     return result
 
 
