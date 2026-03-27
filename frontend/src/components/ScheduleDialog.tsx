@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X, Loader2, CalendarClock } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCreateSchedule, type ScheduleCreate } from '@/api/schedules'
+import { useTheme } from '@/context/ThemeContext'
 
 interface Props {
   jobType: 'clone' | 'configure'
@@ -53,6 +54,9 @@ const TZ_OPTIONS = [
 ]
 
 export function ScheduleDialog({ jobType, payload, projectId, onClose }: Props) {
+  const { theme } = useTheme()
+  const isSF = theme === 'security-fabric'
+
   const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone
   const defaultTz = TZ_OPTIONS.includes(browserTz) ? browserTz : 'UTC'
 
@@ -87,8 +91,9 @@ export function ScheduleDialog({ jobType, payload, projectId, onClose }: Props) 
     }
   }
 
-  const inputClass =
-    'w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500'
+  const inputClass = isSF
+    ? 'w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-[#db291c] placeholder:text-slate-500'
+    : 'w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500'
   const labelClass = 'block text-xs font-medium text-slate-400 mb-1'
 
   return (
@@ -132,7 +137,7 @@ export function ScheduleDialog({ jobType, payload, projectId, onClose }: Props) 
             onChange={(e) => setScheduledAt(e.target.value)}
           />
           {scheduledAt && (
-            <p className="text-xs text-blue-400 mt-1.5">{formatPreview(scheduledAt)} ({timezone})</p>
+            <p className={`text-xs mt-1.5 ${isSF ? 'text-[#db291c]' : 'text-blue-400'}`}>{formatPreview(scheduledAt)} ({timezone})</p>
           )}
         </div>
 
@@ -169,7 +174,7 @@ export function ScheduleDialog({ jobType, payload, projectId, onClose }: Props) 
           <button
             onClick={handleSave}
             disabled={createSchedule.isPending || !isValid}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg disabled:opacity-50 text-white text-sm font-medium transition-colors ${isSF ? 'bg-[#db291c] hover:bg-[#c0221a]' : 'bg-blue-600 hover:bg-blue-500'}`}
           >
             {createSchedule.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             Save Schedule
