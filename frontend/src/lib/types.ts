@@ -49,6 +49,10 @@ export interface Settings {
   fs_admin_password?: string | null
   selected_project: string | null
   has_keys?: boolean
+  remote_scheduling_enabled?: boolean
+  remote_backend_url?: string | null
+  cloud_run_region?: string | null
+  firestore_project_id?: string | null
 }
 
 export interface FirewallRule {

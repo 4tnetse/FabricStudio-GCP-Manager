@@ -1,12 +1,13 @@
 import { useState, useMemo, useEffect } from 'react'
 import { toast } from 'sonner'
-import { ChevronDown, ChevronUp, Info, Loader2, Plus, Search, X } from 'lucide-react'
+import { CalendarClock, ChevronDown, ChevronUp, Info, Loader2, Plus, Search, X } from 'lucide-react'
 import { apiGet, apiPost } from '@/api/client'
 import { useSettings } from '@/api/settings'
 import { useTheme } from '@/context/ThemeContext'
 import { useInstances } from '@/api/instances'
 import { LogStream } from '@/components/LogStream'
 import { CustomSelect } from '@/components/CustomSelect'
+import { ScheduleDialog } from '@/components/ScheduleDialog'
 
 function formatSelection(names: Set<string>): string {
   if (names.size === 0) return ''
@@ -92,6 +93,7 @@ export default function Configure() {
   const [configuring, setConfiguring] = useState(false)
   const [streaming, setStreaming] = useState(false)
   const [streamUrl, setStreamUrl] = useState<string | null>(null)
+  const [scheduleOpen, setScheduleOpen] = useState(false)
 
   useEffect(() => {
     if (!workspaceSource) {
@@ -620,10 +622,11 @@ export default function Configure() {
               )}
             </div>
 
+            <div className="flex gap-2">
             <button
               onClick={handleConfigure}
               disabled={configuring || streaming || selectedNames.size === 0}
-              className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+              className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors"
             >
               {configuring || streaming ? (
                 <>
@@ -634,6 +637,16 @@ export default function Configure() {
                 `Configure${selectedNames.size > 0 ? ` (${selectedNames.size})` : ''}`
               )}
             </button>
+            <button
+              onClick={() => setScheduleOpen(true)}
+              disabled={selectedNames.size === 0}
+              title="Schedule this configure job"
+              className="px-3 py-2.5 rounded-lg border border-slate-600 hover:border-slate-400 disabled:opacity-50 text-slate-300 hover:text-slate-100 flex items-center gap-1.5 text-sm transition-colors"
+            >
+              <CalendarClock className="w-4 h-4" />
+              Schedule
+            </button>
+            </div>
           </div>
 
         </div>{/* end left widget */}
@@ -646,6 +659,29 @@ export default function Configure() {
           </div>
         </div>
       </div>
+
+      {scheduleOpen && (
+        <ScheduleDialog
+          jobType="configure"
+          payload={{
+            instances: [...selectedNames].map((name) => {
+              const inst = instances.find((i) => i.name === name)
+              return { name, zone: inst?.zone ?? settings?.default_zone ?? '' }
+            }),
+            old_admin_password: oldAdminPassword || undefined,
+            admin_password: adminPassword || undefined,
+            guest_password: guestPassword || undefined,
+            trial_key: trialKey || undefined,
+            license_server: licenseServer || undefined,
+            hostname_template: hostnameTemplate || undefined,
+            delete_all_workspaces: hasValidFabrics || deleteAllWorkspaces,
+            workspace_fabrics: workspaceFabrics.filter(f => f.name && f.templateId).map((f, i) => ({ name: f.name, template_id: parseInt(f.templateId), install: i === workspaceInstallIndex })),
+            ssh_keys: sshKeys.filter(Boolean),
+            delete_existing_keys: deleteExistingKeys,
+          }}
+          onClose={() => setScheduleOpen(false)}
+        />
+      )}
     </div>
   )
 }

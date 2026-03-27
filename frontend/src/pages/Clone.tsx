@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Info } from 'lucide-react'
+import { Loader2, Info, CalendarClock } from 'lucide-react'
 import { apiPost } from '@/api/client'
 import { useSettings } from '@/api/settings'
 import { useInstances, useZones, useZoneLocations } from '@/api/instances'
 import { LogStream } from '@/components/LogStream'
 import { CustomSelect } from '@/components/CustomSelect'
+import { ScheduleDialog } from '@/components/ScheduleDialog'
 import { zoneLabel } from '@/lib/zones'
 
 
@@ -120,6 +121,7 @@ export default function Clone() {
   const [streaming, setStreaming] = useState(false)
   const [streamUrl, setStreamUrl] = useState<string | null>(null)
   const [dnsWarning, setDnsWarning] = useState<string[] | null>(null)
+  const [scheduleOpen, setScheduleOpen] = useState(false)
 
   const count = rangeTo >= rangeFrom ? rangeTo - rangeFrom + 1 : 0
   const batches = Math.ceil(count / 5)
@@ -308,10 +310,11 @@ export default function Clone() {
             </div>
           </label>
 
+          <div className="flex gap-2">
           <button
             onClick={handleClone}
             disabled={cloning || streaming || count === 0 || !cloneName || !!nameError || !!purposeError}
-            className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+            className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors"
           >
             {cloning ? (
               <>
@@ -327,6 +330,16 @@ export default function Clone() {
               'Clone'
             )}
           </button>
+          <button
+            onClick={() => setScheduleOpen(true)}
+            disabled={count === 0 || !cloneName || !!nameError || !!purposeError || !source}
+            title="Schedule this clone job"
+            className="px-3 py-2.5 rounded-lg border border-slate-600 hover:border-slate-400 disabled:opacity-50 text-slate-300 hover:text-slate-100 flex items-center gap-1.5 text-sm transition-colors"
+          >
+            <CalendarClock className="w-4 h-4" />
+            Schedule
+          </button>
+          </div>
         </div>
 
         {/* Log output — relative wrapper so absolute child doesn't inflate grid row */}
@@ -337,6 +350,24 @@ export default function Clone() {
           </div>
         </div>
       </div>
+
+      {/* Schedule dialog */}
+      {scheduleOpen && (
+        <ScheduleDialog
+          jobType="clone"
+          payload={{
+            source_name: source,
+            zone: sourceZone,
+            target_zone: destZone,
+            clone_base_name: cloneName || undefined,
+            purpose: purpose || undefined,
+            count_start: rangeFrom,
+            count_end: rangeTo,
+            overwrite,
+          }}
+          onClose={() => setScheduleOpen(false)}
+        />
+      )}
 
       {/* DNS warning dialog */}
       {dnsWarning && (

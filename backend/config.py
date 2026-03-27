@@ -29,6 +29,10 @@ class AppSettings(BaseModel):
     instance_fqdn_prefix: str = ""
     dns_zone_name: str = ""
     fs_admin_password: str = ""
+    remote_scheduling_enabled: bool = False
+    remote_backend_url: str = ""
+    cloud_run_region: str = "europe-west1"
+    firestore_project_id: str = ""
 
     @field_validator("dns_domain")
     @classmethod
