@@ -252,11 +252,23 @@ function ScheduleRow({ schedule, selected, onSelect }: {
   )
 }
 
+function cronToTimestamp(expr: string): number {
+  const parts = expr.trim().split(/\s+/)
+  if (parts.length !== 5) return 0
+  const [min, hour, day, month] = parts.map(Number)
+  if ([min, hour, day, month].some(isNaN)) return 0
+  // Use a fixed year (current year) — good enough for sorting one-time schedules
+  return new Date(new Date().getFullYear(), month - 1, day, hour, min).getTime()
+}
+
 export default function Schedules() {
   const { data: schedules = [], isLoading } = useSchedules()
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const selectedSchedule = schedules.find((s) => s.id === selectedId) ?? null
+  const sortedSchedules = [...schedules].sort(
+    (a, b) => cronToTimestamp(b.cron_expression) - cronToTimestamp(a.cron_expression)
+  )
+  const selectedSchedule = sortedSchedules.find((s) => s.id === selectedId) ?? null
 
   return (
     <div className="space-y-6">
@@ -287,7 +299,7 @@ export default function Schedules() {
             </div>
           )}
 
-          {schedules.map((s) => (
+          {sortedSchedules.map((s) => (
             <ScheduleRow
               key={s.id}
               schedule={s}
