@@ -4,24 +4,6 @@ A web-based management interface for deploying, configuring, and managing Fabric
 
 ---
 
-## Features
-
-| Screen | Description |
-|---|---|
-| **Instances** | List all GCP instances with filtering by status, purpose label, and name search. Bulk start, stop and delete. Click an instance for full details: zone, machine type, vCPUs, memory, boot disk, IPs, labels, and estimated hourly cost. |
-| **Build** | Build new Fabric Studio instances from scratch. |
-| **Clone** | Bulk-clone a golden image to multiple instances with custom naming, destination zone selection, and batch processing. |
-| **Configure** | Bulk-configure Fabric Studio instances: set admin and guest passwords, SSH public keys, hostname template, registration token, license server IP, and create/install Fabric Workspace templates from a source instance. |
-| **Firewall** | View and manage GCP firewall rules. |
-| **Labels** | Add and remove GCP labels on any instance. |
-| **SSH** | Execute commands across multiple instances simultaneously with live streaming output. Supports configuration file-based execution. |
-| **SSH Configurations** | Create and edit `.conf` files containing Fabric Studio CLI commands for reuse in the SSH screen. |
-| **Images** | Browse available VM machine images. |
-| **Costs** | View billing account information and current-month cost summary for the active GCP project. |
-| **Settings** | Manage multiple GCP service account keys, SSH public key, default admin password, DNS settings, default zone, instance type, and UI theme (Dark, Light, Security Fabric). |
-
----
-
 ## Requirements
 
 - Python 3.11 or higher
@@ -31,6 +13,23 @@ A web-based management interface for deploying, configuring, and managing Fabric
 ---
 
 ## Installation
+
+### Option 1: Docker (recommended)
+
+```bash
+docker compose up
+```
+
+Open your browser at `http://localhost:8080`.
+
+The Docker image is available at:
+```
+ghcr.io/4tnetse/fabricstudio-gcp-manager:latest
+```
+
+Data (settings and service account keys) is persisted in a named Docker volume.
+
+### Option 2: Run from source
 
 Clone the repository and run the setup script once:
 
@@ -95,17 +94,7 @@ This will cleanly terminate both the backend and frontend processes.
 
 ## First-time configuration
 
-On first launch, go to **Settings** and configure:
-
-1. **Service account keys** — Upload one or more GCP service account JSON key files. At least one key is required before any GCP operations will work. Keys can be renamed and deleted from Settings; the active project is selected per-key in the sidebar.
-2. **GCP Project** — Select the active project from the sidebar project selector after a key is loaded.
-3. **SSH public key** — Paste your public key to enable SSH command execution on instances. This key should be installed on your golden image or any instance you want to access.
-4. **Default admin password** — Pre-fills the current admin password field on the Configure screen.
-5. **Default zone** — Set your preferred GCP zone (e.g. `europe-west4-a`).
-6. **DNS settings** *(optional)* — DNS domain, FQDN prefix, and Cloud DNS zone name for automatic DNS record creation during cloning.
-7. **License server** *(optional)* — IP of your Fabric Studio license server.
-
-Settings are stored in `~/.fabricstudio/settings.json`.
+See the [Configuration](https://4tnetse.github.io/FabricStudio-GCP-Manager/configuration/) section of the documentation.
 
 ---
 
@@ -131,6 +120,10 @@ FabricStudio-GCP-Manager/
 │   ├── services/      # GCP, SSH, and DNS logic
 │   └── models/        # Pydantic data models
 ├── conf/              # CLI command configuration templates
+├── docs/              # MkDocs documentation source
+├── site/              # Built documentation (served at /manual)
+├── Dockerfile         # Multi-stage Docker build
+├── docker-compose.yml # Docker Compose configuration
 ├── setup.py           # Installation script
 ├── start.py           # Start script
 └── stop.py            # Stop script
