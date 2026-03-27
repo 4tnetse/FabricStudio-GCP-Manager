@@ -70,19 +70,39 @@ def _build_job_body(
     }
 
 
+def _resolve_backend_url() -> str:
+    """Return the Cloud Run backend URL, falling back to BACKEND_URL env var."""
+    return cfg.settings.remote_backend_url or os.environ.get("BACKEND_URL", "")
+
+
+def _resolve_sa_email(schedule: dict) -> str:
+    """Return the service account email for OIDC, falling back to ADC on Cloud Run."""
+    email = schedule.get("created_by", "")
+    if email:
+        return email
+    if APP_MODE == "backend":
+        try:
+            import google.auth
+            creds, _ = google.auth.default()
+            return getattr(creds, "service_account_email", "") or ""
+        except Exception:
+            pass
+    return ""
+
+
 async def create_scheduler_job(schedule: dict) -> str:
     """Create a Cloud Scheduler job for the given schedule. Returns the full job name."""
     loop = asyncio.get_event_loop()
 
     project_id = schedule.get("project_id") or cfg.settings.active_project_id
-    region = cfg.settings.cloud_run_region or "europe-west1"
-    backend_url = cfg.settings.remote_backend_url
-    sa_email = schedule.get("created_by", "")
+    region = cfg.settings.cloud_run_region or os.environ.get("CLOUD_RUN_REGION", "europe-west1")
+    backend_url = _resolve_backend_url()
+    sa_email = _resolve_sa_email(schedule)
 
     if not backend_url:
-        raise ValueError("Remote backend URL is not configured in Settings.")
+        raise ValueError("Remote backend URL is not configured. Set BACKEND_URL env var on Cloud Run.")
     if not sa_email:
-        raise ValueError("Schedule is missing created_by (service account email).")
+        raise ValueError("Cannot determine service account email for OIDC token.")
 
     job_body = _build_job_body(
         schedule_id=schedule["id"],
@@ -109,9 +129,9 @@ async def update_scheduler_job(schedule: dict) -> None:
     loop = asyncio.get_event_loop()
 
     project_id = schedule.get("project_id") or cfg.settings.active_project_id
-    region = cfg.settings.cloud_run_region or "europe-west1"
-    backend_url = cfg.settings.remote_backend_url
-    sa_email = schedule.get("created_by", "")
+    region = cfg.settings.cloud_run_region or os.environ.get("CLOUD_RUN_REGION", "europe-west1")
+    backend_url = _resolve_backend_url()
+    sa_email = _resolve_sa_email(schedule)
 
     if not backend_url:
         return  # Cannot update without the URL
