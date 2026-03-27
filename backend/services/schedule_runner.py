@@ -35,12 +35,12 @@ async def run_triggered_job(schedule: dict, run_id: str) -> None:
     cfg.settings = cfg.settings.model_copy(update={
         "active_project_id": schedule.get("project_id") or cfg.settings.active_project_id,
         "active_key_id": schedule.get("key_id") or cfg.settings.active_key_id,
-        "dns_domain": snapshot.get("dns_domain", cfg.settings.dns_domain),
-        "instance_fqdn_prefix": snapshot.get("instance_fqdn_prefix", cfg.settings.instance_fqdn_prefix),
-        "dns_zone_name": snapshot.get("dns_zone_name", cfg.settings.dns_zone_name),
-        "fs_admin_password": snapshot.get("fs_admin_password", cfg.settings.fs_admin_password),
-        "default_zone": snapshot.get("default_zone", cfg.settings.default_zone),
-        "owner": snapshot.get("owner", cfg.settings.owner),
+        "dns_domain": snapshot.get("dns_domain") or cfg.settings.dns_domain,
+        "instance_fqdn_prefix": snapshot.get("instance_fqdn_prefix") or cfg.settings.instance_fqdn_prefix,
+        "dns_zone_name": snapshot.get("dns_zone_name") or cfg.settings.dns_zone_name,
+        "fs_admin_password": snapshot.get("fs_admin_password") or cfg.settings.fs_admin_password,
+        "default_zone": snapshot.get("default_zone") or cfg.settings.default_zone,
+        "owner": snapshot.get("owner") or cfg.settings.owner,
     })
 
     log_lines: list[str] = []
