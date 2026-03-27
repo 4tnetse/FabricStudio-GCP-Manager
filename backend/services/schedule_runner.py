@@ -91,10 +91,10 @@ async def run_triggered_job(schedule: dict, run_id: str) -> None:
                 break
             log_lines.append(line)
 
-            # Flush to Firestore every 50 lines to give live visibility
-            if len(log_lines) % 50 == 0:
+            # Flush to Firestore every 5 lines to give live visibility
+            if len(log_lines) % 5 == 0:
                 try:
-                    await fs.append_log_lines(run_id, log_lines[-50:])
+                    await fs.append_log_lines(run_id, log_lines[-5:])
                 except Exception:
                     pass  # best-effort
 
