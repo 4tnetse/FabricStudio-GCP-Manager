@@ -94,7 +94,7 @@ This will cleanly terminate both the backend and frontend processes.
 
 ## First-time configuration
 
-See the [Configuration](https://4tnetse.github.io/FabricStudio-GCP-Manager/configuration/) section of the documentation.
+See the [Configuration](http://localhost:1980/manual/configuration/) section of the documentation.
 
 ---
 
