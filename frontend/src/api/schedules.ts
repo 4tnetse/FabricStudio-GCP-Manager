@@ -39,6 +39,7 @@ export interface ScheduleCreate {
   timezone?: string
   enabled?: boolean
   payload: Record<string, unknown>
+  project_id?: string
 }
 
 export interface ScheduleUpdate {

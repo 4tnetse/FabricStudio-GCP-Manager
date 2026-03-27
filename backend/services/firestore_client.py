@@ -22,16 +22,22 @@ def _get_client(project_id: str | None = None) -> firestore.Client:
     """Return an authenticated Firestore client.
 
     In Cloud Run (APP_MODE=backend) uses Application Default Credentials.
+    Project is resolved from (in order): argument, firestore_project_id setting,
+    ADC default project (Cloud Run metadata).
     In local mode loads the active service account key file.
     """
-    pid = project_id or cfg.settings.active_project_id
-    if not pid:
-        raise RuntimeError("No active project configured.")
-
     if APP_MODE == "backend":
-        # Cloud Run: ADC is available automatically
+        import google.auth
+        pid = project_id or cfg.settings.firestore_project_id or cfg.settings.active_project_id
+        if not pid:
+            _, pid = google.auth.default()
+        if not pid:
+            raise RuntimeError("Cannot determine GCP project for Firestore.")
         return firestore.Client(project=pid)
 
+    pid = project_id or cfg.settings.firestore_project_id or cfg.settings.active_project_id
+    if not pid:
+        raise RuntimeError("No active project configured.")
     key_id = cfg.settings.active_key_id
     if not key_id:
         raise RuntimeError("No active key configured.")

@@ -82,6 +82,7 @@ class ScheduleCreate(BaseModel):
     timezone: str = "Europe/Brussels"
     enabled: bool = True
     payload: dict[str, Any] = {}
+    project_id: str | None = None       # injected by frontend; used by Cloud Run backend
 
 
 class ScheduleUpdate(BaseModel):
