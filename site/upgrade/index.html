@@ -1076,12 +1076,8 @@ start.bat
 </code></pre>
 <hr />
 <h2 id="cloud-run-remote-scheduling-backend">Cloud Run (remote scheduling backend)</h2>
-<p>When your local app is upgraded, the Cloud Run backend should be updated to match. Go to <strong>Settings → Scheduling</strong> to check if the remote version is in sync.</p>
-<p>To update Cloud Run manually:</p>
-<pre><code class="language-bash">gcloud run services update fabricstudio-scheduler \
-  --region &lt;your-region&gt; \
-  --image europe-west1-docker.pkg.dev/&lt;project&gt;/fabricstudio-remote/4tnetse/fabricstudio-gcp-manager:latest
-</code></pre>
+<p>When your local app is upgraded, the Cloud Run backend should be updated to match. The version sync status is visible in the sidebar (green dot = in sync, orange dot = out of sync) and in the <strong>About</strong> popup (click the version number at the bottom of the sidebar).</p>
+<p>To upgrade Cloud Run, click the version number to open the About popup. If the remote version is out of sync, an <strong>↑ Upgrade</strong> button appears next to the remote version. Click it — the app updates the Cloud Run service to the current local version automatically, no manual steps needed.</p>
 
 
 

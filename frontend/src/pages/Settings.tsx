@@ -118,6 +118,7 @@ export default function SettingsPage() {
       setField('remote_backend_url', url as Settings['remote_backend_url'])
       setDetectState('found')
       toast.success('Cloud Run deployed successfully')
+      queryClient.invalidateQueries({ queryKey: ['settings'] })
     })
 
   const { lines: undeployLines, isStreaming: undeployStreaming, failed: undeployFailed, error: undeployError } =

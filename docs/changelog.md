@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.7
+Settings auto-refresh after deploy so the Schedules nav item appears immediately without a manual save; schedule preview button (Eye icon) shows job parameters, cron, and creator; docs updated to describe UI-based Cloud Run upgrade.
+
+## 2.6
+Fix scheduled jobs failing with wrong Firestore project (`firestore_project_id` now read from per-project config); fix settings snapshot capturing empty password and DNS fields when using per-project settings (caused 401 on scheduled Configure jobs).
+
 ## 2.5
 Fix schedules page not showing created schedules: all read routes (list, get, run history) now read directly from Firestore using the local service account key instead of proxying through Cloud Run.
 

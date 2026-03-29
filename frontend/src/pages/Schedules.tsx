@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { CalendarClock, Loader2, Play, Trash2, ToggleLeft, ToggleRight, ChevronRight } from 'lucide-react'
+import { CalendarClock, Loader2, Play, Trash2, ToggleLeft, ToggleRight, ChevronRight, Eye } from 'lucide-react'
 import {
   useSchedules,
   useDeleteSchedule,
@@ -131,6 +131,7 @@ function ScheduleRow({ schedule, selected, onSelect }: {
   const disableSchedule = useDisableSchedule()
   const triggerSchedule = useTriggerSchedule()
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
 
   async function handleDelete() {
     try {
@@ -207,6 +208,13 @@ function ScheduleRow({ schedule, selected, onSelect }: {
               : <Play className="w-3.5 h-3.5" />}
           </button>
           <button
+            onClick={() => setShowPreview((v) => !v)}
+            title="Preview"
+            className={`p-1.5 rounded transition-colors ${showPreview ? (isSF ? 'text-[#db291c] bg-slate-700' : 'text-blue-300 bg-slate-700') : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'}`}
+          >
+            <Eye className="w-3.5 h-3.5" />
+          </button>
+          <button
             onClick={handleToggle}
             title={schedule.enabled ? 'Disable' : 'Enable'}
             className="p-1.5 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors"
@@ -224,6 +232,47 @@ function ScheduleRow({ schedule, selected, onSelect }: {
           </button>
         </div>
       </div>
+
+      {showPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowPreview(false)}>
+          <div className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-slate-100">{schedule.name}</h2>
+              <span className="px-2 py-0.5 rounded text-xs bg-slate-700 text-slate-400 capitalize">{schedule.job_type}</span>
+            </div>
+            <div className="space-y-1 text-xs">
+              <div className="flex gap-2">
+                <span className="text-slate-500 w-24 shrink-0">Schedule</span>
+                <span className="text-slate-300">{formatCron(schedule.cron_expression, schedule.timezone)}</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-slate-500 w-24 shrink-0">Status</span>
+                <span className="text-slate-300">{schedule.enabled ? 'Enabled' : 'Disabled'}</span>
+              </div>
+              {schedule.created_by && (
+                <div className="flex gap-2">
+                  <span className="text-slate-500 w-24 shrink-0">Created by</span>
+                  <span className="text-slate-300">{schedule.created_by}</span>
+                </div>
+              )}
+            </div>
+            <div className="rounded-lg border border-slate-700 bg-slate-800/40 p-3">
+              <p className="text-xs font-medium text-slate-400 mb-1.5">Job parameters</p>
+              <pre className="text-xs text-slate-300 whitespace-pre-wrap break-all font-mono leading-relaxed max-h-64 overflow-y-auto">
+                {JSON.stringify(schedule.payload, null, 2)}
+              </pre>
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowPreview(false)}
+                className="px-3 py-1.5 rounded-lg text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setConfirmDelete(false)}>
