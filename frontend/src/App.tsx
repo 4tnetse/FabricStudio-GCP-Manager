@@ -1,8 +1,8 @@
 import type { ElementType } from 'react'
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
-import { apiGet } from '@/api/client'
+import { apiGet, apiPost } from '@/api/client'
 import { useProjects } from '@/api/projects'
 import {
   LayoutDashboard,
@@ -19,6 +19,7 @@ import {
   ChevronRight,
   BookOpen,
   CalendarClock,
+  Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ProjectSelector } from '@/components/ProjectSelector'
@@ -106,9 +107,17 @@ export default function App() {
 
   const { data: versionInfo } = useQuery({
     queryKey: ['version'],
-    queryFn: () => apiGet<{ local_version: string; remote_version: string | null; remote_configured: boolean }>('/version'),
+    queryFn: () => apiGet<{ local_version: string; remote_version: string | null; remote_configured: boolean; latest_version: string | null; update_available: boolean }>('/version'),
     staleTime: 5 * 60 * 1000,
     refetchInterval: 5 * 60 * 1000,
+  })
+
+  const queryClient = useQueryClient()
+  const upgradeRemote = useMutation({
+    mutationFn: () => apiPost('/version/upgrade-remote'),
+    onSuccess: () => {
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['version'] }), 3000)
+    },
   })
 
   const [sidebarWidth, setSidebarWidth] = useState(224) // 14rem = w-56
@@ -222,21 +231,33 @@ export default function App() {
         {/* Version */}
         <button
           onClick={() => setAboutOpen(true)}
-          className="px-4 py-2.5 text-xs text-slate-600 hover:text-slate-400 transition-colors text-left select-none flex items-center gap-1.5"
+          className="px-4 py-2.5 text-xs text-left select-none flex items-center gap-1.5 transition-colors hover:text-slate-400"
+          style={{ color: versionInfo?.update_available ? 'white' : undefined }}
         >
-          <span>v{health?.version ?? '…'}</span>
+          <span className={versionInfo?.update_available ? '' : 'text-slate-600'}>
+            v{health?.version ?? '…'}
+          </span>
+          {versionInfo?.update_available && (
+            <span
+              title={`v${versionInfo.latest_version} available — click for release notes`}
+              className="text-blue-400 font-bold leading-none"
+            >
+              ↑
+            </span>
+          )}
           {versionInfo?.remote_configured && versionInfo.remote_version && (() => {
-            const upToDate = versionInfo.remote_version === versionInfo.local_version
-            const tooltip = upToDate
+            const inSync = versionInfo.remote_version === versionInfo.local_version
+            const tooltip = inSync
               ? `Remote: v${versionInfo.remote_version} — in sync`
-              : `Remote: v${versionInfo.remote_version} — update available`
+              : `Remote: v${versionInfo.remote_version} — out of sync`
             return (
               <span
                 title={tooltip}
-                className={`w-2 h-2 rounded-full shrink-0 ${upToDate ? 'bg-green-500' : 'bg-orange-400'}`}
+                className={`w-2 h-2 rounded-full shrink-0 ${inSync ? 'bg-green-500' : 'bg-orange-400'}`}
               />
             )
-          })()}</button>
+          })()}
+        </button>
       </aside>
 
       {/* About dialog */}
@@ -257,14 +278,70 @@ export default function App() {
               <div>
                 <h2 className="text-base font-semibold text-slate-100">Fabric Studio GCP Manager</h2>
                 <div className="space-y-0.5 mt-0.5">
-                  <p className="text-sm text-slate-400">Local&nbsp;&nbsp;&nbsp;v{versionInfo?.local_version ?? health?.version ?? '…'}</p>
+                  <p className="text-sm text-slate-400 flex items-center gap-1.5">
+                    <span>Local&nbsp;&nbsp;&nbsp;v{versionInfo?.local_version ?? health?.version ?? '…'}</span>
+                    {versionInfo && (
+                      versionInfo.update_available && versionInfo.latest_version ? (
+                        <>
+                          <span className="text-blue-400 text-xs">↑ v{versionInfo.latest_version} available</span>
+                          <a
+                            href="/manual/changelog/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            release notes →
+                          </a>
+                          <a
+                            href="/manual/upgrade/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-slate-400 hover:text-slate-200 hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            how to upgrade →
+                          </a>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-green-400 text-xs">✓ up to date</span>
+                          <a
+                            href="/manual/changelog/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-slate-400 hover:text-slate-200 hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            release notes →
+                          </a>
+                        </>
+                      )
+                    )}
+                  </p>
                   {versionInfo?.remote_configured && (
                     <p className="text-sm text-slate-400 flex items-center gap-1.5">
                       <span>Remote&nbsp;&nbsp;{versionInfo.remote_version ? `v${versionInfo.remote_version}` : '…'}</span>
                       {versionInfo.remote_version && (
                         versionInfo.remote_version === versionInfo.local_version
                           ? <span className="text-green-400 text-xs">✓ in sync</span>
-                          : <span className="text-orange-400 text-xs">⚠ update available</span>
+                          : <>
+                              <span className="text-orange-400 text-xs">⚠ out of sync</span>
+                              <button
+                                onClick={() => upgradeRemote.mutate()}
+                                disabled={upgradeRemote.isPending || upgradeRemote.isSuccess}
+                                className="flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white transition-colors"
+                              >
+                                {upgradeRemote.isPending
+                                  ? <><Loader2 className="w-3 h-3 animate-spin" /> Upgrading…</>
+                                  : upgradeRemote.isSuccess
+                                  ? '✓ Done'
+                                  : '↑ Upgrade Cloud Run'}
+                              </button>
+                              {upgradeRemote.isError && (
+                                <span className="text-red-400 text-xs">Failed</span>
+                              )}
+                            </>
                       )}
                     </p>
                   )}

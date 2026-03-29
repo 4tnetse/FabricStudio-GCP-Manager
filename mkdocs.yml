@@ -24,6 +24,8 @@ theme:
 nav:
   - Home: index.md
   - Installation: installation.md
+  - Upgrade: upgrade.md
+  - Changelog: changelog.md
   - Configuration: configuration.md
   - Workflow: workflow.md
   - Screens:

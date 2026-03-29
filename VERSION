@@ -1,7 +1,8 @@
-2.1
+2.2
 
 # Version history
 # ---------------
+# 2.2    Update checker: sidebar dot and About popup show local/remote version sync status and GitHub update availability; one-click Cloud Run upgrade from About popup; Upgrade and Changelog pages in docs
 # 2.1    Local/remote version display: sidebar dot (green = in sync, orange = out of sync) with tooltip; About popup shows local and remote versions side by side
 # 2.0    Scheduling: automate Clone and Configure jobs via GCP Cloud Scheduler and Cloud Run; Firestore-backed schedule management and run history with live log streaming; manual trigger, enable/disable, run history with expandable log output
 # 1.12   Scheduling: fix OIDC SA email, settings snapshot forwarding, triggered_by field, SF theme date picker, custom date/time picker, split Settings save buttons, sort schedules by date, live log flushing, internal IPs on Cloud Run, fix log line duplication

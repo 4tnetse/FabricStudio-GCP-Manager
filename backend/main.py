@@ -116,6 +116,8 @@ _VERSION_FILE = Path(__file__).parent.parent / "VERSION"
 
 # Cache remote version to avoid hitting the Cloud Run API on every request
 _remote_version_cache: dict = {"version": None, "expires": 0.0}
+# Cache latest GitHub release version (1 hour — unauthenticated rate limit is 60 req/hour)
+_github_version_cache: dict = {"version": None, "expires": 0.0}
 
 
 def _read_local_version() -> str:
@@ -158,6 +160,39 @@ async def _fetch_remote_version() -> str | None:
         return None
 
 
+async def _fetch_latest_version() -> str | None:
+    """Fetch the latest release tag from GitHub, cached for 1 hour."""
+    import time
+    import asyncio
+
+    now = time.monotonic()
+    if _github_version_cache["version"] is not None and now < _github_version_cache["expires"]:
+        return _github_version_cache["version"]
+
+    def _run() -> str | None:
+        try:
+            import urllib.request
+            req = urllib.request.Request(
+                "https://api.github.com/repos/4tnetse/FabricStudio-GCP-Manager/releases/latest",
+                headers={"User-Agent": "fabricstudio-gcp-manager"},
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                import json
+                data = json.loads(resp.read().decode())
+                tag = data.get("tag_name", "")
+                return tag.lstrip("v") if tag else None
+        except Exception:
+            return None
+
+    try:
+        version = await asyncio.get_event_loop().run_in_executor(None, _run)
+        _github_version_cache["version"] = version
+        _github_version_cache["expires"] = now + 3600  # cache for 1 hour
+        return version
+    except Exception:
+        return None
+
+
 @app.get("/api/health")
 async def health():
     version = _read_local_version()
@@ -168,12 +203,59 @@ async def health():
 async def version_info():
     local = _read_local_version()
     remote_configured = bool(cfg.settings.cloud_run_region and cfg.settings.active_project_id)
-    remote = await _fetch_remote_version() if remote_configured else None
+    remote, latest = await asyncio.gather(
+        _fetch_remote_version() if remote_configured else asyncio.sleep(0, result=None),
+        _fetch_latest_version(),
+    )
+    update_available = bool(latest and latest != local)
     return {
         "local_version": local,
         "remote_version": remote,
         "remote_configured": remote_configured,
+        "latest_version": latest,
+        "update_available": update_available,
     }
+
+
+@app.post("/api/version/upgrade-remote")
+async def upgrade_remote():
+    """Update the Cloud Run fabricstudio-scheduler service to the local version."""
+    local = _read_local_version()
+    region = cfg.settings.cloud_run_region
+    project_id = cfg.settings.active_project_id
+
+    if not region or not project_id:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Cloud Run region or project not configured.")
+
+    def _run() -> str:
+        from google.cloud import run_v2
+        from google.protobuf import field_mask_pb2
+
+        client = run_v2.ServicesClient(credentials=get_credentials())
+        name = f"projects/{project_id}/locations/{region}/services/fabricstudio-scheduler"
+        service = client.get_service(name=name)
+
+        # Replace only the image tag, keep the rest of the image URI
+        current_image = service.template.containers[0].image
+        base_image = current_image.rsplit(":", 1)[0]
+        new_image = f"{base_image}:v{local}"
+        service.template.containers[0].image = new_image
+
+        update_mask = field_mask_pb2.FieldMask(paths=["template"])
+        operation = client.update_service(service=service, update_mask=update_mask)
+        operation.result()  # wait for completion
+        return new_image
+
+    try:
+        new_image = await asyncio.get_event_loop().run_in_executor(None, _run)
+        # Invalidate remote version cache so next poll reflects the new version
+        _remote_version_cache["version"] = None
+        _remote_version_cache["expires"] = 0.0
+        return {"detail": "Cloud Run upgraded successfully.", "image": new_image}
+    except Exception as exc:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 _FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"
