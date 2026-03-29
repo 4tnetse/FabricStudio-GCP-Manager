@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import { apiGet, apiPost } from '@/api/client'
 import { useProjects } from '@/api/projects'
+import { useDeployStream } from '@/api/cloudrun'
 import {
   LayoutDashboard,
   Hammer,
@@ -113,12 +114,22 @@ export default function App() {
   })
 
   const queryClient = useQueryClient()
+  const [upgradeStreamUrl, setUpgradeStreamUrl] = useState<string | null>(null)
   const upgradeRemote = useMutation({
-    mutationFn: () => apiPost('/version/upgrade-remote'),
-    onSuccess: () => {
-      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['version'] }), 3000)
+    mutationFn: () => apiPost<{ upgrade_id: string }>('/version/upgrade-remote'),
+    onSuccess: (data) => {
+      setUpgradeStreamUrl(`/api/version/upgrade-remote/${data.upgrade_id}/stream`)
     },
   })
+
+  const { lines: upgradeLines, isStreaming: upgradeStreaming, failed: upgradeFailed } =
+    useDeployStream(upgradeStreamUrl, () => {})
+
+  useEffect(() => {
+    if (upgradeStreamUrl && !upgradeStreaming && !upgradeFailed && upgradeLines.length > 0) {
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['version'] }), 2000)
+    }
+  }, [upgradeStreamUrl, upgradeStreaming, upgradeFailed, upgradeLines.length])
 
   const [sidebarWidth, setSidebarWidth] = useState(224) // 14rem = w-56
   const dragging = useRef(false)
@@ -326,22 +337,22 @@ export default function App() {
                     <p className="text-sm text-slate-400 flex items-center gap-1.5">
                       <span>Remote&nbsp;&nbsp;{versionInfo.remote_version ? `v${versionInfo.remote_version}` : '…'}</span>
                       {versionInfo.remote_version && (
-                        versionInfo.remote_version === versionInfo.local_version
+                        versionInfo.remote_version === versionInfo.local_version && !upgradeStreamUrl
                           ? <span className="text-green-400 text-xs">✓ in sync</span>
                           : <>
-                              <span className="text-orange-400 text-xs">⚠ out of sync</span>
+                              {!upgradeStreamUrl && <span className="text-orange-400 text-xs">⚠ out of sync</span>}
                               <button
-                                onClick={() => upgradeRemote.mutate()}
-                                disabled={upgradeRemote.isPending || upgradeRemote.isSuccess}
+                                onClick={() => { setUpgradeStreamUrl(null); upgradeRemote.mutate() }}
+                                disabled={upgradeRemote.isPending || upgradeStreaming}
                                 className="flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white transition-colors"
                               >
-                                {upgradeRemote.isPending
+                                {(upgradeRemote.isPending || upgradeStreaming)
                                   ? <><Loader2 className="w-3 h-3 animate-spin" /> Upgrading…</>
-                                  : upgradeRemote.isSuccess
+                                  : (!upgradeStreaming && upgradeStreamUrl && !upgradeFailed)
                                   ? '✓ Done'
                                   : '↑ Upgrade'}
                               </button>
-                              {upgradeRemote.isError && (
+                              {upgradeFailed && (
                                 <span className="text-red-400 text-xs">Failed</span>
                               )}
                             </>
@@ -351,6 +362,20 @@ export default function App() {
                 </div>
               </div>
             </div>
+
+            {upgradeStreamUrl && upgradeLines.length > 0 && (
+              <div className="rounded-lg border border-slate-700 bg-slate-950 p-3">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  {upgradeStreaming && <Loader2 className="w-3 h-3 animate-spin text-blue-400" />}
+                  <span className="text-xs font-medium text-slate-400">Upgrade log</span>
+                </div>
+                <div className="font-mono text-xs text-slate-300 space-y-0.5 max-h-40 overflow-y-auto">
+                  {upgradeLines.map((line, i) => (
+                    <div key={i} className={line.startsWith('✗') ? 'text-red-400' : line.startsWith('✓') ? 'text-green-400' : ''}>{line}</div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <hr className="border-slate-700" />
 

@@ -1,16 +1,18 @@
 import asyncio
 import os
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 import config as cfg
 from auth import get_credentials
 from services.gcp_billing import refresh_fallback_prices
+from services.parallel_runner import JobManager as _JobManager
 
 APP_MODE = os.environ.get("APP_MODE", "full")  # "full" or "backend"
 from routers import (
@@ -121,6 +123,8 @@ _remote_version_cache: dict = {"version": None, "expires": 0.0}
 # Cache latest GitHub release version (1 hour — unauthenticated rate limit is 60 req/hour)
 _github_version_cache: dict = {"version": None, "expires": 0.0}
 
+_upgrade_manager = _JobManager()
+
 
 def _read_local_version() -> str:
     return _VERSION_FILE.read_text().splitlines()[0].strip() if _VERSION_FILE.exists() else "0.0"
@@ -228,7 +232,7 @@ async def version_info():
 
 @app.post("/api/version/upgrade-remote")
 async def upgrade_remote():
-    """Update the Cloud Run fabricstudio-scheduler service to the local version."""
+    """Start a Cloud Run upgrade job. Returns upgrade_id for SSE streaming."""
     local = _read_local_version()
     project_id = cfg.settings.active_project_id
     _sched2 = cfg.get_project_scheduling(cfg.settings, project_id)
@@ -238,34 +242,66 @@ async def upgrade_remote():
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="Cloud Run region or project not configured.")
 
-    def _run() -> str:
-        from google.cloud import run_v2
-        from google.protobuf import field_mask_pb2
+    upgrade_id = str(uuid.uuid4())
+    q = _upgrade_manager.create_job(upgrade_id)
+    asyncio.create_task(_run_upgrade(upgrade_id, q, project_id, region, local))
+    return {"upgrade_id": upgrade_id}
 
-        client = run_v2.ServicesClient(credentials=get_credentials())
-        name = f"projects/{project_id}/locations/{region}/services/fabricstudio-scheduler"
-        service = client.get_service(name=name)
 
-        # Replace only the image tag, keep the rest of the image URI
-        current_image = service.template.containers[0].image
-        base_image = current_image.rsplit(":", 1)[0]
-        new_image = f"{base_image}:v{local}"
-        service.template.containers[0].image = new_image
+@app.get("/api/version/upgrade-remote/{upgrade_id}/stream")
+async def stream_upgrade(upgrade_id: str):
+    """SSE log stream for a running upgrade job."""
+    async def generator():
+        async for chunk in _upgrade_manager.stream_job(upgrade_id):
+            yield chunk
 
-        update_mask = field_mask_pb2.FieldMask(paths=["template"])
-        operation = client.update_service(service=service, update_mask=update_mask)
-        operation.result()  # wait for completion
-        return new_image
+    return StreamingResponse(
+        generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+async def _run_upgrade(upgrade_id: str, q: asyncio.Queue, project_id: str, region: str, version: str):
+    loop = asyncio.get_event_loop()
+
+    async def log(msg: str):
+        await q.put(msg)
 
     try:
-        new_image = await asyncio.get_event_loop().run_in_executor(None, _run)
-        # Invalidate remote version cache so next poll reflects the new version
+        credentials = get_credentials()
+
+        # Step 1 — Copy image to GCR via Cloud Build (same as deploy)
+        await log(f"Copying container image to gcr.io/{project_id} (v{version}) via Cloud Build (this may take a few minutes)...")
+        from routers.cloud_run import _copy_image_to_gcr
+        image = await loop.run_in_executor(None, _copy_image_to_gcr, credentials, project_id, version)
+        await log(f"✓ Image ready: {image}")
+
+        # Step 2 — Update Cloud Run service
+        await log("Updating Cloud Run service 'fabricstudio-scheduler'...")
+
+        def _update():
+            from google.cloud import run_v2
+            from google.protobuf import field_mask_pb2
+            client = run_v2.ServicesClient(credentials=credentials)
+            name = f"projects/{project_id}/locations/{region}/services/fabricstudio-scheduler"
+            service = client.get_service(name=name)
+            service.template.containers[0].image = image
+            update_mask = field_mask_pb2.FieldMask(paths=["template"])
+            client.update_service(service=service, update_mask=update_mask).result(timeout=300)
+
+        await loop.run_in_executor(None, _update)
+        await log("✓ Cloud Run updated successfully")
+
+        # Invalidate remote version cache
         _remote_version_cache["version"] = None
         _remote_version_cache["expires"] = 0.0
-        return {"detail": "Cloud Run upgraded successfully.", "image": new_image}
+
+        await _upgrade_manager.mark_done(upgrade_id)
+
     except Exception as exc:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=500, detail=str(exc))
+        await log(f"✗ Upgrade failed: {str(exc)[:300]}")
+        await _upgrade_manager.mark_done(upgrade_id, failed=True)
 
 
 _FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"

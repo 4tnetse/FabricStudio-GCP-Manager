@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.8
+Fix Cloud Run upgrade: image is now copied to the project registry via Cloud Build before updating the service (previously failed with a missing image tag). Live upgrade log streams in the About popup with green/red status lines.
+
 ## 2.7
 Settings auto-refresh after deploy so the Schedules nav item appears immediately without a manual save; schedule preview button (Eye icon) shows job parameters, cron, and creator; docs updated to describe UI-based Cloud Run upgrade.
 

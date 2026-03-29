@@ -1,7 +1,8 @@
-2.7
+2.8
 
 # Version history
 # ---------------
+# 2.8    Fix Cloud Run upgrade: copy image via Cloud Build first, then update service; live upgrade log in About popup
 # 2.7    Settings auto-refresh after deploy (Schedules nav appears); schedule preview button; docs: Cloud Run upgrade done via UI
 # 2.6    Fix scheduled jobs using wrong project for Firestore (firestore_project_id per-project lookup); fix settings snapshot capturing empty password and DNS fields (read from per-project config)
 # 2.5    Fix schedules page not showing created schedules: read routes use local Firestore directly (no proxy)
