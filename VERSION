@@ -1,7 +1,8 @@
-2.4
+2.5
 
 # Version history
 # ---------------
+# 2.5    Fix schedules page not showing created schedules: read routes use local Firestore directly (no proxy)
 # 2.4    Fix: remove invalid prefer_rest parameter from Firestore client calls
 # 2.3    Scheduling: named Firestore database (fabricstudio-gcp-manager), fix job run history, local schedule reads, hide Schedules nav when disabled, deploy log stays visible, undeploy cleans Firestore
 # 2.2    Update checker: sidebar dot and About popup show local/remote version sync status and GitHub update availability; one-click Cloud Run upgrade from About popup; Upgrade and Changelog pages in docs

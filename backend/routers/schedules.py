@@ -25,7 +25,7 @@ router = APIRouter(prefix="/schedules", tags=["schedules"])
 # Proxy helpers (Phase 5)
 # ---------------------------------------------------------------------------
 
-async def _maybe_proxy(request: Request) -> Response | None:
+async def _maybe_proxy(request: Request, extra_params: dict | None = None) -> Response | None:
     """If remote scheduling is enabled, forward to Cloud Run and return the response.
 
     Returns None to indicate that local handling should proceed.
@@ -52,10 +52,14 @@ async def _maybe_proxy(request: Request) -> Response | None:
             detail=f"Failed to generate ID token for Cloud Run: {exc}",
         )
 
-    # Build the target URL (keep the same path + query string)
+    # Build the target URL (keep the same path + query string, append extra_params)
     path = request.url.path
     query = str(request.url.query)
     target = f"{backend_url.rstrip('/')}{path}"
+    if extra_params:
+        from urllib.parse import urlencode
+        extra_qs = urlencode(extra_params)
+        query = f"{query}&{extra_qs}" if query else extra_qs
     if query:
         target += f"?{query}"
 
@@ -145,11 +149,11 @@ async def get_cloud_run_url():
 # ---------------------------------------------------------------------------
 
 @router.get("")
-async def list_schedules():
-    _require_scheduling_configured()
+async def list_schedules(project_id: str | None = None):
     import os as _os
-    project_id = cfg.settings.active_project_id if _os.environ.get("APP_MODE") != "backend" else None
-    return await fs.list_schedules(project_id=project_id)
+    _require_scheduling_configured()
+    effective_project_id = project_id if _os.environ.get("APP_MODE") == "backend" else cfg.settings.active_project_id
+    return await fs.list_schedules(project_id=effective_project_id or None)
 
 
 @router.post("", status_code=201)

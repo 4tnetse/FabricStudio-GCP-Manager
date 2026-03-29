@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.5
+Fix schedules page not showing created schedules: all read routes (list, get, run history) now read directly from Firestore using the local service account key instead of proxying through Cloud Run.
+
+## 2.4
+Fix: remove invalid `prefer_rest` parameter from Firestore client calls, which caused all Firestore operations to fail with `Client.__init__() got an unexpected keyword argument 'prefer_rest'`.
+
+## 2.3
+Scheduling: named Firestore database (`fabricstudio-gcp-manager`) instead of `(default)` to avoid soft-delete conflicts; fix job run history composite index error (Python sort instead of Firestore order_by); fix local schedule reads; hide Schedules nav item when remote scheduling is disabled; deploy log stays visible after deployment completes; undeploy now cleans up Firestore schedules and job run history.
+
 ## 2.2
 Update checker: sidebar dot and About popup show local/remote version sync status and GitHub update availability; one-click Cloud Run upgrade from About popup; Upgrade and Changelog pages added to docs.
 

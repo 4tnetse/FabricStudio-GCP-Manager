@@ -43,14 +43,44 @@ Choose between three UI themes:
 
 ## Scheduling
 
-Configure remote scheduling via GCP Cloud Run and Cloud Scheduler.
+Configure and deploy remote scheduling via GCP Cloud Run and Cloud Scheduler.
 
 | Setting | Description |
 |---|---|
 | **Enable remote scheduling** | Toggle to enable scheduled Clone and Configure jobs |
-| **Detect Cloud Run** | Auto-detects the Cloud Run service URL and region by searching all GCP regions for the `fabricstudio-scheduler` service |
-| **GCP Cloud Run Region** | Region where the scheduler Cloud Run service is deployed (auto-filled by Detect) |
-| **GCP Remote Backend URL** | HTTPS URL of the `fabricstudio-scheduler` Cloud Run service (auto-filled by Detect) |
+| **Detect Cloud Run** | Searches all GCP regions for the `fabricstudio-scheduler` service and auto-fills Region and Backend URL |
+| **GCP Cloud Run Region** | Region where the scheduler Cloud Run service is deployed (auto-filled by Detect or Deploy) |
+| **GCP Remote Backend URL** | HTTPS URL of the `fabricstudio-scheduler` Cloud Run service (auto-filled by Detect or Deploy) |
 | **GCP Firestore Project ID** | GCP project that hosts Firestore. Defaults to the active project when scheduling is enabled |
 
-Scheduling requires the `fabricstudio-scheduler` Cloud Run service to be deployed separately with `APP_MODE=backend`.
+Click **Save Scheduling** to apply changes.
+
+### Deploy to GCP
+
+Click **Deploy to GCP** to expand the deploy panel and set up the scheduling backend without leaving the app.
+
+The panel first checks all required GCP permissions for the active service account and shows which are granted or missing. Fix any missing permissions before deploying (see [Scheduling setup](../configuration.md#scheduling-setup-optional) for the required roles).
+
+Select a **VPC subnet** in the target region, then click **Start Deploy**. The app will:
+
+1. Enable required GCP APIs (Cloud Run, Firestore, Cloud Scheduler, Cloud Build)
+2. Create the `fabricstudio-gcp-manager` Firestore database in Native mode
+3. Create the `fs-gcpbackend-to-instances` firewall rule (allows Cloud Run to reach instances over internal IPs)
+4. Copy the container image to your project via Cloud Build (this step takes a few minutes)
+5. Deploy the `fabricstudio-scheduler` Cloud Run service connected to your VPC
+6. Inject required environment variables into the running service
+7. Save the Cloud Run URL and region to Settings and enable remote scheduling
+
+The deploy log streams live and stays visible after completion so you can review any warnings.
+
+### Undeploy
+
+Click **Undeploy** to remove all scheduling infrastructure for the active project. This will permanently delete:
+
+- All Cloud Scheduler jobs
+- The `fabricstudio-scheduler` Cloud Run service
+- The `fs-gcpbackend-to-instances` firewall rule
+- Container images from the project container registry
+- All schedules and job run history from Firestore
+
+Scheduling settings are cleared automatically after undeploy.

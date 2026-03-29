@@ -115,84 +115,108 @@ Required for automatic DNS record creation during cloning:
 
 Scheduling allows Clone and Configure jobs to run automatically on a cron schedule. It uses GCP Cloud Scheduler to trigger jobs and a Cloud Run service (`fabricstudio-scheduler`) to execute them.
 
-### 1. Enable required GCP APIs
+### 1. Grant IAM roles to the service account
 
-Enable the following APIs in your GCP project:
-
-- [Cloud Run API](https://console.cloud.google.com/apis/library/run.googleapis.com)
-- [Cloud Scheduler API](https://console.cloud.google.com/apis/library/cloudscheduler.googleapis.com)
-- [Firestore API](https://console.cloud.google.com/apis/library/firestore.googleapis.com)
-- [Artifact Registry API](https://console.cloud.google.com/apis/library/artifactregistry.googleapis.com)
-
-### 2. Create a Firestore database
-
-Go to [Firestore](https://console.cloud.google.com/firestore) and create a new **Native mode** database. Choose the same region you plan to deploy the Cloud Run service in (e.g. `europe-west1`).
-
-### 3. Grant IAM roles to the service account
-
-The service account used by FS GCP Manager needs the following additional roles:
+The service account needs the following roles to deploy and use scheduling. Grant them via the [IAM console](https://console.cloud.google.com/iam-admin/iam) or with `gcloud`:
 
 | Role | Purpose |
 |---|---|
 | `roles/datastore.user` | Read/write Firestore schedules and run logs |
 | `roles/cloudscheduler.admin` | Create and manage Cloud Scheduler jobs |
+| `roles/run.admin` | Deploy and manage the Cloud Run scheduler service |
 | `roles/run.invoker` | Invoke the Cloud Run scheduling backend |
 | `roles/run.viewer` | Auto-detect the Cloud Run service URL and region |
 | `roles/iam.serviceAccountTokenCreator` | Generate OIDC tokens so Cloud Scheduler can authenticate to Cloud Run |
-
-Grant these via the [IAM console](https://console.cloud.google.com/iam-admin/iam) or with `gcloud`:
+| `roles/cloudbuild.builds.editor` | Run Cloud Build to copy the container image to your project |
 
 ```bash
 SA="<your-service-account>@<project>.iam.gserviceaccount.com"
 PROJECT="<your-project-id>"
 
-for ROLE in roles/datastore.user roles/cloudscheduler.admin roles/run.invoker roles/run.viewer roles/iam.serviceAccountTokenCreator; do
+for ROLE in roles/datastore.user roles/cloudscheduler.admin roles/run.admin roles/run.invoker roles/run.viewer roles/iam.serviceAccountTokenCreator roles/cloudbuild.builds.editor; do
   gcloud projects add-iam-policy-binding $PROJECT \
     --member="serviceAccount:$SA" \
     --role="$ROLE"
 done
 ```
 
-### 4. Make the Docker image available to Cloud Run
+### 2. Deploy from the app (recommended)
 
-Cloud Run cannot pull images directly from `ghcr.io`. Create an Artifact Registry **remote repository** that proxies GitHub Container Registry:
+Open **Settings → Scheduling** and click **Deploy to GCP**. The deploy panel will:
+
+1. Check that all required GCP permissions are in place and show which are missing.
+2. Let you select the target **region** (defaulting to your default zone's region) and **VPC subnet**.
+3. On clicking **Start Deploy**, the app will automatically:
+   - Enable required GCP APIs (Cloud Run, Firestore, Cloud Scheduler, Cloud Build)
+   - Create the `fabricstudio-gcp-manager` Firestore database in Native mode
+   - Create the `fs-gcpbackend-to-instances` firewall rule so Cloud Run can reach instances over internal IPs
+   - Copy the container image to your project's container registry via Cloud Build
+   - Deploy (or update) the `fabricstudio-scheduler` Cloud Run service with the correct settings
+   - Save the Cloud Run URL and region to your settings and enable remote scheduling
+
+The deploy log streams live in the panel. Keep it open to see progress and any warnings.
+
+Once deployed, use the **Schedule** button on the Clone or Configure pages to create scheduled jobs, and monitor them from the [Schedules](screens/schedules.md) page.
+
+To remove Cloud Run and all associated resources, click **Undeploy** in the same widget. This deletes the Cloud Run service, Cloud Scheduler jobs, firewall rule, container images, and all Firestore data for the project.
+
+---
+
+### Manual deploy (fallback)
+
+If you prefer to deploy manually with `gcloud`, follow these steps.
+
+#### Enable required GCP APIs
+
+Enable the following APIs in your GCP project:
+
+- [Cloud Run API](https://console.cloud.google.com/apis/library/run.googleapis.com)
+- [Cloud Scheduler API](https://console.cloud.google.com/apis/library/cloudscheduler.googleapis.com)
+- [Firestore API](https://console.cloud.google.com/apis/library/firestore.googleapis.com)
+- [Cloud Build API](https://console.cloud.google.com/apis/library/cloudbuild.googleapis.com)
+
+#### Create a Firestore database
+
+Go to [Firestore](https://console.cloud.google.com/firestore) and create a new **Native mode** database named `fabricstudio-gcp-manager`. Choose the same region as your Cloud Run deployment (e.g. `europe-west1`).
+
+#### Copy the container image to your project
+
+Cloud Run needs the image in your project's registry. Use Cloud Build to copy it from `ghcr.io`:
 
 ```bash
-gcloud artifacts repositories create fabricstudio-remote \
-  --repository-format=docker \
-  --location=europe-west1 \
-  --description="Remote proxy for ghcr.io" \
-  --mode=remote-repository \
-  --remote-docker-repo=CUSTOM \
-  --remote-docker-repo-uri=https://ghcr.io
+PROJECT="<your-project-id>"
+VERSION="<current-version>"  # e.g. 2.5
+
+gcloud builds submit --no-source \
+  --project=$PROJECT \
+  --config=- <<EOF
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: [pull, ghcr.io/4tnetse/fabricstudio-gcp-manager:latest]
+  - name: gcr.io/cloud-builders/docker
+    args: [tag, ghcr.io/4tnetse/fabricstudio-gcp-manager:latest, gcr.io/$PROJECT/fabricstudio-gcp-manager:v$VERSION]
+  - name: gcr.io/cloud-builders/docker
+    args: [push, gcr.io/$PROJECT/fabricstudio-gcp-manager:v$VERSION]
+images:
+  - gcr.io/$PROJECT/fabricstudio-gcp-manager:v$VERSION
+EOF
 ```
 
-Grant the service account read access to this repository:
+#### Deploy the Cloud Run service
 
 ```bash
-gcloud artifacts repositories add-iam-policy-binding fabricstudio-remote \
-  --location=europe-west1 \
-  --member="serviceAccount:$SA" \
-  --role="roles/artifactregistry.reader"
-```
+PROJECT="<your-project-id>"
+REGION="europe-west1"
+SA="<your-service-account>@<project>.iam.gserviceaccount.com"
+VERSION="<current-version>"
+BACKEND_URL="https://fabricstudio-scheduler-<hash>-<region>.a.run.app"  # fill in after first deploy
 
-The image path to use in Cloud Run will be:
-
-```
-europe-west1-docker.pkg.dev/<project>/fabricstudio-remote/4tnetse/fabricstudio-gcp-manager:latest
-```
-
-### 5. Deploy the scheduling backend to Cloud Run
-
-Deploy the `fabricstudio-scheduler` Cloud Run service using the Artifact Registry image path from the previous step:
-
-```bash
 gcloud run deploy fabricstudio-scheduler \
-  --image europe-west1-docker.pkg.dev/<project>/fabricstudio-remote/4tnetse/fabricstudio-gcp-manager:latest \
-  --region europe-west1 \
-  --set-env-vars APP_MODE=backend \
+  --image gcr.io/$PROJECT/fabricstudio-gcp-manager:v$VERSION \
+  --region $REGION \
+  --set-env-vars APP_MODE=backend,BACKEND_URL=$BACKEND_URL,CLOUD_RUN_REGION=$REGION,FIRESTORE_DATABASE_ID=fabricstudio-gcp-manager \
   --no-allow-unauthenticated \
-  --service-account <your-service-account>@<project>.iam.gserviceaccount.com \
+  --service-account $SA \
   --memory 512Mi \
   --timeout 3600 \
   --network default \
@@ -201,15 +225,11 @@ gcloud run deploy fabricstudio-scheduler \
   --network-tags fs-gcp-manager-gcpbackend
 ```
 
-> **Note:** The `--timeout 3600` is important — scheduled jobs (especially Configure jobs across many instances) can run for a long time. Cloud Run's default timeout of 300 seconds is too short.
+> **Note:** `--timeout 3600` is important — Configure jobs across many instances can run for a long time.
 
-### 6. Allow Cloud Run to reach Fabric Studio instances
+#### Create the firewall rule
 
-When a scheduled job runs, the Cloud Run backend connects directly to each Fabric Studio instance over its **internal IP** (staying within the VPC). This requires VPC access and a matching firewall rule.
-
-> **Note:** This rule is created automatically when you deploy via **Settings → Scheduling → Deploy to GCP**. You only need to create it manually if you deployed Cloud Run outside of the app.
-
-Via the GCP Console at [GCP Network Security Firewall Policies](https://console.cloud.google.com/net-security/firewall-manager/firewall-policies):
+This rule allows the Cloud Run backend (identified by its network tag) to reach Fabric Studio instances over internal IPs:
 
 | Field | Value |
 |---|---|
@@ -219,22 +239,27 @@ Via the GCP Console at [GCP Network Security Firewall Policies](https://console.
 | **Direction** | Ingress |
 | **Action** | Allow |
 | **Targets** | All instances in the network |
-| **Source filter** | Source tag |
 | **Source tag** | `fs-gcp-manager-gcpbackend` |
 | **TCP ports** | `80`, `443` |
 
-> **Why this is needed:** The Cloud Run service runs with the network tag `fs-gcp-manager-gcpbackend`. This rule allows traffic from that tag to reach all Fabric Studio instances on TCP 80/443, without exposing them to the internet.
+```bash
+gcloud compute firewall-rules create fs-gcpbackend-to-instances \
+  --network default \
+  --priority 950 \
+  --direction INGRESS \
+  --action ALLOW \
+  --source-tags fs-gcp-manager-gcpbackend \
+  --rules tcp:80,tcp:443
+```
 
-### 7. Configure scheduling in the app
+#### Configure scheduling in the app
 
 In **Settings → Scheduling**:
 
 1. Toggle **Enable remote scheduling** on.
-2. Click **Detect Cloud Run** — this searches all GCP regions for the `fabricstudio-scheduler` service and auto-fills **GCP Cloud Run Region** and **GCP Remote Backend URL**.
+2. Click **Detect Cloud Run** to auto-fill the region and backend URL, or enter them manually.
 3. Verify **GCP Firestore Project ID** (defaults to the active project).
-4. Click **Save settings**.
-
-Once saved, use the **Schedule** button on the Clone or Configure pages to create scheduled jobs, and monitor them from the [Schedules](pages/schedules.md) page.
+4. Click **Save Scheduling**.
 
 ---
 
