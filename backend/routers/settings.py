@@ -20,6 +20,8 @@ async def get_settings():
         data["service_account_key_path"] = Path(data["service_account_key_path"]).name
     # add has_keys flag for sidebar
     data["has_keys"] = len(key_store.load_keys()) > 0
+    # Overlay all per-project settings for the active project
+    data.update(cfg.get_project_config(s, s.active_project_id))
     return data
 
 
@@ -27,9 +29,24 @@ async def get_settings():
 async def update_settings(update: SettingsUpdate):
     s = cfg.settings
     patch = update.model_dump(exclude_none=True)
-    updated = s.model_copy(update=patch)
+
+    # Per-project fields go to project_configs; global fields (key mgmt) stay global
+    per_project_patch = {k: v for k, v in patch.items() if k in cfg._PER_PROJECT_FIELDS}
+    global_patch = {k: v for k, v in patch.items() if k not in cfg._PER_PROJECT_FIELDS}
+
+    updated = s.model_copy(update=global_patch)
+    if per_project_patch and s.active_project_id:
+        updated = cfg.set_project_config(updated, s.active_project_id, per_project_patch)
+
     cfg.settings = updated
     cfg.save_settings(updated)
+
+    # If scheduling-related fields changed, clear the remote version cache
+    if any(k in per_project_patch for k in ("cloud_run_region", "remote_backend_url", "remote_scheduling_enabled")):
+        import main as _main
+        _main._remote_version_cache["version"] = None
+        _main._remote_version_cache["expires"] = 0.0
+
     return {"detail": "Settings saved"}
 
 

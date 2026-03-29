@@ -14,6 +14,7 @@ from services.gcp_billing import refresh_fallback_prices
 
 APP_MODE = os.environ.get("APP_MODE", "full")  # "full" or "backend"
 from routers import (
+    cloud_run,
     configs,
     costs,
     firewall,
@@ -103,6 +104,7 @@ app.include_router(images.router, prefix="/api")
 app.include_router(configs.router, prefix="/api")
 app.include_router(costs.router, prefix="/api")
 app.include_router(schedules.router, prefix="/api")
+app.include_router(cloud_run.router)
 
 
 _DOCS_DIR = Path(__file__).parent.parent / "site"
@@ -133,8 +135,9 @@ async def _fetch_remote_version() -> str | None:
     if _remote_version_cache["version"] is not None and now < _remote_version_cache["expires"]:
         return _remote_version_cache["version"]
 
-    region = cfg.settings.cloud_run_region
     project_id = cfg.settings.active_project_id
+    sched = cfg.get_project_scheduling(cfg.settings, project_id)
+    region = sched.get("cloud_run_region") or ""
     if not region or not project_id:
         return None
 
@@ -202,7 +205,8 @@ async def health():
 @app.get("/api/version")
 async def version_info():
     local = _read_local_version()
-    remote_configured = bool(cfg.settings.cloud_run_region and cfg.settings.active_project_id)
+    _sched = cfg.get_project_scheduling(cfg.settings, cfg.settings.active_project_id)
+    remote_configured = bool(_sched.get("cloud_run_region") and cfg.settings.active_project_id)
     remote, latest = await asyncio.gather(
         _fetch_remote_version() if remote_configured else asyncio.sleep(0, result=None),
         _fetch_latest_version(),
@@ -221,8 +225,9 @@ async def version_info():
 async def upgrade_remote():
     """Update the Cloud Run fabricstudio-scheduler service to the local version."""
     local = _read_local_version()
-    region = cfg.settings.cloud_run_region
     project_id = cfg.settings.active_project_id
+    _sched2 = cfg.get_project_scheduling(cfg.settings, project_id)
+    region = _sched2.get("cloud_run_region") or ""
 
     if not region or not project_id:
         from fastapi import HTTPException

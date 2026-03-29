@@ -17,6 +17,8 @@ import config as cfg
 
 APP_MODE = os.environ.get("APP_MODE", "full")
 
+FIRESTORE_DATABASE_ID = os.environ.get("FIRESTORE_DATABASE_ID", "fabricstudio-gcp-manager")
+
 
 def _get_client(project_id: str | None = None) -> firestore.Client:
     """Return an authenticated Firestore client.
@@ -33,7 +35,7 @@ def _get_client(project_id: str | None = None) -> firestore.Client:
             _, pid = google.auth.default()
         if not pid:
             raise RuntimeError("Cannot determine GCP project for Firestore.")
-        return firestore.Client(project=pid)
+        return firestore.Client(project=pid, database=FIRESTORE_DATABASE_ID, prefer_rest=True)
 
     pid = project_id or cfg.settings.firestore_project_id or cfg.settings.active_project_id
     if not pid:
@@ -44,7 +46,7 @@ def _get_client(project_id: str | None = None) -> firestore.Client:
     from services.key_store import get_key_path
     key_path = get_key_path(key_id)
     creds = service_account.Credentials.from_service_account_file(str(key_path))
-    return firestore.Client(project=pid, credentials=creds)
+    return firestore.Client(project=pid, database=FIRESTORE_DATABASE_ID, credentials=creds, prefer_rest=True)
 
 
 def _now() -> datetime:
@@ -55,12 +57,15 @@ def _now() -> datetime:
 # Schedules collection
 # ---------------------------------------------------------------------------
 
-async def list_schedules() -> list[dict]:
+async def list_schedules(project_id: str | None = None) -> list[dict]:
     loop = asyncio.get_event_loop()
 
     def _run():
         db = _get_client()
-        docs = db.collection("schedules").stream()
+        query = db.collection("schedules")
+        if project_id:
+            query = query.where("project_id", "==", project_id)
+        docs = query.stream()
         return [_doc_to_dict(d) for d in docs]
 
     return await loop.run_in_executor(None, _run)
@@ -166,14 +171,20 @@ async def list_job_runs(schedule_id: str, limit: int = 50) -> list[dict]:
 
     def _run():
         db = _get_client()
+        # Avoid .order_by() here — combining .where() + .order_by() on different
+        # fields requires a Firestore composite index that may not exist.
+        # Sort descending in Python instead.
         docs = (
             db.collection("job_runs")
             .where("schedule_id", "==", schedule_id)
-            .order_by("started_at", direction=firestore.Query.DESCENDING)
-            .limit(limit)
             .stream()
         )
-        return [_doc_to_dict(d) for d in docs]
+        results = [_doc_to_dict(d) for d in docs]
+        results.sort(
+            key=lambda r: r.get("started_at") or datetime.min.replace(tzinfo=timezone.utc),
+            reverse=True,
+        )
+        return results[:limit]
 
     return await loop.run_in_executor(None, _run)
 

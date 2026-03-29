@@ -15,6 +15,7 @@ export function useUpdateSettings() {
     mutationFn: (settings: Partial<Settings>) => apiPut<Settings>('/settings', settings),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] })
+      queryClient.invalidateQueries({ queryKey: ['version'] })
     },
   })
 }

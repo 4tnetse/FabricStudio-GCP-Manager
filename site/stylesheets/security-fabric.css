@@ -1,5 +1,9 @@
 /* Security Fabric theme — matches the app's Fortinet-branded dark UI */
 
+.md-footer-meta {
+  display: none;
+}
+
 :root,
 [data-md-color-scheme="slate"] {
   --md-primary-fg-color:        #db291c;
@@ -72,3 +76,4 @@
 .md-typeset details {
   border-left-color: #db291c;
 }
+

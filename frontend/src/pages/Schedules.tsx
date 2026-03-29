@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { CalendarClock, Loader2, Play, Trash2, ToggleLeft, ToggleRight, ChevronRight } from 'lucide-react'
 import {
@@ -12,6 +12,7 @@ import {
   type JobRun,
 } from '@/api/schedules'
 import { useTheme } from '@/context/ThemeContext'
+import { useSettings } from '@/api/settings'
 import { cn } from '@/lib/utils'
 
 function StatusBadge({ status }: { status: string }) {
@@ -262,8 +263,15 @@ function cronToTimestamp(expr: string): number {
 }
 
 export default function Schedules() {
-  const { data: schedules = [], isLoading } = useSchedules()
+  const { data: settings } = useSettings()
+  const projectId = settings?.active_project_id ?? null
+  const { data: schedules = [], isLoading } = useSchedules(projectId)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  // Clear selection when the active project changes
+  useEffect(() => {
+    setSelectedId(null)
+  }, [projectId])
 
   const sortedSchedules = [...schedules].sort(
     (a, b) => cronToTimestamp(b.cron_expression) - cronToTimestamp(a.cron_expression)

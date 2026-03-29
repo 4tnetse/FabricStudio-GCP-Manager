@@ -206,7 +206,7 @@ export default function App() {
 
         {/* Nav links */}
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
-          {NAV_ITEMS.map((item) => (
+          {NAV_ITEMS.filter((item) => item.to !== '/schedules' || !!settings?.remote_scheduling_enabled).map((item) => (
             <SidebarLink key={item.to} {...item} disabled={!hasKey} />
           ))}
         </nav>
@@ -231,30 +231,33 @@ export default function App() {
         {/* Version */}
         <button
           onClick={() => setAboutOpen(true)}
+          title={[
+            versionInfo?.remote_configured && versionInfo?.remote_version
+              ? `Remote: v${versionInfo.remote_version} — ${versionInfo.remote_version === versionInfo.local_version ? 'in sync' : 'out of sync'}`
+              : null,
+            versionInfo?.update_available
+              ? `v${versionInfo.latest_version} available`
+              : null,
+          ].filter(Boolean).join(' · ') || undefined}
           className="px-4 py-2.5 text-xs text-left select-none flex items-center gap-1.5 transition-colors hover:text-slate-400"
           style={{ color: versionInfo?.update_available ? 'white' : undefined }}
         >
           <span className={versionInfo?.update_available ? '' : 'text-slate-600'}>
             v{health?.version ?? '…'}
           </span>
-          {versionInfo?.update_available && (
-            <span
-              title={`v${versionInfo.latest_version} available — click for release notes`}
-              className="text-blue-400 font-bold leading-none"
-            >
-              ↑
-            </span>
+          {upgradeRemote.isPending && (
+            <span className="flex items-center gap-1 text-blue-400"><Loader2 className="w-3 h-3 animate-spin" />Upgrading…</span>
+          )}
+          {upgradeRemote.isSuccess && !upgradeRemote.isPending && (
+            <span className="text-green-400">✓</span>
+          )}
+          {!upgradeRemote.isPending && !upgradeRemote.isSuccess && versionInfo?.update_available && (
+            <span className="text-blue-400 font-bold leading-none">↑</span>
           )}
           {versionInfo?.remote_configured && versionInfo.remote_version && (() => {
             const inSync = versionInfo.remote_version === versionInfo.local_version
-            const tooltip = inSync
-              ? `Remote: v${versionInfo.remote_version} — in sync`
-              : `Remote: v${versionInfo.remote_version} — out of sync`
             return (
-              <span
-                title={tooltip}
-                className={`w-2 h-2 rounded-full shrink-0 ${inSync ? 'bg-green-500' : 'bg-orange-400'}`}
-              />
+              <span className={`w-2 h-2 rounded-full shrink-0 ${inSync ? 'bg-green-500' : 'bg-orange-400'}`} />
             )
           })()}
         </button>
@@ -263,7 +266,7 @@ export default function App() {
       {/* About dialog */}
       {aboutOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setAboutOpen(false)}>
-          <div className="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+          <div className="inline-block rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3">
               <svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 shrink-0 text-[#db291c]" fill="currentColor">
                 <g transform="matrix(1.86193 0 0 1.86193 -2134.636 -12994.814)">
@@ -336,7 +339,7 @@ export default function App() {
                                   ? <><Loader2 className="w-3 h-3 animate-spin" /> Upgrading…</>
                                   : upgradeRemote.isSuccess
                                   ? '✓ Done'
-                                  : '↑ Upgrade Cloud Run'}
+                                  : '↑ Upgrade'}
                               </button>
                               {upgradeRemote.isError && (
                                 <span className="text-red-400 text-xs">Failed</span>
@@ -406,7 +409,7 @@ export default function App() {
             <Route path="/images" element={<Images />} />
             <Route path="/configurations" element={<Configurations />} />
             <Route path="/schedules" element={<Schedules />} />
-            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/settings" element={<SettingsPage key={settings?.active_project_id ?? 'no-project'} />} />
             <Route path="/costs" element={<Costs />} />
           </Routes>
         </div>

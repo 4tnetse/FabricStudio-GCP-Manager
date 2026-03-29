@@ -21,7 +21,13 @@ export function useSelectProject() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
       queryClient.invalidateQueries({ queryKey: ['settings'] })
-      queryClient.invalidateQueries({ queryKey: ['instances'] })
+      queryClient.invalidateQueries({ queryKey: ['version'] })
+      queryClient.removeQueries({ queryKey: ['instances'] })
+      queryClient.removeQueries({ queryKey: ['schedules'] })
+      queryClient.removeQueries({ queryKey: ['costs'] })
+      queryClient.removeQueries({ queryKey: ['firewall'] })
+      queryClient.removeQueries({ queryKey: ['images'] })
+      queryClient.removeQueries({ queryKey: ['cloud-run'] })
     },
   })
 }

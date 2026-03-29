@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Upload, Loader2, Trash2, Key, Settings2, Palette, Pencil, CalendarClock, Search } from 'lucide-react'
+import { Upload, Loader2, Trash2, Key, Settings2, Palette, Pencil, CalendarClock, Search, CheckCircle2, XCircle, AlertTriangle, Rocket, ChevronDown, ChevronUp } from 'lucide-react'
 import { useDetectCloudRunUrl } from '@/api/schedules'
+import { useCloudRunPermissions, useCloudRunSubnets, useStartDeploy, useStartUndeploy, useDeployStream } from '@/api/cloudrun'
 import { useSettings, useUpdateSettings, useResetSettings } from '@/api/settings'
 import { useKeys, useUploadKey, useDeleteKey, useRenameKey } from '@/api/keys'
 import { useZones, useZoneLocations } from '@/api/instances'
@@ -11,6 +13,16 @@ import { CustomSelect } from '@/components/CustomSelect'
 import { zoneLabel } from '@/lib/zones'
 import { SwitchProjectDialog } from '@/components/SwitchProjectDialog'
 
+
+
+function ErrorWithLink({ message }: { message: string }) {
+  const urlMatch = message.match(/https?:\/\/\S+/)
+  if (!urlMatch) return <>{message}</>
+  const before = message.slice(0, urlMatch.index)
+  const url = urlMatch[0]
+  const after = message.slice((urlMatch.index ?? 0) + url.length)
+  return <>{before}<a href={url} target="_blank" rel="noreferrer" className="underline hover:text-red-200">{url}</a>{after}</>
+}
 
 const THEMES: { value: AppTheme; label: string; description: string }[] = [
   { value: 'dark', label: 'Dark', description: 'Dark slate theme (default)' },
@@ -59,6 +71,8 @@ function ThemeSelector() {
 }
 
 export default function SettingsPage() {
+  const { theme } = useTheme()
+  const isSF = theme === 'security-fabric'
   const { data: settings, isLoading } = useSettings()
   const { data: zones = [] } = useZones()
   const { data: zoneLocations = {} } = useZoneLocations()
@@ -68,7 +82,10 @@ export default function SettingsPage() {
   const uploadKey = useUploadKey()
   const deleteKey = useDeleteKey()
   const renameKey = useRenameKey()
+  const queryClient = useQueryClient()
   const detectCloudRunUrl = useDetectCloudRunUrl()
+  const startDeploy = useStartDeploy()
+  const startUndeploy = useStartUndeploy()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState<Partial<Settings>>({})
@@ -77,6 +94,43 @@ export default function SettingsPage() {
   const [editingKeyId, setEditingKeyId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
   const [pendingKeyInfo, setPendingKeyInfo] = useState<KeyInfo | null>(null)
+
+  // Cloud Run deploy state
+  const [detectState, setDetectState] = useState<'idle' | 'detecting' | 'found' | 'not_found'>('idle')
+  const [showDeployPanel, setShowDeployPanel] = useState(false)
+  const [showManualUrl, setShowManualUrl] = useState(false)
+  const [selectedSubnet, setSelectedSubnet] = useState('')
+  const [deployStreamUrl, setDeployStreamUrl] = useState<string | null>(null)
+
+  // Undeploy state
+  const [showUndeployConfirm, setShowUndeployConfirm] = useState(false)
+  const [undeployStreamUrl, setUndeployStreamUrl] = useState<string | null>(null)
+
+  const region = (form.cloud_run_region as string) ?? ''
+  const isConfigured = !!(form.remote_backend_url as string)
+
+  const { data: permsData, isLoading: permsLoading, isError: permsError, error: permsErrorObj } = useCloudRunPermissions(showDeployPanel)
+  const { data: subnets, isLoading: subnetsLoading, isError: subnetsError, error: subnetsErrorObj } = useCloudRunSubnets(region, showDeployPanel)
+  const allPermsOk = permsData?.groups.every((g) => g.passed) ?? false
+
+  const { lines: deployLines, isStreaming: deployStreaming, failed: deployFailed, error: deployError } =
+    useDeployStream(deployStreamUrl, (url) => {
+      setField('remote_backend_url', url as Settings['remote_backend_url'])
+      setDetectState('found')
+      toast.success('Cloud Run deployed successfully')
+    })
+
+  const { lines: undeployLines, isStreaming: undeployStreaming, failed: undeployFailed, error: undeployError } =
+    useDeployStream(undeployStreamUrl, () => {})
+
+  // When undeploy finishes successfully, refresh settings + version
+  useEffect(() => {
+    if (undeployStreamUrl && !undeployStreaming && !undeployFailed && undeployLines.length > 0) {
+      queryClient.invalidateQueries({ queryKey: ['settings'] })
+      queryClient.invalidateQueries({ queryKey: ['version'] })
+      toast.success('Cloud Run undeployed successfully')
+    }
+  }, [undeployStreamUrl, undeployStreaming, undeployFailed, undeployLines.length])
 
   useEffect(() => {
     if (settings) {
@@ -126,6 +180,42 @@ export default function SettingsPage() {
       toast.error(err instanceof Error ? err.message : 'Failed to save settings')
     } finally {
       setIsSavingPrefs(false)
+    }
+  }
+
+  async function handleDetect() {
+    setDetectState('detecting')
+    try {
+      const result = await detectCloudRunUrl.mutateAsync()
+      setField('remote_backend_url', result.url as Settings['remote_backend_url'])
+      setField('cloud_run_region', result.region as Settings['cloud_run_region'])
+      setDetectState('found')
+      toast.success('Cloud Run detected')
+    } catch {
+      setDetectState('not_found')
+    }
+  }
+
+  async function handleStartDeploy() {
+    if (!selectedSubnet) {
+      toast.error('Select a subnet first')
+      return
+    }
+    try {
+      const { deploy_id } = await startDeploy.mutateAsync({ region, subnet: selectedSubnet })
+      setDeployStreamUrl(`/api/cloud-run/deploy/${deploy_id}/stream`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to start deploy')
+    }
+  }
+
+  async function handleStartUndeploy() {
+    setShowUndeployConfirm(false)
+    try {
+      const { undeploy_id } = await startUndeploy.mutateAsync()
+      setUndeployStreamUrl(`/api/cloud-run/undeploy/${undeploy_id}/stream`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to start undeploy')
     }
   }
 
@@ -241,6 +331,11 @@ export default function SettingsPage() {
         <div className="flex items-center gap-2">
           <Settings2 className="w-4 h-4 text-slate-400" />
           <h2 className="text-sm font-semibold text-slate-200">Preferences</h2>
+          {settings?.active_project_id && (
+            <span className="ml-auto text-xs text-slate-500 bg-slate-800 border border-slate-700 rounded px-2 py-0.5 font-mono truncate max-w-[180px]" title={settings.active_project_id}>
+              {settings.active_project_id}
+            </span>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -479,6 +574,11 @@ export default function SettingsPage() {
         <div className="flex items-center gap-2">
           <CalendarClock className="w-4 h-4 text-slate-400" />
           <h2 className="text-sm font-semibold text-slate-200">Scheduling</h2>
+          {settings?.active_project_id && (
+            <span className="ml-auto text-xs text-slate-500 bg-slate-800 border border-slate-700 rounded px-2 py-0.5 font-mono truncate max-w-[180px]" title={settings.active_project_id}>
+              {settings.active_project_id}
+            </span>
+          )}
         </div>
 
         {/* Toggle */}
@@ -502,61 +602,266 @@ export default function SettingsPage() {
         </label>
 
         {form.remote_scheduling_enabled && (
-          <div className="space-y-3 pt-1">
-            <div>
+          <div className="space-y-4 pt-1">
+
+            {/* Region — always visible when enabled */}
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <label className={labelClass}>Cloud Run region <span className="text-slate-600 font-normal">(required before deploying)</span></label>
+                <CustomSelect
+                  className={inputClass}
+                  value={(form.cloud_run_region as string) ?? ''}
+                  onChange={(v) => {
+                    setField('cloud_run_region', v)
+                    setDetectState('idle')
+                  }}
+                  options={(() => {
+                    const allRegions = [...new Set(zones.map((z) => z.replace(/-[a-z]$/, '')))].sort()
+                    const defaultRegion = ((form.default_zone as string) ?? '').replace(/-[a-z]$/, '')
+                    const ordered = defaultRegion
+                      ? [defaultRegion, ...allRegions.filter((r) => r !== defaultRegion)]
+                      : allRegions
+                    return ordered.map((r) => ({
+                      value: r,
+                      label: zoneLocations[r] ? `${r} (${zoneLocations[r]})` : r,
+                    }))
+                  })()}
+                  searchable
+                  placeholder="Select a region..."
+                />
+              </div>
               <button
                 type="button"
-                onClick={async () => {
-                  try {
-                    const result = await detectCloudRunUrl.mutateAsync()
-                    setField('remote_backend_url', result.url)
-                    if (result.region) setField('cloud_run_region', result.region)
-                    toast.success('Cloud Run URL detected')
-                  } catch (err) {
-                    toast.error(err instanceof Error ? err.message : 'Detection failed')
-                  }
-                }}
-                disabled={detectCloudRunUrl.isPending}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-600 hover:border-slate-400 disabled:opacity-50 text-sm text-slate-300 hover:text-slate-100 transition-colors"
-                title="Auto-detect Cloud Run URL and region"
+                onClick={handleDetect}
+                disabled={detectCloudRunUrl.isPending || detectState === 'detecting'}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-600 hover:border-slate-400 disabled:opacity-50 text-sm text-slate-300 hover:text-slate-100 transition-colors shrink-0"
+                title="Search all regions for an existing fabricstudio-scheduler Cloud Run service"
               >
-                {detectCloudRunUrl.isPending
+                {detectState === 'detecting' || detectCloudRunUrl.isPending
                   ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   : <Search className="w-3.5 h-3.5" />}
-                Detect Cloud Run
+                Detect
               </button>
             </div>
 
-            <div>
-              <label className={labelClass}>GCP Cloud Run Region</label>
-              <input
-                className={inputClass}
-                placeholder="e.g. europe-west1"
-                value={(form.cloud_run_region as string) ?? ''}
-                onChange={(e) => setField('cloud_run_region', e.target.value)}
-              />
-            </div>
+            {/* Configured state: URL is known */}
+            {isConfigured && (
+              <div className="space-y-3">
+                <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-green-900/20 border border-green-800/40">
+                  <CheckCircle2 className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-green-400">Cloud Run configured</p>
+                    <p className="text-xs text-slate-400 font-mono truncate mt-0.5">{form.remote_backend_url as string}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowUndeployConfirm(true)}
+                    disabled={undeployStreaming || startUndeploy.isPending}
+                    className="flex items-center gap-1 px-2 py-1 rounded text-xs text-red-400 border border-red-800/60 hover:border-red-600 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+                  >
+                    Undeploy
+                  </button>
+                </div>
 
-            <div>
-              <label className={labelClass}>GCP Remote Backend URL</label>
-              <input
-                className={inputClass}
-                placeholder="https://fabricstudio-scheduler-xxx-ew.a.run.app"
-                value={(form.remote_backend_url as string) ?? ''}
-                onChange={(e) => setField('remote_backend_url', e.target.value)}
-              />
-            </div>
+                {/* Undeploy log */}
+                {undeployStreamUrl && (
+                  <div className="rounded-lg border border-slate-700 bg-slate-950 overflow-hidden">
+                    <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-800 bg-slate-900">
+                      {undeployStreaming
+                        ? <><Loader2 className="w-3.5 h-3.5 text-red-400 animate-spin" /><span className="text-xs text-slate-400">Undeploying...</span></>
+                        : undeployFailed
+                          ? <><XCircle className="w-3.5 h-3.5 text-red-400" /><span className="text-xs text-red-400">Undeploy failed</span></>
+                          : <><CheckCircle2 className="w-3.5 h-3.5 text-green-400" /><span className="text-xs text-green-400">Completed</span></>}
+                    </div>
+                    <pre className="p-3 text-xs font-mono text-slate-300 overflow-auto max-h-48">
+                      {undeployLines.map((l, i) => (
+                        <div key={i}>{l}</div>
+                      ))}
+                      {undeployError && <div className="text-red-400">{undeployError}</div>}
+                    </pre>
+                  </div>
+                )}
 
-            <div>
-              <label className={labelClass}>GCP Firestore Project ID</label>
-              <input
-                className={inputClass}
-                placeholder="e.g. my-gcp-project"
-                value={(form.firestore_project_id as string) ?? ''}
-                onChange={(e) => setField('firestore_project_id', e.target.value)}
-              />
-              <p className="text-xs text-slate-500 mt-1">GCP project that hosts Firestore. Defaults to the active project.</p>
-            </div>
+                <div>
+                  <label className={labelClass}>GCP Firestore Project ID</label>
+                  <input
+                    className={inputClass}
+                    placeholder="e.g. my-gcp-project"
+                    value={(form.firestore_project_id as string) ?? ''}
+                    onChange={(e) => setField('firestore_project_id', e.target.value)}
+                  />
+                  <p className="text-xs text-slate-500 mt-1">GCP project that hosts Firestore. Defaults to the active project.</p>
+                </div>
+
+                {/* Option to clear and re-enter URL manually */}
+                <button
+                  type="button"
+                  onClick={() => setField('remote_backend_url', '')}
+                  className="text-xs text-slate-500 hover:text-slate-300 underline transition-colors"
+                >
+                  Clear URL and re-detect / re-deploy
+                </button>
+              </div>
+            )}
+
+            {/* Unconfigured state: no URL yet */}
+            {!isConfigured && (
+              <div className="space-y-3">
+
+                {/* Not found message */}
+                {detectState === 'not_found' && (
+                  <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-800/60 border border-slate-700">
+                    <AlertTriangle className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                    <p className="text-xs text-slate-300">
+                      No <code className="font-mono text-slate-300">fabricstudio-scheduler</code> service found in any region.
+                      You can deploy it below, or enter the URL manually.
+                    </p>
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowManualUrl(!showManualUrl)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-600 hover:border-slate-400 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                  >
+                    {showManualUrl ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    Enter URL manually
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!region}
+                    onClick={() => {
+                      setShowDeployPanel(!showDeployPanel)
+                      setDeployStreamUrl(null)
+                    }}
+                    title={!region ? 'Select a region first' : undefined}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${isSF ? 'border-red-700 hover:border-red-500 text-red-400 hover:text-red-200' : 'border-blue-700 hover:border-blue-500 text-blue-400 hover:text-blue-200'}`}
+                  >
+                    <Rocket className="w-3.5 h-3.5" />
+                    {showDeployPanel ? 'Hide deploy panel' : 'Deploy to GCP'}
+                  </button>
+                </div>
+
+                {/* Manual URL entry */}
+                {showManualUrl && (
+                  <div>
+                    <label className={labelClass}>Remote Backend URL</label>
+                    <input
+                      className={inputClass}
+                      placeholder="https://fabricstudio-scheduler-xxx-ew.a.run.app"
+                      value={(form.remote_backend_url as string) ?? ''}
+                      onChange={(e) => setField('remote_backend_url', e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {/* Deploy panel */}
+                {showDeployPanel && (
+                  <div className="rounded-lg border border-blue-900/50 bg-blue-950/20 p-4 space-y-4">
+                    <p className="text-xs font-semibold text-blue-300 uppercase tracking-wide">Deploy Cloud Run</p>
+
+                    {/* Permissions check */}
+                    <div>
+                      <p className="text-xs text-slate-400 mb-2">GCP permissions</p>
+                      {permsLoading && (
+                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking...
+                        </div>
+                      )}
+                      {permsError && (
+                        <p className="text-xs text-red-400"><ErrorWithLink message={permsErrorObj instanceof Error ? permsErrorObj.message : 'Failed to check permissions'} /></p>
+                      )}
+                      {permsData && (
+                        <div className="flex flex-wrap gap-x-4 gap-y-1">
+                          {permsData.groups.map((g) => (
+                            <div key={g.name} className="flex items-center gap-1.5 text-xs">
+                              {g.passed
+                                ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
+                                : <XCircle className="w-3.5 h-3.5 text-red-400" />}
+                              <span className={g.passed ? 'text-slate-300' : 'text-red-400'}>{g.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {permsData && !allPermsOk && (
+                        <p className="text-xs text-red-400 mt-1.5">
+                          Missing permissions — the service account needs Owner or the specific roles above.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Subnet selector */}
+                    {!deployStreamUrl && (
+                      <div>
+                        <label className={labelClass}>Subnet</label>
+                        {subnetsLoading && (
+                          <div className="flex items-center gap-2 text-xs text-slate-500">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading subnets...
+                          </div>
+                        )}
+                        {subnetsError && (
+                          <p className="text-xs text-red-400"><ErrorWithLink message={subnetsErrorObj instanceof Error ? subnetsErrorObj.message : 'Failed to load subnets'} /></p>
+                        )}
+                        {subnets && subnets.length === 0 && (
+                          <p className="text-xs text-slate-500">No subnets found in {region}.</p>
+                        )}
+                        {subnets && subnets.length > 0 && (
+                          <select
+                            className={inputClass}
+                            value={selectedSubnet}
+                            onChange={(e) => setSelectedSubnet(e.target.value)}
+                          >
+                            <option value="">Select subnet...</option>
+                            {subnets.map((s) => (
+                              <option key={s.name} value={s.name}>
+                                {s.name} ({s.network} · {s.cidr})
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Start Deploy button */}
+                    {!deployStreamUrl && (
+                      <button
+                        type="button"
+                        onClick={handleStartDeploy}
+                        disabled={startDeploy.isPending || !selectedSubnet || (permsData != null && !allPermsOk)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium transition-colors"
+                        title={!allPermsOk && permsData ? 'Fix missing permissions first' : undefined}
+                      >
+                        {startDeploy.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />}
+                        Start Deploy
+                      </button>
+                    )}
+
+                    {/* Deploy log output */}
+                    {deployStreamUrl && (
+                      <div className="rounded-lg border border-slate-700 bg-slate-950 overflow-hidden">
+                        <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-800 bg-slate-900">
+                          {deployStreaming
+                            ? <><Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" /><span className="text-xs text-slate-400">Deploying...</span></>
+                            : deployFailed
+                              ? <><XCircle className="w-3.5 h-3.5 text-red-400" /><span className="text-xs text-red-400">Deploy failed</span></>
+                              : <><CheckCircle2 className="w-3.5 h-3.5 text-green-400" /><span className="text-xs text-green-400">Completed</span></>}
+                        </div>
+                        <pre className="p-3 text-xs font-mono text-slate-300 overflow-auto max-h-48">
+                          {deployLines.map((l, i) => (
+                            <div key={i}>{l}</div>
+                          ))}
+                          {deployError && <div className="text-red-400">{deployError}</div>}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+              </div>
+            )}
+
           </div>
         )}
 
@@ -597,6 +902,40 @@ export default function SettingsPage() {
                 className="px-3 py-1.5 rounded-lg text-sm bg-red-700 hover:bg-red-600 text-white"
               >
                 Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Undeploy confirmation dialog */}
+      {showUndeployConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="w-full max-w-sm rounded-xl border border-red-900 bg-slate-900 shadow-2xl p-6">
+            <h2 className="text-base font-semibold text-slate-100 mb-2">Undeploy Cloud Run</h2>
+            <p className="text-sm text-slate-400 mb-2">
+              This will permanently remove:
+            </p>
+            <ul className="text-sm text-slate-400 list-disc list-inside space-y-1 mb-4">
+              <li>All Cloud Scheduler jobs for Fabric Studio</li>
+              <li>The <code className="font-mono text-slate-300">fabricstudio-scheduler</code> Cloud Run service</li>
+              <li>The <code className="font-mono text-slate-300">fs-gcpbackend-to-instances</code> firewall rule</li>
+              <li>The copied GCR Docker images</li>
+              <li>All schedules and job run history from Firestore</li>
+            </ul>
+            <p className="text-sm text-slate-500 mb-4">Scheduling settings will be cleared. This cannot be undone.</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowUndeployConfirm(false)}
+                className="px-3 py-1.5 rounded-lg text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleStartUndeploy}
+                className="px-3 py-1.5 rounded-lg text-sm bg-red-700 hover:bg-red-600 text-white"
+              >
+                Undeploy
               </button>
             </div>
           </div>

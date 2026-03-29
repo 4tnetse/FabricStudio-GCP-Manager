@@ -32,10 +32,11 @@ async def _maybe_proxy(request: Request) -> Response | None:
     Returns a Response when the proxy handled the request.
     Raises HTTPException 503 if remote scheduling is enabled but not fully configured.
     """
-    if not cfg.settings.remote_scheduling_enabled:
+    sched = cfg.get_project_scheduling(cfg.settings, cfg.settings.active_project_id)
+    if not sched.get("remote_scheduling_enabled"):
         return None
 
-    backend_url = cfg.settings.remote_backend_url
+    backend_url = sched.get("remote_backend_url", "")
     if not backend_url:
         raise HTTPException(
             status_code=503,
@@ -144,11 +145,11 @@ async def get_cloud_run_url():
 # ---------------------------------------------------------------------------
 
 @router.get("")
-async def list_schedules(request: Request):
-    if (resp := await _maybe_proxy(request)):
-        return resp
+async def list_schedules():
     _require_scheduling_configured()
-    return await fs.list_schedules()
+    import os as _os
+    project_id = cfg.settings.active_project_id if _os.environ.get("APP_MODE") != "backend" else None
+    return await fs.list_schedules(project_id=project_id)
 
 
 @router.post("", status_code=201)
@@ -157,8 +158,10 @@ async def create_schedule(body: ScheduleCreate, request: Request):
     if body.settings_snapshot is None:
         body = body.model_copy(update={"settings_snapshot": _build_settings_snapshot()})
 
-    if cfg.settings.remote_scheduling_enabled:
-        if not cfg.settings.remote_backend_url:
+    _sched = cfg.get_project_scheduling(cfg.settings, cfg.settings.active_project_id)
+    if _sched.get("remote_scheduling_enabled"):
+        _backend_url = _sched.get("remote_backend_url", "")
+        if not _backend_url:
             raise HTTPException(
                 status_code=503,
                 detail="Remote scheduling is enabled but Remote Backend URL is not configured.",
@@ -166,13 +169,13 @@ async def create_schedule(body: ScheduleCreate, request: Request):
         from services.id_token import get_id_token
         import json as _json
         try:
-            token = await get_id_token(cfg.settings.remote_backend_url)
+            token = await get_id_token(_backend_url)
         except Exception as exc:
             raise HTTPException(status_code=503, detail=f"Failed to generate ID token for Cloud Run: {exc}")
 
         path = request.url.path
         query = str(request.url.query)
-        target = f"{cfg.settings.remote_backend_url.rstrip('/')}{path}"
+        target = f"{_backend_url.rstrip('/')}{path}"
         if query:
             target += f"?{query}"
 
@@ -218,7 +221,8 @@ async def create_schedule(body: ScheduleCreate, request: Request):
     scheduler_warning = None
     _is_backend = _os.environ.get("APP_MODE") == "backend"
     logger.info("create_schedule: APP_MODE=%s is_backend=%s", _os.environ.get("APP_MODE"), _is_backend)
-    if _is_backend or (cfg.settings.remote_scheduling_enabled and cfg.settings.remote_backend_url):
+    _sched_check = cfg.get_project_scheduling(cfg.settings, cfg.settings.active_project_id)
+    if _is_backend or (_sched_check.get("remote_scheduling_enabled") and _sched_check.get("remote_backend_url")):
         try:
             from services.cloud_scheduler import create_scheduler_job
             job_name = await create_scheduler_job(schedule)
@@ -235,9 +239,7 @@ async def create_schedule(body: ScheduleCreate, request: Request):
 
 
 @router.get("/runs/{run_id}")
-async def get_run(run_id: str, request: Request):
-    if (resp := await _maybe_proxy(request)):
-        return resp
+async def get_run(run_id: str):
     _require_scheduling_configured()
     run = await fs.get_job_run(run_id)
     if run is None:
@@ -246,9 +248,7 @@ async def get_run(run_id: str, request: Request):
 
 
 @router.get("/runs/{run_id}/logs")
-async def get_run_logs(run_id: str, request: Request):
-    if (resp := await _maybe_proxy(request)):
-        return resp
+async def get_run_logs(run_id: str):
     _require_scheduling_configured()
     run = await fs.get_job_run(run_id)
     if run is None:
@@ -257,9 +257,7 @@ async def get_run_logs(run_id: str, request: Request):
 
 
 @router.get("/{schedule_id}")
-async def get_schedule(schedule_id: str, request: Request):
-    if (resp := await _maybe_proxy(request)):
-        return resp
+async def get_schedule(schedule_id: str):
     _require_scheduling_configured()
     schedule = await fs.get_schedule(schedule_id)
     if schedule is None:
@@ -389,9 +387,7 @@ async def trigger_schedule(schedule_id: str, background_tasks: BackgroundTasks, 
 # ---------------------------------------------------------------------------
 
 @router.get("/{schedule_id}/runs")
-async def list_runs(schedule_id: str, request: Request):
-    if (resp := await _maybe_proxy(request)):
-        return resp
+async def list_runs(schedule_id: str):
     _require_scheduling_configured()
     schedule = await fs.get_schedule(schedule_id)
     if schedule is None:

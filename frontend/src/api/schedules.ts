@@ -50,10 +50,11 @@ export interface ScheduleUpdate {
   payload?: Record<string, unknown>
 }
 
-export function useSchedules() {
+export function useSchedules(projectId: string | null | undefined) {
   return useQuery({
-    queryKey: ['schedules'],
+    queryKey: ['schedules', projectId],
     queryFn: () => apiGet<Schedule[]>('/schedules'),
+    enabled: !!projectId,
     refetchInterval: 30_000,
   })
 }

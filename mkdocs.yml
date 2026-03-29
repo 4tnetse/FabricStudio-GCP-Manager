@@ -1,4 +1,4 @@
-site_name: Fabric Studio GCP Manager
+site_name: FS GCP Manager Doc
 site_description: Web-based management interface for Fabric Studio instances on Google Cloud Platform
 repo_url: https://github.com/4tnetse/FabricStudio-GCP-Manager
 repo_name: FabricStudio-GCP-Manager
@@ -11,6 +11,8 @@ extra_javascript:
 
 theme:
   name: material
+  favicon: assets/favicon.svg
+  logo: assets/logo.svg
   palette:
     scheme: slate
     primary: custom

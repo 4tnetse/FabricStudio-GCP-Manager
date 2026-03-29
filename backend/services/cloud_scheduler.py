@@ -20,9 +20,13 @@ APP_MODE = os.environ.get("APP_MODE", "full")
 
 
 def _get_client() -> scheduler_v1.CloudSchedulerClient:
-    """Return an authenticated Cloud Scheduler client."""
+    """Return an authenticated Cloud Scheduler client using REST transport.
+
+    REST is used instead of gRPC to avoid IPv6 connectivity failures on hosts
+    where IPv6 routing is unavailable (gRPC resolves to IPv6 and times out).
+    """
     if APP_MODE == "backend":
-        return scheduler_v1.CloudSchedulerClient()
+        return scheduler_v1.CloudSchedulerClient(transport="rest")
 
     key_id = cfg.settings.active_key_id
     if not key_id:
@@ -30,7 +34,7 @@ def _get_client() -> scheduler_v1.CloudSchedulerClient:
     from services.key_store import get_key_path
     key_path = get_key_path(key_id)
     creds = service_account.Credentials.from_service_account_file(str(key_path))
-    return scheduler_v1.CloudSchedulerClient(credentials=creds)
+    return scheduler_v1.CloudSchedulerClient(credentials=creds, transport="rest")
 
 
 def _location_path(project_id: str, region: str) -> str:

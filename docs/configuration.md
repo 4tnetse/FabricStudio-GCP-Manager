@@ -207,7 +207,7 @@ gcloud run deploy fabricstudio-scheduler \
 
 When a scheduled job runs, the Cloud Run backend connects directly to each Fabric Studio instance over its **internal IP** (staying within the VPC). This requires VPC access and a matching firewall rule.
 
-Create a firewall rule that allows traffic from the VPC private range to reach your Fabric Studio instances:
+> **Note:** This rule is created automatically when you deploy via **Settings → Scheduling → Deploy to GCP**. You only need to create it manually if you deployed Cloud Run outside of the app.
 
 Via the GCP Console at [GCP Network Security Firewall Policies](https://console.cloud.google.com/net-security/firewall-manager/firewall-policies):
 
@@ -218,12 +218,12 @@ Via the GCP Console at [GCP Network Security Firewall Policies](https://console.
 | **Priority** | `950` |
 | **Direction** | Ingress |
 | **Action** | Allow |
-| **Target tags** | `workshop-source-networks` |
-| **Source filters** | IP ranges: `10.0.0.0/8` |
-| **Destination filters** | IP ranges: `<instance-internal-ip>/32` |
+| **Targets** | All instances in the network |
+| **Source filter** | Source tag |
+| **Source tag** | `fs-gcp-manager-gcpbackend` |
 | **TCP ports** | `80`, `443` |
 
-> **Why this is needed:** Fabric Studio instances are not publicly reachable by the Cloud Run backend. By routing only private-range traffic through the VPC, the backend can reach instances on their internal IPs without exposing them to the internet.
+> **Why this is needed:** The Cloud Run service runs with the network tag `fs-gcp-manager-gcpbackend`. This rule allows traffic from that tag to reach all Fabric Studio instances on TCP 80/443, without exposing them to the internet.
 
 ### 7. Configure scheduling in the app
 
