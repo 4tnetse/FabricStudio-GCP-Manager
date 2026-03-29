@@ -690,7 +690,7 @@ def _delete_firestore_data(project_id: str) -> tuple[int, int]:
     key_id = cfg.settings.active_key_id or ""
     key_path = get_key_path(key_id)
     creds = service_account.Credentials.from_service_account_file(str(key_path))
-    db = firestore.Client(project=project_id, database=FIRESTORE_DATABASE_ID, credentials=creds, prefer_rest=True)
+    db = firestore.Client(project=project_id, database=FIRESTORE_DATABASE_ID, credentials=creds)
 
     # Collect schedule IDs for this project, then delete them + their runs
     schedule_refs = [

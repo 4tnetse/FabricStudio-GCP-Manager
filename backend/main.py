@@ -211,7 +211,12 @@ async def version_info():
         _fetch_remote_version() if remote_configured else asyncio.sleep(0, result=None),
         _fetch_latest_version(),
     )
-    update_available = bool(latest and latest != local)
+    def _ver(v: str) -> tuple:
+        try:
+            return tuple(int(x) for x in v.split("."))
+        except Exception:
+            return (0,)
+    update_available = bool(latest and _ver(latest) > _ver(local))
     return {
         "local_version": local,
         "remote_version": remote,

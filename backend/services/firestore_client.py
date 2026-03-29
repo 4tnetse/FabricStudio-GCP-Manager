@@ -35,7 +35,7 @@ def _get_client(project_id: str | None = None) -> firestore.Client:
             _, pid = google.auth.default()
         if not pid:
             raise RuntimeError("Cannot determine GCP project for Firestore.")
-        return firestore.Client(project=pid, database=FIRESTORE_DATABASE_ID, prefer_rest=True)
+        return firestore.Client(project=pid, database=FIRESTORE_DATABASE_ID)
 
     pid = project_id or cfg.settings.firestore_project_id or cfg.settings.active_project_id
     if not pid:
@@ -46,7 +46,7 @@ def _get_client(project_id: str | None = None) -> firestore.Client:
     from services.key_store import get_key_path
     key_path = get_key_path(key_id)
     creds = service_account.Credentials.from_service_account_file(str(key_path))
-    return firestore.Client(project=pid, database=FIRESTORE_DATABASE_ID, credentials=creds, prefer_rest=True)
+    return firestore.Client(project=pid, database=FIRESTORE_DATABASE_ID, credentials=creds)
 
 
 def _now() -> datetime:
