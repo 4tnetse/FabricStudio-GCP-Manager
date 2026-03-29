@@ -371,6 +371,39 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#25" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#22" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1145,6 +1178,39 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#25" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#22" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1341,6 +1407,12 @@
 
 
 <h1 id="changelog">Changelog</h1>
+<h2 id="25">2.5</h2>
+<p>Fix schedules page not showing created schedules: all read routes (list, get, run history) now read directly from Firestore using the local service account key instead of proxying through Cloud Run.</p>
+<h2 id="24">2.4</h2>
+<p>Fix: remove invalid <code>prefer_rest</code> parameter from Firestore client calls, which caused all Firestore operations to fail with <code>Client.__init__() got an unexpected keyword argument 'prefer_rest'</code>.</p>
+<h2 id="23">2.3</h2>
+<p>Scheduling: named Firestore database (<code>fabricstudio-gcp-manager</code>) instead of <code>(default)</code> to avoid soft-delete conflicts; fix job run history composite index error (Python sort instead of Firestore order_by); fix local schedule reads; hide Schedules nav item when remote scheduling is disabled; deploy log stays visible after deployment completes; undeploy now cleans up Firestore schedules and job run history.</p>
 <h2 id="22">2.2</h2>
 <p>Update checker: sidebar dot and About popup show local/remote version sync status and GitHub update availability; one-click Cloud Run upgrade from About popup; Upgrade and Changelog pages added to docs.</p>
 <h2 id="21">2.1</h2>
