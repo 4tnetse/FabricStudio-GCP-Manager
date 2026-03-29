@@ -4,7 +4,7 @@ Overview of all GCP instances in the active project.
 
 ## Summary cards
 
-The top of the screen shows three stat cards:
+The top of the page shows three stat cards:
 
 | Card | Description |
 |---|---|
@@ -50,7 +50,7 @@ Each row has an actions menu (three-dot) with:
 | **Rename** | Any | Rename the instance |
 | **Change Machine Type** | Instance is stopped | Change the machine type in GCP |
 | **Move Zone** | Instance is stopped | Change the zone in GCP |
-| **Edit Labels** | Any | Open the Labels screen for this instance |
+| **Edit Labels** | Any | Open the Labels page for this instance |
 | **Delete** | Instance is stopped | Permanently delete the instance |
 
 ### Bulk actions

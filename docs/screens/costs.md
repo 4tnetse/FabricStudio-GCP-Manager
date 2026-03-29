@@ -2,7 +2,7 @@
 
 View billing information and cost summary for the active GCP project.
 
-The Costs screen shows the **Billing Account** linked to the active project, including the account name, account ID, and a link to open the full report in the GCP Billing Console.
+The Costs page shows the **Billing Account** linked to the active project, including the account name, account ID, and a link to open the full report in the GCP Billing Console.
 
 !!! note
     Access to billing data requires the service account to have the **Billing Account Viewer** role on the billing account.

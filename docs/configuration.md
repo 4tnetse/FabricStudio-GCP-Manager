@@ -94,7 +94,7 @@ Paste your SSH public key to enable SSH command execution on instances.
 ### 4. Default admin password
 
 Enter the strong admin password you configured in the GCP image.  
-This pre-fills the current admin password field on the Configure screen and is used for Fabric Studio API access.
+This pre-fills the current admin password field on the Configure page and is used for Fabric Studio API access.
 
 ### 5. Default zone
 
@@ -207,20 +207,9 @@ gcloud run deploy fabricstudio-scheduler \
 
 When a scheduled job runs, the Cloud Run backend connects directly to each Fabric Studio instance over its **internal IP** (staying within the VPC). This requires VPC access and a matching firewall rule.
 
-The deploy command in step 5 already configures VPC egress and attaches the network tag `fs-gcp-manager-gcpbackend`. You now need to create a firewall rule that allows traffic from that tag to reach your Fabric Studio instances:
+Create a firewall rule that allows traffic from the VPC private range to reach your Fabric Studio instances:
 
-```bash
-gcloud compute firewall-rules create fs-gcpbackend-to-instances \
-  --network default \
-  --direction INGRESS \
-  --priority 950 \
-  --action ALLOW \
-  --source-tags fs-gcp-manager-gcpbackend \
-  --target-tags workshop-source-networks,workshop-source-any \
-  --rules tcp:80,tcp:443
-```
-
-Or via the GCP Console at [GCP Network Security Firewall Policies](https://console.cloud.google.com/net-security/firewall-manager/firewall-policies):
+Via the GCP Console at [GCP Network Security Firewall Policies](https://console.cloud.google.com/net-security/firewall-manager/firewall-policies):
 
 | Field | Value |
 |---|---|
@@ -229,11 +218,12 @@ Or via the GCP Console at [GCP Network Security Firewall Policies](https://conso
 | **Priority** | `950` |
 | **Direction** | Ingress |
 | **Action** | Allow |
-| **Source tags** | `fs-gcp-manager-gcpbackend` |
-| **Target tags** | `workshop-source-networks`, `workshop-source-any` |
+| **Target tags** | `workshop-source-networks` |
+| **Source filters** | IP ranges: `10.0.0.0/8` |
+| **Destination filters** | IP ranges: `<instance-internal-ip>/32` |
 | **TCP ports** | `80`, `443` |
 
-> **Why this is needed:** Fabric Studio instances are not publicly reachable by the Cloud Run backend. By routing only private-range traffic through the VPC and tagging the Cloud Run service, the backend can reach instances on their internal IPs without exposing them to the internet.
+> **Why this is needed:** Fabric Studio instances are not publicly reachable by the Cloud Run backend. By routing only private-range traffic through the VPC, the backend can reach instances on their internal IPs without exposing them to the internet.
 
 ### 7. Configure scheduling in the app
 
@@ -244,7 +234,7 @@ In **Settings → Scheduling**:
 3. Verify **GCP Firestore Project ID** (defaults to the active project).
 4. Click **Save settings**.
 
-Once saved, use the **Schedule** button on the Clone or Configure screens to create scheduled jobs, and monitor them from the [Schedules](screens/schedules.md) screen.
+Once saved, use the **Schedule** button on the Clone or Configure pages to create scheduled jobs, and monitor them from the [Schedules](pages/schedules.md) page.
 
 ---
 

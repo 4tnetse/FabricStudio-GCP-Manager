@@ -114,11 +114,66 @@ if _DOCS_DIR.exists():
 
 _VERSION_FILE = Path(__file__).parent.parent / "VERSION"
 
+# Cache remote version to avoid hitting the Cloud Run API on every request
+_remote_version_cache: dict = {"version": None, "expires": 0.0}
+
+
+def _read_local_version() -> str:
+    return _VERSION_FILE.read_text().splitlines()[0].strip() if _VERSION_FILE.exists() else "0.0"
+
+
+async def _fetch_remote_version() -> str | None:
+    """Fetch the image tag of the running fabricstudio-scheduler Cloud Run service."""
+    import time
+    import asyncio
+
+    now = time.monotonic()
+    if _remote_version_cache["version"] is not None and now < _remote_version_cache["expires"]:
+        return _remote_version_cache["version"]
+
+    region = cfg.settings.cloud_run_region
+    project_id = cfg.settings.active_project_id
+    if not region or not project_id:
+        return None
+
+    def _run() -> str | None:
+        try:
+            from google.cloud import run_v2
+            client = run_v2.ServicesClient(credentials=get_credentials())
+            name = f"projects/{project_id}/locations/{region}/services/fabricstudio-scheduler"
+            service = client.get_service(name=name)
+            image = service.template.containers[0].image if service.template.containers else ""
+            # Extract tag from image URI e.g. ".../fabricstudio-gcp-manager:v2.0" → "2.0"
+            tag = image.split(":")[-1].lstrip("v") if ":" in image else None
+            return tag
+        except Exception:
+            return None
+
+    try:
+        version = await asyncio.get_event_loop().run_in_executor(None, _run)
+        _remote_version_cache["version"] = version
+        _remote_version_cache["expires"] = now + 300  # cache for 5 minutes
+        return version
+    except Exception:
+        return None
+
 
 @app.get("/api/health")
 async def health():
-    version = _VERSION_FILE.read_text().splitlines()[0].strip() if _VERSION_FILE.exists() else "0.000"
+    version = _read_local_version()
     return {"status": "ok", "active_project": cfg.settings.active_project_id, "version": version}
+
+
+@app.get("/api/version")
+async def version_info():
+    local = _read_local_version()
+    remote_configured = bool(cfg.settings.cloud_run_region and cfg.settings.active_project_id)
+    remote = await _fetch_remote_version() if remote_configured else None
+    return {
+        "local_version": local,
+        "remote_version": remote,
+        "remote_configured": remote_configured,
+    }
 
 
 _FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"

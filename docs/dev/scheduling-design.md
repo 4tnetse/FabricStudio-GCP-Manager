@@ -230,11 +230,11 @@ New **Scheduling** section in Settings:
 
 ## Frontend Changes
 
-### Schedule button — Clone screen
+### Schedule button — Clone page
 
 A **Schedule** button appears next to the Clone button, enabled when the form is valid. Opens `ScheduleDialog` pre-populated with current form values.
 
-### Schedule button — Configure screen
+### Schedule button — Configure page
 
 Same pattern — Schedule button next to Configure button, enabled when instances are selected.
 
@@ -387,7 +387,7 @@ cronstrue  # cron expression to human-readable text
 | Phase | Goal | Key deliverables |
 |---|---|---|
 | **1** | Backend Firestore CRUD | `schedules.py` router, Firestore client, Pydantic models, no Cloud Scheduler yet |
-| **2** | Frontend Schedules screen | Schedule list, ScheduleDialog, Schedule buttons on Clone/Configure, Settings fields |
+| **2** | Frontend Schedules page | Schedule list, ScheduleDialog, Schedule buttons on Clone/Configure, Settings fields |
 | **3** | Cloud Run backend mode | `APP_MODE` env var, settings-snapshot injection, key loading from Firestore, Firestore log writing |
 | **4** | Cloud Scheduler integration | Create/update/delete Cloud Scheduler jobs on schedule CRUD |
 | **5** | Local proxy + ID token auth | Proxy layer in `schedules.py`, ID token service, end-to-end local→Cloud Run test |

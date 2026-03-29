@@ -82,7 +82,7 @@ fabricstudio-ui/
 ├── frontend/
 │   ├── src/
 │   │   ├── App.tsx          # Router, sidebar, nav
-│   │   ├── pages/           # One file per screen
+│   │   ├── pages/           # One file per page
 │   │   ├── components/      # Reusable components
 │   │   ├── api/             # TanStack Query hooks
 │   │   ├── hooks/           # useSSEStream
@@ -565,7 +565,7 @@ The `LogStream` component handles this pattern on the frontend side.
 
 ### Pages
 
-| File | Route | Screen |
+| File | Route | Page |
 |---|---|---|
 | `Dashboard.tsx` | `/` | Instance list with filters and bulk operations |
 | `Build.tsx` | `/build` | Build new instances from a GCP image |
@@ -647,7 +647,7 @@ In development mode, Vite proxies `/api` and `/manual` to the backend (port 1981
 
 One background task runs at startup (full mode only):
 
-- **`_daily_price_refresh()`** — refreshes the GCP SKU pricing cache every 24 hours for fallback machine type pricing in the Costs screen.
+- **`_daily_price_refresh()`** — refreshes the GCP SKU pricing cache every 24 hours for fallback machine type pricing in the Costs page.
 
 ---
 
@@ -666,8 +666,8 @@ Both rules use network tag `workshop-source-networks` as the target. Instances a
 
 ## Configuration Files (conf/)
 
-`.conf` files contain Fabric Studio CLI commands, one per line. Blank lines and `#` comments are ignored. They are used in the SSH screen to run pre-defined command sets across multiple instances.
+`.conf` files contain Fabric Studio CLI commands, one per line. Blank lines and `#` comments are ignored. They are used in the SSH page to run pre-defined command sets across multiple instances.
 
-Key=value pairs on each line are parsed and displayed in the Configurations screen for preview.
+Key=value pairs on each line are parsed and displayed in the Configurations page for preview.
 
 The file `example.conf` is protected from deletion.

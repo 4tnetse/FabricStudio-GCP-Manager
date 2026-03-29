@@ -96,8 +96,8 @@ This will cleanly terminate both the backend and frontend processes.
 
 ## First-time configuration
 
-See the [Configuration](http://localhost:1980/manual/configuration/) section of the documentation.  
-Or the [Configuration](http://localhost:8080/manual/configuration/) section on Docker.
+- **Docker:** open [http://localhost:8080/manual/configuration/](http://localhost:8080/manual/configuration/)
+- **From source:** open [http://localhost:1980/manual/configuration/](http://localhost:1980/manual/configuration/)
 
 ---
 

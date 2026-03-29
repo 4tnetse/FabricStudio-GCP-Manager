@@ -42,7 +42,7 @@ Click a run row to expand it and view the full log output.
 
 ## Creating schedules
 
-Schedules are created from the **Clone** or **Configure** screens using the **Schedule** button next to the main action button.
+Schedules are created from the **Clone** or **Configure** pages using the **Schedule** button next to the main action button.
 
 The schedule dialog lets you configure:
 

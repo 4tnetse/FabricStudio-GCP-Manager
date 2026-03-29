@@ -4,7 +4,7 @@ Fabric Studio GCP Manager is a web-based management interface for deploying, con
 
 ## Features
 
-| Screen | Description |
+| Page | Description |
 |---|---|
 | **Instances** | Overview of all GCP instances with status summary, filtering, bulk actions, and detailed instance info. |
 | **Build** | Create a new Fabric Studio golden image from scratch. |
@@ -13,7 +13,8 @@ Fabric Studio GCP Manager is a web-based management interface for deploying, con
 | **Firewall** | View and manage GCP firewall rules. |
 | **Labels** | Add and remove GCP labels on any instance. |
 | **SSH** | Execute commands across multiple instances simultaneously with live streaming output. |
-| **SSH Configurations** | Create and edit files containing CLI commands for reuse in the SSH screen. |
+| **SSH Configurations** | Create and edit files containing CLI commands for reuse in the SSH page. |
 | **Images** | Browse available VM machine images on GCP. |
 | **Costs** | View current-month cost summary for the active GCP project. |
+| **Schedules** | Automate Clone and Configure jobs via GCP Cloud Scheduler, with run history and live log output. |
 | **Settings** | Manage service account keys, SSH key, passwords, DNS settings, zones, and UI theme. |

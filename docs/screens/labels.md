@@ -21,4 +21,4 @@ GCP label keys and values must:
 
 ## Notes
 
-The Labels screen can also be opened directly from the **Instances** screen via the **Edit Labels** row action.
+The Labels page can also be opened directly from the **Instances** page via the **Edit Labels** row action.

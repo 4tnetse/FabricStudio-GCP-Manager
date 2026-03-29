@@ -54,7 +54,7 @@ Go to **Configure** and select all workshop instances:
 
 ## 7. Run commands via SSH (optional)
 
-Use the **SSH** screen to execute commands across all instances simultaneously:
+Use the **SSH** page to execute commands across all instances simultaneously:
 
 - Select instances by name, range, or load all public IPs.  
 - Enter a command manually or select a saved **configuration file**.  

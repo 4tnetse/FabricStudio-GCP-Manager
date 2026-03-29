@@ -568,10 +568,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#6-configure-scheduling-in-the-app" class="md-nav__link">
+  <a href="#6-allow-cloud-run-to-reach-fabric-studio-instances" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6. Configure scheduling in the app
+        6. Allow Cloud Run to reach Fabric Studio instances
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-configure-scheduling-in-the-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Configure scheduling in the app
       
     </span>
   </a>
@@ -1449,10 +1460,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#6-configure-scheduling-in-the-app" class="md-nav__link">
+  <a href="#6-allow-cloud-run-to-reach-fabric-studio-instances" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6. Configure scheduling in the app
+        6. Allow Cloud Run to reach Fabric Studio instances
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-configure-scheduling-in-the-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Configure scheduling in the app
       
     </span>
   </a>
@@ -1616,7 +1638,7 @@ Note: skip OS Adaptation</p>
 <p>Paste your SSH public key to enable SSH command execution on instances.</p>
 <h3 id="4-default-admin-password">4. Default admin password</h3>
 <p>Enter the strong admin password you configured in the GCP image.<br />
-This pre-fills the current admin password field on the Configure screen and is used for Fabric Studio API access.</p>
+This pre-fills the current admin password field on the Configure page and is used for Fabric Studio API access.</p>
 <h3 id="5-default-zone">5. Default zone</h3>
 <p>Set your preferred GCP zone (e.g. <code>europe-west4-a</code>). Used as default when building or cloning instances.</p>
 <h3 id="6-dns-settings">6. DNS settings</h3>
@@ -1729,12 +1751,69 @@ done
   --no-allow-unauthenticated \
   --service-account &lt;your-service-account&gt;@&lt;project&gt;.iam.gserviceaccount.com \
   --memory 512Mi \
-  --timeout 3600
+  --timeout 3600 \
+  --network default \
+  --subnet default \
+  --vpc-egress private-ranges-only \
+  --network-tags fs-gcp-manager-gcpbackend
 </code></pre>
 <blockquote>
 <p><strong>Note:</strong> The <code>--timeout 3600</code> is important — scheduled jobs (especially Configure jobs across many instances) can run for a long time. Cloud Run's default timeout of 300 seconds is too short.</p>
 </blockquote>
-<h3 id="6-configure-scheduling-in-the-app">6. Configure scheduling in the app</h3>
+<h3 id="6-allow-cloud-run-to-reach-fabric-studio-instances">6. Allow Cloud Run to reach Fabric Studio instances</h3>
+<p>When a scheduled job runs, the Cloud Run backend connects directly to each Fabric Studio instance over its <strong>internal IP</strong> (staying within the VPC). This requires VPC access and a matching firewall rule.</p>
+<p>Create a firewall rule that allows traffic from the VPC private range to reach your Fabric Studio instances:</p>
+<p>Via the GCP Console at <a href="https://console.cloud.google.com/net-security/firewall-manager/firewall-policies">GCP Network Security Firewall Policies</a>:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Name</strong></td>
+<td><code>fs-gcpbackend-to-instances</code></td>
+</tr>
+<tr>
+<td><strong>Network</strong></td>
+<td><code>default</code></td>
+</tr>
+<tr>
+<td><strong>Priority</strong></td>
+<td><code>950</code></td>
+</tr>
+<tr>
+<td><strong>Direction</strong></td>
+<td>Ingress</td>
+</tr>
+<tr>
+<td><strong>Action</strong></td>
+<td>Allow</td>
+</tr>
+<tr>
+<td><strong>Target tags</strong></td>
+<td><code>workshop-source-networks</code></td>
+</tr>
+<tr>
+<td><strong>Source filters</strong></td>
+<td>IP ranges: <code>10.0.0.0/8</code></td>
+</tr>
+<tr>
+<td><strong>Destination filters</strong></td>
+<td>IP ranges: <code>&lt;instance-internal-ip&gt;/32</code></td>
+</tr>
+<tr>
+<td><strong>TCP ports</strong></td>
+<td><code>80</code>, <code>443</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Why this is needed:</strong> Fabric Studio instances are not publicly reachable by the Cloud Run backend. By routing only private-range traffic through the VPC, the backend can reach instances on their internal IPs without exposing them to the internet.</p>
+</blockquote>
+<h3 id="7-configure-scheduling-in-the-app">7. Configure scheduling in the app</h3>
 <p>In <strong>Settings → Scheduling</strong>:</p>
 <ol>
 <li>Toggle <strong>Enable remote scheduling</strong> on.</li>
@@ -1742,7 +1821,7 @@ done
 <li>Verify <strong>GCP Firestore Project ID</strong> (defaults to the active project).</li>
 <li>Click <strong>Save settings</strong>.</li>
 </ol>
-<p>Once saved, use the <strong>Schedule</strong> button on the Clone or Configure screens to create scheduled jobs, and monitor them from the <a href="../screens/schedules/">Schedules</a> screen.</p>
+<p>Once saved, use the <strong>Schedule</strong> button on the Clone or Configure pages to create scheduled jobs, and monitor them from the <a href="pages/schedules.md">Schedules</a> page.</p>
 <hr />
 <h2 id="create-a-fabric-studio-license-server">Create a Fabric Studio License Server</h2>
 <p>All Fabric Studio instances will connect to this license server to obtain licenses needed in your labs.</p>

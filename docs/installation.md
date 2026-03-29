@@ -1,6 +1,63 @@
 # Installation
 
-## Requirements
+Two installation methods are available: **Docker** (recommended, no dependencies) or **from source** (requires Python and Node.js).
+
+---
+
+## Docker
+
+### Requirements
+
+- [Docker](https://docs.docker.com/get-docker/) with Docker Compose
+
+### Setup
+
+Download the `docker-compose.yml` file from the repository, or create one with the following content:
+
+```yaml
+services:
+  app:
+    image: ghcr.io/4tnetse/fabricstudio-gcp-manager:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - fabricstudio-data:/root/.fabricstudio
+
+volumes:
+  fabricstudio-data:
+```
+
+### Starting
+
+```bash
+docker compose up -d
+```
+
+Once started, open your browser at:
+
+```
+http://localhost:8080
+```
+
+### Stopping
+
+```bash
+docker compose down
+```
+
+### Updating
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+> App data (keys, settings, configurations) is stored in the `fabricstudio-data` Docker volume and is preserved across updates.
+
+---
+
+## From source
+
+### Requirements
 
 - Python 3.11 or higher
 - Node.js 18 or higher
@@ -8,7 +65,7 @@
 
 **Scheduling (optional):** Remote scheduling requires additional GCP services. See [Scheduling setup](configuration.md#scheduling-setup-optional) in the Configuration guide.
 
-## Setup
+### Setup
 
 Clone the repository and run the setup script once:
 
@@ -31,7 +88,7 @@ The setup script will:
 3. Install Python dependencies
 4. Install Node.js dependencies in `frontend/`
 
-## Starting
+### Starting
 
 ```bash
 python start.py
@@ -57,7 +114,7 @@ Once started, open your browser at:
 http://localhost:1980
 ```
 
-## Stopping
+### Stopping
 
 ```bash
 python stop.py

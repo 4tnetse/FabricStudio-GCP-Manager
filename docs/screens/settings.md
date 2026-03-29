@@ -8,10 +8,10 @@ Configure your GCP connection and application preferences.
 |---|---|
 | **Initials** | Short identifier used as a prefix in instance names (e.g. `tve`) |
 | **Owner** | Owner GCP label applied to new instances |
-| **Default zone** | Pre-selected zone on the Build and Clone screens |
+| **Default zone** | Pre-selected zone on the Build and Clone pages |
 | **Default instance prefix** | Instance name prefix (e.g. `fs`) |
 | **Default group** | Group GCP label applied to new instances |
-| **Default Fabric Studio admin password** | Used as the default admin password on the Configure screen and for bulk shutdown via the Fabric Studio API |
+| **Default Fabric Studio admin password** | Used as the default admin password on the Configure page and for bulk shutdown via the Fabric Studio API |
 | **DNS Domain** | Base domain for instance FQDNs (e.g. `labs.yourdomain.com`) |
 | **Instance FQDN prefix** | Prefix applied to instance names in FQDNs (e.g. `fs`) |
 | **DNS Zone name** | Managed zone name in Google Cloud DNS (e.g. `labs-yourdomain-com`) |

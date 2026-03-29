@@ -104,6 +104,13 @@ export default function App() {
     staleTime: Infinity,
   })
 
+  const { data: versionInfo } = useQuery({
+    queryKey: ['version'],
+    queryFn: () => apiGet<{ local_version: string; remote_version: string | null; remote_configured: boolean }>('/version'),
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
+  })
+
   const [sidebarWidth, setSidebarWidth] = useState(224) // 14rem = w-56
   const dragging = useRef(false)
 
@@ -215,10 +222,21 @@ export default function App() {
         {/* Version */}
         <button
           onClick={() => setAboutOpen(true)}
-          className="px-4 py-2.5 text-xs text-slate-600 hover:text-slate-400 transition-colors text-left select-none"
+          className="px-4 py-2.5 text-xs text-slate-600 hover:text-slate-400 transition-colors text-left select-none flex items-center gap-1.5"
         >
-          v{health?.version ?? '…'}
-        </button>
+          <span>v{health?.version ?? '…'}</span>
+          {versionInfo?.remote_configured && versionInfo.remote_version && (() => {
+            const upToDate = versionInfo.remote_version === versionInfo.local_version
+            const tooltip = upToDate
+              ? `Remote: v${versionInfo.remote_version} — in sync`
+              : `Remote: v${versionInfo.remote_version} — update available`
+            return (
+              <span
+                title={tooltip}
+                className={`w-2 h-2 rounded-full shrink-0 ${upToDate ? 'bg-green-500' : 'bg-orange-400'}`}
+              />
+            )
+          })()}</button>
       </aside>
 
       {/* About dialog */}
@@ -238,7 +256,19 @@ export default function App() {
               </svg>
               <div>
                 <h2 className="text-base font-semibold text-slate-100">Fabric Studio GCP Manager</h2>
-                <p className="text-sm text-slate-400">Version {health?.version ?? '…'}</p>
+                <div className="space-y-0.5 mt-0.5">
+                  <p className="text-sm text-slate-400">Local&nbsp;&nbsp;&nbsp;v{versionInfo?.local_version ?? health?.version ?? '…'}</p>
+                  {versionInfo?.remote_configured && (
+                    <p className="text-sm text-slate-400 flex items-center gap-1.5">
+                      <span>Remote&nbsp;&nbsp;{versionInfo.remote_version ? `v${versionInfo.remote_version}` : '…'}</span>
+                      {versionInfo.remote_version && (
+                        versionInfo.remote_version === versionInfo.local_version
+                          ? <span className="text-green-400 text-xs">✓ in sync</span>
+                          : <span className="text-orange-400 text-xs">⚠ update available</span>
+                      )}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 

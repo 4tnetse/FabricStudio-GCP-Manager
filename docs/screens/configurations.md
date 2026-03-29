@@ -1,6 +1,6 @@
 # SSH Configurations
 
-Create and manage configuration files containing Fabric Studio CLI commands for reuse in the SSH screen.
+Create and manage configuration files containing Fabric Studio CLI commands for reuse in the SSH page.
 
 ## Creating a file
 
@@ -34,4 +34,4 @@ Add a sleep timer by adding `;sleep x` after a command line.
 
 ## Usage in SSH
 
-Configuration files appear in the **Configuration file** dropdown on the [SSH](ssh.md) screen. Selecting a file disables the manual command field and uses the file's commands instead.
+Configuration files appear in the **Configuration file** dropdown on the [SSH](ssh.md) page. Selecting a file disables the manual command field and uses the file's commands instead.

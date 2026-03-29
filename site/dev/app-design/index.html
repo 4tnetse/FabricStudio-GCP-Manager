@@ -2137,7 +2137,7 @@
 ├── frontend/
 │   ├── src/
 │   │   ├── App.tsx          # Router, sidebar, nav
-│   │   ├── pages/           # One file per screen
+│   │   ├── pages/           # One file per page
 │   │   ├── components/      # Reusable components
 │   │   ├── api/             # TanStack Query hooks
 │   │   ├── hooks/           # useSSEStream
@@ -2979,7 +2979,7 @@ async get_hourly_price(machine_type, zone, vcpus, memory_gib) -&gt; dict | None
 <tr>
 <th>File</th>
 <th>Route</th>
-<th>Screen</th>
+<th>Page</th>
 </tr>
 </thead>
 <tbody>
@@ -3114,7 +3114,7 @@ GET /api/*           → not intercepted (handled by routers)
 <h2 id="background-tasks">Background Tasks</h2>
 <p>One background task runs at startup (full mode only):</p>
 <ul>
-<li><strong><code>_daily_price_refresh()</code></strong> — refreshes the GCP SKU pricing cache every 24 hours for fallback machine type pricing in the Costs screen.</li>
+<li><strong><code>_daily_price_refresh()</code></strong> — refreshes the GCP SKU pricing cache every 24 hours for fallback machine type pricing in the Costs page.</li>
 </ul>
 <hr />
 <h2 id="firewall-rules">Firewall Rules</h2>
@@ -3140,8 +3140,8 @@ GET /api/*           → not intercepted (handled by routers)
 <p>Both rules use network tag <code>workshop-source-networks</code> as the target. Instances are tagged with both <code>workshop-source-any</code> and <code>workshop-source-networks</code> at build time.</p>
 <hr />
 <h2 id="configuration-files-conf">Configuration Files (conf/)</h2>
-<p><code>.conf</code> files contain Fabric Studio CLI commands, one per line. Blank lines and <code>#</code> comments are ignored. They are used in the SSH screen to run pre-defined command sets across multiple instances.</p>
-<p>Key=value pairs on each line are parsed and displayed in the Configurations screen for preview.</p>
+<p><code>.conf</code> files contain Fabric Studio CLI commands, one per line. Blank lines and <code>#</code> comments are ignored. They are used in the SSH page to run pre-defined command sets across multiple instances.</p>
+<p>Key=value pairs on each line are parsed and displayed in the Configurations page for preview.</p>
 <p>The file <code>example.conf</code> is protected from deletion.</p>
 
 

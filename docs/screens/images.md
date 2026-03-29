@@ -2,7 +2,7 @@
 
 Browse available VM machine images in the active GCP project.
 
-The Images screen lists all available images with the following columns:
+The Images page lists all available images with the following columns:
 
 | Column | Description |
 |---|---|
@@ -13,4 +13,4 @@ The Images screen lists all available images with the following columns:
 | **Created** | Creation date |
 | **Description** | Image description |
 
-Images are loaded from the GCP Compute Engine API. Use the **Refresh** button to reload the list. The selected image can be used when building a new instance on the [Build](build.md) screen.
+Images are loaded from the GCP Compute Engine API. Use the **Refresh** button to reload the list. The selected image can be used when building a new instance on the [Build](build.md) page.
