@@ -404,12 +404,13 @@ async def list_runs(schedule_id: str):
 # ---------------------------------------------------------------------------
 
 def _build_settings_snapshot() -> dict:
-    s = cfg.settings
+    # Use per-project config (authoritative) rather than legacy top-level fields
+    p = cfg.get_project_config(cfg.settings, cfg.settings.active_project_id)
     return {
-        "dns_domain": s.dns_domain,
-        "instance_fqdn_prefix": s.instance_fqdn_prefix,
-        "dns_zone_name": s.dns_zone_name,
-        "fs_admin_password": s.fs_admin_password,
-        "default_zone": s.default_zone,
-        "owner": s.owner,
+        "dns_domain": p.get("dns_domain") or "",
+        "instance_fqdn_prefix": p.get("instance_fqdn_prefix") or "",
+        "dns_zone_name": p.get("dns_zone_name") or "",
+        "fs_admin_password": p.get("fs_admin_password") or "",
+        "default_zone": p.get("default_zone") or "",
+        "owner": p.get("owner") or "",
     }

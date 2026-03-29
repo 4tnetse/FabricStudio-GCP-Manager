@@ -28,16 +28,20 @@ def _get_client(project_id: str | None = None) -> firestore.Client:
     ADC default project (Cloud Run metadata).
     In local mode loads the active service account key file.
     """
+    # firestore_project_id is stored per-project in project_configs; fall back to active project
+    sched = cfg.get_project_scheduling(cfg.settings, cfg.settings.active_project_id)
+    firestore_project = sched.get("firestore_project_id") or ""
+
     if APP_MODE == "backend":
         import google.auth
-        pid = project_id or cfg.settings.firestore_project_id or cfg.settings.active_project_id
+        pid = project_id or firestore_project or cfg.settings.active_project_id
         if not pid:
             _, pid = google.auth.default()
         if not pid:
             raise RuntimeError("Cannot determine GCP project for Firestore.")
         return firestore.Client(project=pid, database=FIRESTORE_DATABASE_ID)
 
-    pid = project_id or cfg.settings.firestore_project_id or cfg.settings.active_project_id
+    pid = project_id or firestore_project or cfg.settings.active_project_id
     if not pid:
         raise RuntimeError("No active project configured.")
     key_id = cfg.settings.active_key_id
