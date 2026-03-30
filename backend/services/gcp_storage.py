@@ -33,10 +33,13 @@ def ensure_staging_bucket(credentials, project_id: str) -> str:
     client = _client(credentials, project_id)
     try:
         bucket = client.get_bucket(bucket_name)
+        print(f"[gcp_storage] bucket exists: {bucket_name}", flush=True)
         _apply_cors(bucket)
     except NotFound:
+        print(f"[gcp_storage] bucket not found, creating: {bucket_name}", flush=True)
         try:
             bucket = client.create_bucket(bucket_name)
+            print(f"[gcp_storage] bucket created: {bucket_name}", flush=True)
             _apply_cors(bucket)
         except Conflict:
             # Created by a concurrent request; try to apply CORS anyway
@@ -44,17 +47,21 @@ def ensure_staging_bucket(credentials, project_id: str) -> str:
                 _apply_cors(client.get_bucket(bucket_name))
             except Exception:
                 pass
+    print(f"[gcp_storage] CORS: {bucket.cors}", flush=True)
     return bucket_name
 
 
-def create_resumable_upload_url(credentials, project_id: str, bucket_name: str, object_name: str) -> str:
+def create_resumable_upload_url(credentials, project_id: str, bucket_name: str, object_name: str, origin: str = "http://localhost:5173") -> str:
     """Initiate a GCS resumable upload and return the session URI.
 
-    The caller uploads the file directly to this URL with a PUT request.
+    The origin parameter must match the browser's origin so GCS includes
+    Access-Control-Allow-Origin in the upload response.
     """
     client = _client(credentials, project_id)
     blob = client.bucket(bucket_name).blob(object_name)
-    return blob.create_resumable_upload_session(content_type="application/octet-stream")
+    url = blob.create_resumable_upload_session(content_type="application/octet-stream", origin=origin)
+    print(f"[gcp_storage] resumable session URL (first 80 chars): {str(url)[:80]}", flush=True)
+    return url
 
 
 def delete_object(credentials, project_id: str, bucket_name: str, object_name: str) -> None:

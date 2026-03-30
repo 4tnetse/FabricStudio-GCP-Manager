@@ -89,15 +89,25 @@ export function ImportProvider({ children }: { children: ReactNode }) {
         if (e.lengthComputable)
           setImportJob(j => j ? { ...j, uploadProgress: Math.round((e.loaded / e.total) * 100) } : null)
       }
-      xhr.onload = () => resolve(xhr.status >= 200 && xhr.status < 300)
-      xhr.onerror = () => resolve(false)
-      xhr.onabort = () => resolve(false)
+      xhr.onload = () => {
+        console.log('[import] XHR onload — status:', xhr.status, xhr.statusText, '— response:', xhr.responseText?.slice(0, 500))
+        resolve(xhr.status >= 200 && xhr.status < 300)
+      }
+      xhr.onerror = () => {
+        console.error('[import] XHR onerror — network error')
+        resolve(false)
+      }
+      xhr.onabort = () => {
+        console.warn('[import] XHR onabort')
+        resolve(false)
+      }
       xhr.send(file)
     })
 
     xhrRef.current = null
 
     if (!uploadOk) {
+      console.error('[import] upload failed or aborted')
       // Aborted by user — state already cleared by handleCancelImport
       setImportJob(prev => prev?.phase === 'uploading' ? null : prev)
       return

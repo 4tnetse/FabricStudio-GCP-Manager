@@ -98,7 +98,7 @@ function LogDisplay({ lines, isStreaming, error }: { lines: string[]; isStreamin
 
 // ── Import dialog ──────────────────────────────────────────────────────────
 function ImportDialog({ onClose }: { onClose: () => void }) {
-  const { importJob, lines, isStreaming, streamError, barColor, handleStartImport, handleCancelImport } = useImport()
+  const { importJob, setImportJob, lines, isStreaming, streamError, barColor, handleStartImport, handleCancelImport } = useImport()
 
   const [name, setName] = useState('')
   const [family, setFamily] = useState('')
@@ -114,7 +114,7 @@ function ImportDialog({ onClose }: { onClose: () => void }) {
       <div className="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-lg mx-4 shadow-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
           <h2 className="text-sm font-semibold text-slate-100">Import Image</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-200">
+          <button onClick={() => { if (importJob && !inProgress) setImportJob(null); onClose() }} className="text-slate-400 hover:text-slate-200">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -239,7 +239,7 @@ function ImportDialog({ onClose }: { onClose: () => void }) {
             </>
           )}
           {importJob && !inProgress && (
-            <button onClick={onClose} className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium">
+            <button onClick={() => { setImportJob(null); onClose() }} className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium">
               Close
             </button>
           )}

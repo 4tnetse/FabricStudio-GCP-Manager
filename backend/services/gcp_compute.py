@@ -467,7 +467,12 @@ class GCPComputeService:
         client = compute_v1.ImagesClient(credentials=self._credentials)
 
         def _insert():
-            image = compute_v1.Image(name=name, raw_disk=compute_v1.Image.RawDisk(source=gcs_uri))
+            # Compute API requires https:// URL, not gs:// URI
+            if gcs_uri.startswith("gs://"):
+                https_source = "https://storage.googleapis.com/" + gcs_uri[5:]
+            else:
+                https_source = gcs_uri
+            image = compute_v1.Image(name=name, raw_disk=compute_v1.RawDisk(source=https_source))
             if family:
                 image.family = family
             if description:
