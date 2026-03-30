@@ -24,6 +24,7 @@ export default function Build() {
   const [zone, setZone] = useState(settings?.default_zone ?? '')
   const [machineType, setMachineType] = useState('')
   const [image, setImage] = useState('')
+  const [diskSizeGb, setDiskSizeGb] = useState('200')
   const [group, setGroup] = useState(settings?.group ?? '')
   const [labels, setLabels] = useState<LabelPair[]>([])
   const [building, setBuilding] = useState(false)
@@ -47,9 +48,16 @@ export default function Build() {
     setLabels((prev) => prev.map((l, idx) => (idx === i ? { ...l, [field]: val } : l)))
   }
 
+  const diskSizeNum = parseInt(diskSizeGb, 10)
+  const diskSizeError = diskSizeGb !== '' && (isNaN(diskSizeNum) || diskSizeNum < 10 || diskSizeNum > 65536)
+
   async function handleBuild() {
     if (!prepend || !product || !zone) {
       toast.error('Prepend, product, and zone are required')
+      return
+    }
+    if (diskSizeError) {
+      toast.error('Disk size must be between 10 and 65536 GB')
       return
     }
     setBuilding(true)
@@ -61,6 +69,7 @@ export default function Build() {
         zone,
         machine_type: machineType,
         image: image || undefined,
+        disk_size_gb: diskSizeGb !== '' && !diskSizeError ? diskSizeNum : undefined,
         labels: labels.reduce<Record<string, string>>((acc, { key, value }) => {
           if (key) acc[key] = value
           return acc
@@ -156,6 +165,22 @@ export default function Build() {
               options={images.map((img) => ({ value: img.name, label: img.name }))}
               placeholder="Select an image"
             />
+          </div>
+
+          <div>
+            <label className={labelClass}>Disk size (GB)</label>
+            <input
+              className={`${inputClass}${diskSizeError ? ' border-red-500 focus:ring-red-500' : ''}`}
+              type="number"
+              min={10}
+              max={65536}
+              value={diskSizeGb}
+              onChange={(e) => setDiskSizeGb(e.target.value)}
+              placeholder="e.g. 200"
+            />
+            {diskSizeError && (
+              <p className="mt-1 text-xs text-red-400">Must be between 10 and 65536</p>
+            )}
           </div>
 
           <div>

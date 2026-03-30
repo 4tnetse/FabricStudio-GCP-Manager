@@ -623,6 +623,7 @@ class GCPComputeService:
         poc_definitions: list[str],
         poc_launch: str,
         subnetwork: str | None = None,
+        disk_size_gb: int | None = None,
     ) -> None:
         client = compute_v1.InstancesClient(credentials=self._credentials)
 
@@ -656,6 +657,7 @@ class GCPComputeService:
                         auto_delete=True,
                         initialize_params=compute_v1.AttachedDiskInitializeParams(
                             source_image=disk_source_image,
+                            **( {"disk_size_gb": disk_size_gb} if disk_size_gb else {} ),
                         ),
                     )
                 ],

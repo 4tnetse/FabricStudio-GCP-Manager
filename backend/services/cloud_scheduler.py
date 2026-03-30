@@ -72,9 +72,10 @@ def _build_job(
     )
 
 
-def _resolve_backend_url() -> str:
+def _resolve_backend_url(project_id: str | None = None) -> str:
     """Return the Cloud Run backend URL, falling back to BACKEND_URL env var."""
-    return cfg.settings.remote_backend_url or os.environ.get("BACKEND_URL", "")
+    pc = cfg.get_project_config(cfg.settings, project_id or cfg.settings.active_project_id)
+    return pc.get("remote_backend_url") or os.environ.get("BACKEND_URL", "")
 
 
 def _resolve_sa_email(schedule: dict) -> str:
@@ -101,8 +102,9 @@ async def create_scheduler_job(schedule: dict) -> str:
     loop = asyncio.get_event_loop()
 
     project_id = schedule.get("project_id") or cfg.settings.active_project_id
-    region = cfg.settings.cloud_run_region or os.environ.get("CLOUD_RUN_REGION", "europe-west1")
-    backend_url = _resolve_backend_url()
+    pc = cfg.get_project_config(cfg.settings, project_id)
+    region = pc.get("cloud_run_region") or os.environ.get("CLOUD_RUN_REGION", "europe-west1")
+    backend_url = _resolve_backend_url(project_id)
     sa_email = _resolve_sa_email(schedule)
 
     if not backend_url:
@@ -137,8 +139,9 @@ async def update_scheduler_job(schedule: dict) -> None:
     loop = asyncio.get_event_loop()
 
     project_id = schedule.get("project_id") or cfg.settings.active_project_id
-    region = cfg.settings.cloud_run_region or os.environ.get("CLOUD_RUN_REGION", "europe-west1")
-    backend_url = _resolve_backend_url()
+    pc = cfg.get_project_config(cfg.settings, project_id)
+    region = pc.get("cloud_run_region") or os.environ.get("CLOUD_RUN_REGION", "europe-west1")
+    backend_url = _resolve_backend_url(project_id)
     sa_email = _resolve_sa_email(schedule)
 
     if not backend_url:

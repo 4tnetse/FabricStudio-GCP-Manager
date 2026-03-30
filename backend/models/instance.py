@@ -39,6 +39,7 @@ class BuildConfig(BaseModel):
     count_start: int = 0
     count_end: int = 0
     title: str = ""
+    disk_size_gb: int | None = None
 
 
 class ConfigureRequest(BaseModel):

@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.17
+Fix all per-project settings fields (DNS, admin password, SSH key, owner, default_type, Cloud Run region, backend URL) being read from empty top-level `cfg.settings` instead of `get_project_config()` — broken since the 2.15 settings migration; affected DNS record creation, build labels, configure/shutdown password, SSH key injection, Cloud Scheduler region and backend URL. Build page: disk size (GB) field added, defaulting to 200, validated between 10 and 65536.
+
 ## 2.16
 Image import fixes: GCS resumable upload CORS fixed (origin now derived from Referer/Host header instead of defaulting to localhost:5173); raw disk source converted from `gs://` to `https://` for the Compute API; `RawDisk` type corrected to `compute_v1.RawDisk`; closing the import dialog after completion resets state so reopening shows a fresh form.
 

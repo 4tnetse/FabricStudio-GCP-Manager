@@ -10,9 +10,10 @@ from services.instance_naming import InstanceName
 
 def _dns_settings() -> tuple[str, str, str] | None:
     """Return (zone_name, fqdn_prefix, dns_domain) if all DNS settings are configured, else None."""
-    zone = cfg.settings.dns_zone_name
-    prefix = cfg.settings.instance_fqdn_prefix
-    domain = cfg.settings.dns_domain
+    pc = cfg.get_project_config(cfg.settings, cfg.settings.active_project_id)
+    zone = pc.get("dns_zone_name", "")
+    prefix = pc.get("instance_fqdn_prefix", "")
+    domain = pc.get("dns_domain", "")
     if zone and prefix and domain:
         return zone, prefix, domain
     return None

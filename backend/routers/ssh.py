@@ -41,7 +41,7 @@ class SshTestRequest(BaseModel):
 
 def _resolve_private_key_path() -> str | None:
     """Derive private key path from the ssh_public_key setting (which may be a file path)."""
-    pub_key = (cfg.settings.ssh_public_key or "").strip()
+    pub_key = (cfg.get_project_config(cfg.settings, cfg.settings.active_project_id).get("ssh_public_key") or "").strip()
     if not pub_key:
         return None
     # Only treat it as a file path if it starts with / or ~

@@ -75,7 +75,8 @@ async def _build_job(job_id: str, build_cfg: BuildConfig) -> None:
     failed = False
 
     try:
-        instance_type = cfg.settings.default_type or "fs"
+        pc = cfg.get_project_config(cfg.settings, cfg.settings.active_project_id)
+        instance_type = pc.get("default_type") or "fs"
         count_start = build_cfg.count_start
         count_end = build_cfg.count_end
         names = []
@@ -95,8 +96,8 @@ async def _build_job(job_id: str, build_cfg: BuildConfig) -> None:
         labels = dict(build_cfg.labels)
         if build_cfg.group:
             labels["group"] = build_cfg.group
-        if cfg.settings.owner:
-            labels["owner"] = cfg.settings.owner
+        if pc.get("owner"):
+            labels["owner"] = pc["owner"]
         if build_cfg.title:
             labels["title"] = build_cfg.title
         labels["purpose"] = "golden_image"
@@ -115,6 +116,7 @@ async def _build_job(job_id: str, build_cfg: BuildConfig) -> None:
                 poc_definitions=build_cfg.poc_definitions,
                 poc_launch=build_cfg.poc_launch,
                 subnetwork=subnetwork,
+                disk_size_gb=build_cfg.disk_size_gb,
             )
             await q.put(f"Instance {name} created successfully")
             await create_dns_for_instance(name, build_cfg.zone, log=q.put)
@@ -284,7 +286,8 @@ async def _configure_job(job_id: str, req: ConfigureRequest) -> None:
     failed = False
 
     try:
-        instance_type = cfg.settings.default_type or "fs"
+        pc = cfg.get_project_config(cfg.settings, cfg.settings.active_project_id)
+        instance_type = pc.get("default_type") or "fs"
         instance_name = InstanceName.from_parts(
             type=instance_type, prepend=req.prepend, product=req.product, number=0
         ).to_string()
@@ -296,7 +299,7 @@ async def _configure_job(job_id: str, req: ConfigureRequest) -> None:
             await job_manager.mark_done(job_id, failed=True)
             return
 
-        default_password = req.old_admin_password or cfg.settings.fs_admin_password
+        default_password = req.old_admin_password or pc.get("fs_admin_password", "")
         if not default_password:
             await q.put("ERROR: No admin password available — set a default in Settings or fill in the Old admin password field.")
             await job_manager.mark_done(job_id, failed=True)
@@ -417,7 +420,8 @@ async def bulk_delete(body: BulkRequest, background_tasks: BackgroundTasks):
 
 @router.post("/bulk-shutdown")
 async def bulk_shutdown(body: BulkShutdownRequest):
-    password = body.admin_password or cfg.settings.fs_admin_password
+    pc = cfg.get_project_config(cfg.settings, cfg.settings.active_project_id)
+    password = body.admin_password or pc.get("fs_admin_password", "")
 
     if not password:
         raise HTTPException(status_code=400, detail="No admin password configured in Settings.")
@@ -450,7 +454,8 @@ async def _bulk_configure_job(job_id: str, req: BulkConfigureRequest) -> None:
     q = job_manager.jobs[job_id]
     failures: list[str] = []
 
-    default_password = req.old_admin_password or cfg.settings.fs_admin_password
+    pc = cfg.get_project_config(cfg.settings, cfg.settings.active_project_id)
+    default_password = req.old_admin_password or pc.get("fs_admin_password", "")
     if not default_password:
         await q.put("ERROR: No admin password available — set a default in Settings or fill in the Admin password field.")
         await job_manager.mark_done(job_id, failed=True)
@@ -489,8 +494,9 @@ async def _bulk_configure_job(job_id: str, req: BulkConfigureRequest) -> None:
                     await q.put(f"{tag} Waiting for registration to complete…")
                     await fs.wait_for_tasks()
                 all_ssh_keys = list(req.ssh_keys)
-                if cfg.settings.ssh_public_key:
-                    all_ssh_keys.insert(0, cfg.settings.ssh_public_key)
+                settings_ssh_key = pc.get("ssh_public_key", "")
+                if settings_ssh_key:
+                    all_ssh_keys.insert(0, settings_ssh_key)
                 if all_ssh_keys:
                     await q.put(f"{tag} Setting {len(all_ssh_keys)} SSH key(s)…")
                     if req.delete_existing_keys:
@@ -555,7 +561,8 @@ async def bulk_configure(req: BulkConfigureRequest, background_tasks: Background
 @router.get("/fs-templates")
 async def get_fs_templates(instance_name: str = Query(...), zone: str = Query(...)):
     """Fetch available fabric templates from a Fabric Studio instance."""
-    password = cfg.settings.fs_admin_password
+    pc = cfg.get_project_config(cfg.settings, cfg.settings.active_project_id)
+    password = pc.get("fs_admin_password", "")
     if not password:
         raise HTTPException(status_code=400, detail="No admin password configured in Settings.")
 
