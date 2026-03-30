@@ -260,7 +260,7 @@ function ScheduleRow({ schedule, selected, onSelect }: {
           <div className="flex items-center gap-2 mb-1">
             <span className="text-sm font-medium text-slate-200 truncate">{schedule.name}</span>
             <span className="px-1.5 py-0.5 rounded text-xs bg-slate-700 text-slate-400 capitalize shrink-0">
-              {schedule.job_type}
+              {schedule.job_type === 'ssh' ? 'SSH' : schedule.job_type}
             </span>
             {latestRun && (
               latestRun.status === 'completed'
@@ -322,7 +322,7 @@ function ScheduleRow({ schedule, selected, onSelect }: {
           <div className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-slate-100">{schedule.name}</h2>
-              <span className="px-2 py-0.5 rounded text-xs bg-slate-700 text-slate-400 capitalize">{schedule.job_type}</span>
+              <span className="px-2 py-0.5 rounded text-xs bg-slate-700 text-slate-400 capitalize">{schedule.job_type === 'ssh' ? 'SSH' : schedule.job_type}</span>
             </div>
             <div className="space-y-1 text-xs">
               <div className="flex gap-2">

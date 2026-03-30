@@ -1,16 +1,113 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
-import { CalendarClock, Loader2, Download, Wifi, Search, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { AlertTriangle, CalendarClock, Loader2, Download, Wifi, Search, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { useExecuteSsh, useTestSsh } from '@/api/ssh'
-import { useInstances, usePublicIps } from '@/api/instances'
+import { useInstances } from '@/api/instances'
 import { useConfigs, useConfig } from '@/api/configs'
 import { LogStream } from '@/components/LogStream'
 import { CustomSelect } from '@/components/CustomSelect'
 import { ScheduleDialog } from '@/components/ScheduleDialog'
 import { useSettings } from '@/api/settings'
+import { useTheme } from '@/context/ThemeContext'
+
+function formatSelection(names: Set<string>): string {
+  if (names.size === 0) return ''
+  const arr = [...names].sort()
+  if (arr.length === 1) return arr[0]
+  const parseNum = (name: string) => {
+    const m = name.match(/^(.+)-(\d+)$/)
+    return m ? { base: m[1], num: parseInt(m[2]), pad: m[2].length } : null
+  }
+  const groups = new Map<string, { nums: number[]; pad: number }>()
+  const singles: string[] = []
+  for (const name of arr) {
+    const p = parseNum(name)
+    if (!p) { singles.push(name) } else {
+      const g = groups.get(p.base)
+      if (g) { g.nums.push(p.num) } else { groups.set(p.base, { nums: [p.num], pad: p.pad }) }
+    }
+  }
+  const parts: string[] = []
+  for (const [base, { nums, pad }] of groups) {
+    nums.sort((a, b) => a - b)
+    const runs: number[][] = []
+    let run: number[] = [nums[0]]
+    for (let i = 1; i < nums.length; i++) {
+      if (nums[i] === nums[i - 1] + 1) { run.push(nums[i]) } else { runs.push(run); run = [nums[i]] }
+    }
+    runs.push(run)
+    for (const r of runs) {
+      const fmt = (n: number) => `${base}-${String(n).padStart(pad, '0')}`
+      parts.push(r.length === 1 ? fmt(r[0]) : `${fmt(r[0])} to ${fmt(r[r.length - 1])}`)
+    }
+  }
+  return [...parts, ...singles].join(', ')
+}
+
+function isInternalIp(ip: string): boolean {
+  return (
+    ip.startsWith('10.') ||
+    ip.startsWith('192.168.') ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(ip)
+  )
+}
+
+function dedup(ips: string[]): string[] {
+  return [...new Set(ips.filter(Boolean))]
+}
+
+function RangeFromCombobox({ value, onChange, instances }: { value: string; onChange: (v: string) => void; instances: { name: string }[] }) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+
+  const filtered = (search ? instances.filter((i) => i.name.toLowerCase().includes(search.toLowerCase())) : instances)
+    .map((i) => i.name).sort()
+
+  useEffect(() => {
+    if (!open) return
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false)
+        setSearch('')
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+        placeholder="e.g. fs-tve-fwb-000"
+        value={open ? search : value}
+        onChange={(e) => { setSearch(e.target.value); onChange(e.target.value); setOpen(true) }}
+        onFocus={() => { setSearch(value); setOpen(true) }}
+        onBlur={() => { if (!open) setSearch('') }}
+        autoComplete="off"
+      />
+      {open && filtered.length > 0 && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-lg border border-slate-700 bg-slate-900 shadow-xl max-h-48 overflow-y-auto">
+          {filtered.map((name) => (
+            <button
+              key={name}
+              type="button"
+              className="flex w-full items-center px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 text-left"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => { onChange(name); setSearch(''); setOpen(false) }}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function SSH() {
-  const [addresses, setAddresses] = useState('')
+  const [manualAddresses, setManualAddresses] = useState('')
   const [command, setCommand] = useState('')
   const [mode, setMode] = useState<'parallel' | 'sequential'>('parallel')
   const [streamUrl, setStreamUrl] = useState<string | null>(null)
@@ -21,44 +118,57 @@ export default function SSH() {
   const [rangeFrom, setRangeFrom] = useState('')
   const [rangeTo, setRangeTo] = useState<number | ''>('')
   const [selectedConfig, setSelectedConfig] = useState<string>('')
-
   const [scheduleOpen, setScheduleOpen] = useState(false)
 
+  const { theme } = useTheme()
   const executeSsh = useExecuteSsh()
   const testSsh = useTestSsh()
-  const { data: publicIps, isLoading: ipsLoading } = usePublicIps()
   const { data: instances = [], isLoading: instancesLoading } = useInstances()
   const { data: configFiles = [] } = useConfigs()
   const { data: configDetail } = useConfig(selectedConfig || null)
   const { data: settings } = useSettings()
 
   const configCommands = configDetail
-    ? configDetail.content
-        .split('\n')
-        .map((l) => l.trim())
-        .filter((l) => l && !l.startsWith('#'))
-        .join('\n')
+    ? configDetail.content.split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#')).join('\n')
     : ''
 
-  const withIp = useMemo(() => instances.filter((i) => i.public_ip), [instances])
-
   const filtered = useMemo(
-    () => withIp.filter((i) => !search || i.name.toLowerCase().includes(search.toLowerCase())),
-    [withIp, search],
+    () => instances.filter((i) => !search || i.name.toLowerCase().includes(search.toLowerCase())),
+    [instances, search],
   )
 
-  function rebuildAddresses(next: Set<string>) {
-    const ips = instances
-      .filter((i) => next.has(i.name) && i.public_ip)
-      .map((i) => i.public_ip as string)
-    setAddresses(ips.join('\n'))
-  }
+  // Resolve IPs for selected names: public first, internal as fallback (for execute/test)
+  const selectedIps = useMemo(() => {
+    return instances
+      .filter((i) => selectedNames.has(i.name))
+      .map((i) => (i.public_ip ?? i.internal_ip) as string)
+      .filter(Boolean)
+  }, [instances, selectedNames])
+
+  // Resolve internal IPs only for selected names (for scheduling)
+  const selectedInternalIps = useMemo(() => {
+    return instances
+      .filter((i) => selectedNames.has(i.name))
+      .map((i) => i.internal_ip as string)
+      .filter(Boolean)
+  }, [instances, selectedNames])
+
+  // Combined final address list: selected instance IPs + manual textarea IPs, deduped
+  const allAddresses = useMemo(() => {
+    const manual = manualAddresses.split('\n').map((l) => l.trim()).filter(Boolean)
+    return dedup([...selectedIps, ...manual])
+  }, [selectedIps, manualAddresses])
+
+  // Address list for scheduling: internal IPs from selected instances + internal IPs from manual list
+  const scheduleAddresses = useMemo(() => {
+    const manualInternal = manualAddresses.split('\n').map((l) => l.trim()).filter((ip) => ip && isInternalIp(ip))
+    return dedup([...selectedInternalIps, ...manualInternal])
+  }, [selectedInternalIps, manualAddresses])
 
   function toggleInstance(name: string) {
     setSelectedNames((prev) => {
       const next = new Set(prev)
       next.has(name) ? next.delete(name) : next.add(name)
-      rebuildAddresses(next)
       return next
     })
   }
@@ -67,72 +177,57 @@ export default function SSH() {
     setSelectedNames((prev) => {
       const next = new Set(prev)
       filtered.forEach((i) => next.add(i.name))
-      rebuildAddresses(next)
       return next
     })
   }
 
   function clearSelection() {
     setSelectedNames(new Set())
-    setAddresses('')
+    setManualAddresses('')
+  }
+
+  function handleLoadExternalIps() {
+    const ips = instances.map((i) => i.public_ip).filter(Boolean) as string[]
+    if (!ips.length) { toast.error('No external IPs available'); return }
+    setManualAddresses(ips.join('\n'))
+    setSelectedNames(new Set())
+    toast.success(`Loaded ${ips.length} external IP${ips.length !== 1 ? 's' : ''}`)
+  }
+
+  function handleLoadInternalIps() {
+    const ips = instances.map((i) => i.internal_ip).filter(Boolean) as string[]
+    if (!ips.length) { toast.error('No internal IPs available'); return }
+    setManualAddresses(ips.join('\n'))
+    setSelectedNames(new Set())
+    toast.success(`Loaded ${ips.length} internal IP${ips.length !== 1 ? 's' : ''}`)
   }
 
   function applyRange() {
     if (!rangeFrom || rangeTo === '') {
-      toast.error('Select a from instance and enter a to number')
+      toast.error('Enter a from instance name and a to number')
       return
     }
-    // Strip trailing -NNN to get base name and start number
     const match = rangeFrom.match(/^(.+)-(\d+)$/)
-    if (!match) {
-      toast.error('Could not parse instance name')
-      return
-    }
+    if (!match) { toast.error('Could not parse instance name'); return }
     const base = match[1]
     const start = parseInt(match[2])
     const end = Number(rangeTo)
-    if (end < start) {
-      toast.error('"To" must be >= the from instance number')
-      return
-    }
+    if (end < start) { toast.error('"To" must be >= the from instance number'); return }
     const pad = (n: number) => String(n).padStart(match[2].length, '0')
     const names = Array.from({ length: end - start + 1 }, (_, i) => `${base}-${pad(start + i)}`)
-    const ips = names
-      .map((n) => instances.find((i) => i.name === n))
-      .filter((i): i is NonNullable<typeof i> => !!i?.public_ip)
-      .map((i) => i.public_ip as string)
-    if (ips.length === 0) {
-      toast.error('No instances with a public IP found in that range')
-      return
-    }
-    setAddresses(ips.join('\n'))
-    setSelectedNames(new Set())
-    toast.success(`Selected ${ips.length} instance${ips.length !== 1 ? 's' : ''} from range`)
-  }
-
-  function handleLoadIps() {
-    if (!publicIps?.length) {
-      toast.error('No public IPs available')
-      return
-    }
-    const ips = publicIps.map((i) => i.ip).join('\n')
-    setAddresses(ips)
-    setSelectedNames(new Set())
-    toast.success(`Loaded ${publicIps.length} IPs`)
+    const next = new Set(names)
+    setSelectedNames(next)
+    toast.success(`Selected ${names.length} instance${names.length !== 1 ? 's' : ''} from range`)
   }
 
   async function handleTest() {
-    const lines = addresses.split('\n').map((l) => l.trim()).filter(Boolean)
-    if (lines.length === 0) {
-      toast.error('Enter at least one IP address')
-      return
-    }
+    if (allAddresses.length === 0) { toast.error('Select instances or enter at least one IP address'); return }
     setStreamUrl(null)
     try {
-      const result = await testSsh.mutateAsync(lines)
+      const result = await testSsh.mutateAsync(allAddresses)
       if (result.job_id) {
         setStreamUrl(`/api/ssh/${result.job_id}/stream`)
-        toast.success(`Testing connection to ${lines.length} host${lines.length !== 1 ? 's' : ''}…`)
+        toast.success(`Testing connection to ${allAddresses.length} host${allAddresses.length !== 1 ? 's' : ''}…`)
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Test failed')
@@ -140,36 +235,41 @@ export default function SSH() {
   }
 
   async function handleExecute() {
-    const lines = addresses.split('\n').map((l) => l.trim()).filter(Boolean)
-    if (lines.length === 0) {
-      toast.error('Enter at least one IP address')
-      return
-    }
-    if (!selectedConfig && !command.trim()) {
-      toast.error('Enter a command or select a configuration file')
-      return
-    }
+    if (allAddresses.length === 0) { toast.error('Select instances or enter at least one IP address'); return }
+    if (!selectedConfig && !command.trim()) { toast.error('Enter a command or select a configuration file'); return }
     setStreamUrl(null)
     try {
       const result = await executeSsh.mutateAsync({
-        addresses: lines,
+        addresses: allAddresses,
         mode,
         ...(selectedConfig ? { configName: selectedConfig } : { command: command.trim() }),
       })
       if (result.job_id) {
         setStreamUrl(`/api/ssh/${result.job_id}/stream`)
-        toast.success(`SSH execution started on ${lines.length} host${lines.length !== 1 ? 's' : ''}`)
+        toast.success(`SSH execution started on ${allAddresses.length} host${allAddresses.length !== 1 ? 's' : ''}`)
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'SSH execution failed')
     }
   }
 
-  const textareaClass =
-    'w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500 resize-none'
-  const labelClass = 'block text-xs font-medium text-slate-400 mb-1'
+  function handleSchedule() {
+    const manualExternal = manualAddresses.split('\n').map((l) => l.trim()).filter((ip) => ip && !isInternalIp(ip))
+    if (manualExternal.length > 0) {
+      toast.warning(
+        `${manualExternal.length} external IP${manualExternal.length !== 1 ? 's' : ''} in the manual list will be skipped — Cloud Run can only reach internal IPs`,
+        { duration: 5000, icon: <AlertTriangle className="w-4 h-4 text-orange-400" /> }
+      )
+    }
+    if (scheduleAddresses.length === 0) {
+      toast.error('No internal IPs available — select instances with an internal IP or add internal IPs manually')
+      return
+    }
+    setScheduleOpen(true)
+  }
 
-  const addressCount = addresses.split('\n').filter((l) => l.trim()).length
+  const textareaClass = 'w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500 resize-none'
+  const labelClass = 'block text-xs font-medium text-slate-400 mb-1'
 
   return (
     <div className="space-y-6">
@@ -182,31 +282,6 @@ export default function SSH() {
         {/* Left: Form */}
         <div className="space-y-4 rounded-xl border border-slate-700 bg-slate-800/30 p-5">
 
-          {/* Addresses */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className={labelClass + ' mb-0'}>IP Addresses (one per line)</label>
-              <button
-                onClick={handleLoadIps}
-                disabled={ipsLoading}
-                className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50"
-              >
-                {ipsLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-                Load all
-              </button>
-            </div>
-            <textarea
-              rows={5}
-              className={textareaClass}
-              placeholder="10.0.0.1&#10;10.0.0.2&#10;10.0.0.3"
-              value={addresses}
-              onChange={(e) => { setAddresses(e.target.value); setSelectedNames(new Set()) }}
-            />
-            <p className="text-xs text-slate-500 mt-1">
-              {addressCount} address{addressCount !== 1 ? 'es' : ''}
-            </p>
-          </div>
-
           {/* Instance picker */}
           <div>
             <button
@@ -216,14 +291,13 @@ export default function SSH() {
               <span className={selectedNames.size === 0 ? 'text-slate-500' : 'text-slate-200'}>
                 {selectedNames.size === 0
                   ? 'Select instances by name…'
-                  : `${selectedNames.size} of ${withIp.length} instance${withIp.length !== 1 ? 's' : ''} selected`}
+                  : `${selectedNames.size} of ${instances.length} instance${instances.length !== 1 ? 's' : ''} selected`}
               </span>
               {pickerOpen ? <ChevronUp className="w-3.5 h-3.5 text-slate-400" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
             </button>
 
             {pickerOpen && (
               <div className="mt-1 rounded-lg border border-slate-700 bg-slate-900 overflow-hidden">
-                {/* Toolbar */}
                 <div className="flex items-center gap-2 p-2 border-b border-slate-800">
                   <div className="relative flex-1">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
@@ -256,14 +330,13 @@ export default function SSH() {
                   </button>
                 </div>
 
-                {/* Instance list */}
                 <div className="max-h-48 overflow-y-auto">
                   {instancesLoading ? (
                     <div className="px-3 py-4 text-center">
                       <Loader2 className="w-4 h-4 animate-spin text-slate-400 mx-auto" />
                     </div>
                   ) : filtered.length === 0 ? (
-                    <div className="px-3 py-3 text-sm text-slate-500">No instances with a public IP</div>
+                    <div className="px-3 py-3 text-sm text-slate-500">No instances found</div>
                   ) : (
                     <div className="grid grid-cols-2 gap-px bg-slate-800">
                       {filtered.map((inst) => {
@@ -293,9 +366,8 @@ export default function SSH() {
                   )}
                 </div>
 
-                {/* Footer summary */}
                 <div className="px-3 py-1.5 border-t border-slate-800 text-xs text-slate-500 flex justify-between">
-                  <span>{filtered.length} shown{search ? ` (filtered from ${withIp.length})` : ''}</span>
+                  <span>{filtered.length} shown{search ? ` (filtered from ${instances.length})` : ''}</span>
                   <span>{selectedNames.size} selected</span>
                 </div>
               </div>
@@ -317,12 +389,7 @@ export default function SSH() {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className={labelClass}>From instance</label>
-                    <CustomSelect
-                      className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      value={rangeFrom}
-                      onChange={setRangeFrom}
-                      options={[{ value: '', label: 'Select…' }, ...withIp.map((i) => ({ value: i.name, label: i.name }))]}
-                    />
+                    <RangeFromCombobox value={rangeFrom} onChange={setRangeFrom} instances={instances} />
                   </div>
                   <div>
                     <label className={labelClass}>To number</label>
@@ -345,6 +412,54 @@ export default function SSH() {
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Selection summary */}
+          {selectedNames.size > 0 && (
+            <div className="flex items-start justify-between gap-2 px-3 py-2 rounded-lg bg-blue-900/20">
+              <div className="text-xs text-blue-300 min-w-0">
+                <span className="font-medium">{selectedNames.size} instance{selectedNames.size !== 1 ? 's' : ''} selected: </span>
+                <span className="font-mono">{formatSelection(selectedNames)}</span>
+              </div>
+              <button onClick={clearSelection} className={`shrink-0 ${theme === 'security-fabric' ? 'text-[#db291c] hover:text-[#ff4433]' : 'text-blue-500 hover:text-blue-300'}`}>
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* IP Addresses */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className={labelClass + ' mb-0'}>IP Addresses (one per line)</label>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleLoadInternalIps}
+                  className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
+                >
+                  <Download className="w-3 h-3" />
+                  Load internal IPs
+                </button>
+                <button
+                  onClick={handleLoadExternalIps}
+                  className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
+                >
+                  <Download className="w-3 h-3" />
+                  Load external IPs
+                </button>
+              </div>
+            </div>
+            <textarea
+              rows={4}
+              className={textareaClass}
+              placeholder=""
+              value={manualAddresses}
+              onChange={(e) => { setManualAddresses(e.target.value); setSelectedNames(new Set()) }}
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              {allAddresses.length} address{allAddresses.length !== 1 ? 'es' : ''} total
+              {selectedNames.size > 0 && manualAddresses.trim() && ' (instances + manual, deduplicated)'}
+              {selectedNames.size > 0 && !manualAddresses.trim() && ` from ${selectedNames.size} selected instance${selectedNames.size !== 1 ? 's' : ''}`}
+            </p>
           </div>
 
           {/* Execution mode */}
@@ -423,9 +538,9 @@ export default function SSH() {
               )}
             </button>
             <button
-              onClick={() => setScheduleOpen(true)}
-              disabled={addressCount === 0}
-              title="Schedule this SSH job"
+              onClick={handleSchedule}
+              disabled={allAddresses.length === 0}
+              title="Schedule this SSH job (internal IPs only)"
               className="px-3 py-2.5 rounded-lg border border-slate-600 hover:border-slate-400 disabled:opacity-50 text-slate-300 hover:text-slate-100 flex items-center gap-1.5 text-sm transition-colors"
             >
               <CalendarClock className="w-4 h-4" />
@@ -434,7 +549,7 @@ export default function SSH() {
           </div>
         </div>
 
-        {/* Right: Log output — relative wrapper so absolute child doesn't inflate grid row */}
+        {/* Right: Log output */}
         <div className="relative">
           <div className="absolute inset-0 rounded-xl border border-slate-700 bg-slate-800/30 p-5 flex flex-col gap-3 overflow-hidden">
             <h2 className="text-sm font-medium text-slate-300 shrink-0">SSH output</h2>
@@ -448,7 +563,7 @@ export default function SSH() {
           jobType="ssh"
           projectId={settings?.active_project_id ?? undefined}
           payload={{
-            addresses: addresses.split('\n').map((l) => l.trim()).filter(Boolean),
+            addresses: scheduleAddresses,
             commands: selectedConfig ? configCommands.split('\n').map((l) => l.trim()).filter(Boolean) : command.trim().split('\n').map((l) => l.trim()).filter(Boolean),
             config_name: selectedConfig || undefined,
             parallel: mode === 'parallel',

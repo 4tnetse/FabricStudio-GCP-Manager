@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { CalendarClock, ChevronDown, ChevronUp, Info, Loader2, Plus, Search, X } from 'lucide-react'
 import { apiGet, apiPost } from '@/api/client'
@@ -8,6 +8,56 @@ import { useInstances } from '@/api/instances'
 import { LogStream } from '@/components/LogStream'
 import { CustomSelect } from '@/components/CustomSelect'
 import { ScheduleDialog } from '@/components/ScheduleDialog'
+
+function RangeFromCombobox({ value, onChange, instances }: { value: string; onChange: (v: string) => void; instances: { name: string }[] }) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+
+  const filtered = (search ? instances.filter((i) => i.name.toLowerCase().includes(search.toLowerCase())) : instances)
+    .map((i) => i.name).sort()
+
+  useEffect(() => {
+    if (!open) return
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false)
+        setSearch('')
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-slate-500"
+        placeholder="e.g. fs-tve-fwb-000"
+        value={open ? search : value}
+        onChange={(e) => { setSearch(e.target.value); onChange(e.target.value); setOpen(true) }}
+        onFocus={() => { setSearch(value); setOpen(true) }}
+        onBlur={() => { if (!open) setSearch('') }}
+        autoComplete="off"
+      />
+      {open && filtered.length > 0 && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-lg border border-slate-700 bg-slate-900 shadow-xl max-h-48 overflow-y-auto">
+          {filtered.map((name) => (
+            <button
+              key={name}
+              type="button"
+              className="flex w-full items-center px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 text-left"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => { onChange(name); setSearch(''); setOpen(false) }}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function formatSelection(names: Set<string>): string {
   if (names.size === 0) return ''
@@ -145,7 +195,7 @@ export default function Configure() {
 
   function applyRange() {
     if (!rangeFrom || rangeTo === '') {
-      toast.error('Select a from instance and enter a to number')
+      toast.error('Enter a from instance name and a to number')
       return
     }
     const match = rangeFrom.match(/^(.+)-(\d+)$/)
@@ -337,12 +387,7 @@ export default function Configure() {
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className={labelClass}>From instance</label>
-                      <CustomSelect
-                        className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        value={rangeFrom}
-                        onChange={setRangeFrom}
-                        options={[{ value: '', label: 'Select…' }, ...instances.map((i) => ({ value: i.name, label: i.name }))]}
-                      />
+                      <RangeFromCombobox value={rangeFrom} onChange={setRangeFrom} instances={instances} />
                     </div>
                     <div>
                       <label className={labelClass}>To number</label>

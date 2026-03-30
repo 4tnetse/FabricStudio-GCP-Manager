@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.11
+SSL retry on GCP operation polling (fixes clone failures on slow connections); SSH page overhaul: instance picker matches Configure page, load internal/external IPs separately, scheduling auto-uses internal IPs with deduplication; Configure range from-field is now a free-text combobox; SSH schedule job type label fixed to "SSH".
+
 ## 2.10
 Use external IP for all Fabric Studio API calls so DNS is no longer required; SSH scheduling (schedule SSH commands via Cloud Scheduler); firewall rule detail popup with GCP Console link; editable image description; rename disabled on running instances.
 

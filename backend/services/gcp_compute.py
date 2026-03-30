@@ -1,4 +1,5 @@
 import asyncio
+import time
 from functools import partial
 from typing import Any
 
@@ -7,6 +8,32 @@ from google.oauth2.service_account import Credentials
 
 from models.firewall import FirewallRule
 from models.instance import Instance, InstanceStatus
+
+
+_TRANSIENT_ERRORS = ("SSL", "UNEXPECTED_EOF", "EOF occurred", "Max retries exceeded", "ConnectionError", "RemoteDisconnected")
+
+
+def _wait_for_op(op, retries: int = 5, delay: int = 10) -> None:
+    """Call op.result() with retries on transient SSL/connection errors.
+
+    GCP operation polling uses long-lived HTTP connections that can drop with
+    SSL EOF errors on slow operations (e.g. instance creation from machine image).
+    The operation itself completes on the GCP side; we just need to re-poll.
+    """
+    last_exc: Exception | None = None
+    for attempt in range(retries):
+        try:
+            _wait_for_op(op)
+            return
+        except Exception as exc:
+            msg = str(exc)
+            if any(token in msg for token in _TRANSIENT_ERRORS):
+                last_exc = exc
+                if attempt < retries - 1:
+                    time.sleep(delay)
+                continue
+            raise
+    raise last_exc  # type: ignore[misc]
 
 
 def _status_from_str(s: str) -> InstanceStatus:
@@ -177,7 +204,7 @@ class GCPComputeService:
                         auto_delete=True,
                         device_name=disk.device_name,
                     )
-                    op.result()
+                    _wait_for_op(op)
             # Fire and don't wait — callers that need to wait use wait_until_deleted()
             client.delete(project=self._project_id, zone=zone, instance=name)
 
@@ -208,7 +235,7 @@ class GCPComputeService:
                 instance=name,
                 instances_set_machine_type_request_resource=body,
             )
-            op.result()
+            _wait_for_op(op)
 
         await self._run(_set)
 
@@ -229,7 +256,7 @@ class GCPComputeService:
                 instance=name,
                 instances_set_name_request_resource=body,
             )
-            op.result()
+            _wait_for_op(op)
 
         await self._run(_get_and_rename)
 
@@ -277,7 +304,7 @@ class GCPComputeService:
                 instance=name,
                 tags_resource=body,
             )
-            op.result()
+            _wait_for_op(op)
 
         await self._run(_add)
 
@@ -296,7 +323,7 @@ class GCPComputeService:
                 instance=name,
                 tags_resource=body,
             )
-            op.result()
+            _wait_for_op(op)
 
         await self._run(_remove)
 
@@ -318,7 +345,7 @@ class GCPComputeService:
                 instance=name,
                 instances_set_labels_request_resource=body,
             )
-            op.result()
+            _wait_for_op(op)
 
         await self._run(_add)
 
@@ -341,7 +368,7 @@ class GCPComputeService:
                 instance=name,
                 instances_set_labels_request_resource=body,
             )
-            op.result()
+            _wait_for_op(op)
 
         await self._run(_remove)
 
@@ -393,7 +420,7 @@ class GCPComputeService:
                 firewall=rule_name,
                 firewall_resource=body,
             )
-            op.result()
+            _wait_for_op(op)
 
         await self._run(_update)
 
@@ -431,7 +458,7 @@ class GCPComputeService:
                 image=name,
                 image_resource=compute_v1.Image(description=description),
             )
-            op.result()
+            _wait_for_op(op)
 
         await self._run(_patch)
 
@@ -480,7 +507,7 @@ class GCPComputeService:
                 project=self._project_id,
                 machine_image_resource=body,
             )
-            op.result()
+            _wait_for_op(op)
 
         await self._run(_create)
 
@@ -489,7 +516,7 @@ class GCPComputeService:
 
         def _delete():
             op = client.delete(project=self._project_id, machine_image=name)
-            op.result()
+            _wait_for_op(op)
 
         await self._run(_delete)
 
@@ -509,7 +536,7 @@ class GCPComputeService:
                 source_machine_image=machine_image_url,
             )
             op = client.insert(request=req)
-            op.result()
+            _wait_for_op(op)
 
         await self._run(_create)
 
@@ -633,6 +660,6 @@ class GCPComputeService:
                 zone=zone,
                 instance_resource=instance_body,
             )
-            op.result()
+            _wait_for_op(op)
 
         await self._run(_build)
