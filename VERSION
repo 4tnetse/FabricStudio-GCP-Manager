@@ -1,7 +1,8 @@
-2.12
+2.13
 
 # Version history
 # ---------------
+# 2.13   Image import: upload disk-image.tar.gz from browser → GCS staging bucket (auto-created with CORS) → GCP image via raw disk API (no OS adaptation) → staging file deleted; background operation with progress banner; cancel cleans up staging file; Configure license server field validates IPv4
 # 2.12   Fix SSH schedules failing with unknown job_type 'ssh'; fix scheduled Configure/Clone jobs failing with "No admin password available" (read fs_admin_password from per-project config via get_project_config())
 # 2.11   SSL retry on GCP operation polling; SSH page overhaul (instance picker, internal/external IP loading, schedule uses internal IPs, dedup); Configure range from-field editable; SSH schedule label fix
 # 2.10   Use external IP for all FS API calls (no DNS required); SSH scheduling; firewall rule detail popup + GCP Console link; editable image description; rename disabled on running instances

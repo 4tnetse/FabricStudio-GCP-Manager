@@ -23,7 +23,7 @@ def _wait_for_op(op, retries: int = 5, delay: int = 10) -> None:
     last_exc: Exception | None = None
     for attempt in range(retries):
         try:
-            _wait_for_op(op)
+            op.result()
             return
         except Exception as exc:
             msg = str(exc)
@@ -461,6 +461,21 @@ class GCPComputeService:
             _wait_for_op(op)
 
         await self._run(_patch)
+
+    async def import_image(self, name: str, gcs_uri: str, family: str = "", description: str = "") -> None:
+        """Create a GCP image from a raw disk tar.gz in GCS (no OS adaptation)."""
+        client = compute_v1.ImagesClient(credentials=self._credentials)
+
+        def _insert():
+            image = compute_v1.Image(name=name, raw_disk=compute_v1.Image.RawDisk(source=gcs_uri))
+            if family:
+                image.family = family
+            if description:
+                image.description = description
+            op = client.insert(project=self._project_id, image_resource=image)
+            _wait_for_op(op)
+
+        await self._run(_insert)
 
     # ------------------------------------------------------------------ #
     #  Zones                                                               #

@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.13
+Image import: upload a `disk-image.tar.gz` from the browser directly to a GCS staging bucket (auto-created with CORS), then create a GCP image via the raw disk API (OS adaptation skipped). Staging file deleted automatically after import. Import runs in the background — dialog is closable at any time with a status banner on the Images page; cancelling cleans up the staging file. Configure page license server field now validates IPv4 format.
+
 ## 2.12
 Fix SSH schedules failing with "unknown job_type 'ssh'"; fix scheduled Configure/Clone jobs failing with "No admin password available" (fs_admin_password now read from per-project config via get_project_config() instead of the legacy top-level settings field).
 

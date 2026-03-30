@@ -26,7 +26,7 @@ All fields are optional — only fill in what you want to change. Operations are
 | **New admin password** | New admin password to set |
 | **Fabric Studio Registration token:secret** | Fabric Studio registration token (format: `token:secret`) |
 | **SSH public keys** | Additional SSH public keys to install. The key from Settings is always installed. Check **Delete existing keys before adding** to replace all existing keys. |
-| **License Server IP** | Internal IP address of the Fabric Studio license server |
+| **License Server IP** | Internal IP address of the Fabric Studio license server — must be a valid IPv4 address (e.g. `10.20.30.2`) |
 | **Guest password** | New guest password (must meet policy: at least 3 of uppercase, lowercase, digit, special character) |
 | **Hostname** | Hostname template; use `{count}` to insert the instance number (e.g. `Attendee - {count}`) |
 

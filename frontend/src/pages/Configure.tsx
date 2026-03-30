@@ -134,6 +134,7 @@ export default function Configure() {
   const [deleteExistingKeys, setDeleteExistingKeys] = useState(false)
   const [trialKey, setTrialKey] = useState('')
   const [licenseServer, setLicenseServer] = useState('')
+  const licenseServerError = licenseServer !== '' && !/^(\d{1,3}\.){3}\d{1,3}$/.test(licenseServer)
   const [workspaceSource, setWorkspaceSource] = useState('')
   const [workspaceTemplates, setWorkspaceTemplates] = useState<{ id: number; name: string; description: string }[]>([])
   const [workspaceTemplatesLoading, setWorkspaceTemplatesLoading] = useState(false)
@@ -525,6 +526,9 @@ export default function Configure() {
                 onChange={(e) => setLicenseServer(e.target.value)}
                 placeholder="e.g. 10.20.30.2"
               />
+              {licenseServerError && (
+                <p className="text-red-400 text-xs mt-1">Must be an IP address (e.g. 10.20.30.2)</p>
+              )}
             </div>
 
             <div>
@@ -671,7 +675,7 @@ export default function Configure() {
             <div className="flex gap-2">
             <button
               onClick={handleConfigure}
-              disabled={configuring || streaming || selectedNames.size === 0}
+              disabled={configuring || streaming || selectedNames.size === 0 || licenseServerError}
               className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors"
             >
               {configuring || streaming ? (
@@ -685,7 +689,7 @@ export default function Configure() {
             </button>
             <button
               onClick={() => setScheduleOpen(true)}
-              disabled={selectedNames.size === 0}
+              disabled={selectedNames.size === 0 || licenseServerError}
               title="Schedule this configure job"
               className="px-3 py-2.5 rounded-lg border border-slate-600 hover:border-slate-400 disabled:opacity-50 text-slate-300 hover:text-slate-100 flex items-center gap-1.5 text-sm transition-colors"
             >
