@@ -271,13 +271,22 @@ async def _run_upgrade(upgrade_id: str, q: asyncio.Queue, project_id: str, regio
     try:
         credentials = get_credentials()
 
-        # Step 1 — Copy image to GCR via Cloud Build (same as deploy)
+        # Step 1 — Ensure Cloud Build API is enabled (may not be if this is a first upgrade on this project)
+        await log("Ensuring Cloud Build API is enabled...")
+        try:
+            from routers.cloud_run import _enable_apis
+            await loop.run_in_executor(None, _enable_apis, credentials, project_id)
+            await log("✓ APIs ready")
+        except Exception as exc:
+            await log(f"⚠  Could not enable APIs ({exc}) — continuing.")
+
+        # Step 2 — Copy image to GCR via Cloud Build (same as deploy)
         await log(f"Copying container image to gcr.io/{project_id} (v{version}) via Cloud Build (this may take a few minutes)...")
         from routers.cloud_run import _copy_image_to_gcr
         image = await loop.run_in_executor(None, _copy_image_to_gcr, credentials, project_id, version)
         await log(f"✓ Image ready: {image}")
 
-        # Step 2 — Update Cloud Run service
+        # Step 3 — Update Cloud Run service
         await log("Updating Cloud Run service 'fabricstudio-scheduler'...")
 
         def _update():

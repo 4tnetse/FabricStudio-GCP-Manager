@@ -387,6 +387,13 @@ def _copy_image_to_gcr(credentials, project_id: str, version: str) -> str:
         timeout=30,
     )
     if resp.status_code == 403:
+        body = resp.text or ""
+        if "SERVICE_DISABLED" in body or "has not been used" in body or "is disabled" in body:
+            raise RuntimeError(
+                f"Cloud Build API is not enabled on project {project_id}. "
+                "Enable it at: https://console.cloud.google.com/apis/library/cloudbuild.googleapis.com"
+                f"?project={project_id}"
+            )
         raise RuntimeError(
             "Permission denied for Cloud Build — grant the service account the 'Cloud Build Editor' role "
             f"(roles/cloudbuild.builds.editor) on project {project_id}."

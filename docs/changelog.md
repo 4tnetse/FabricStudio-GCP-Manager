@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.14
+Fix Cloud Run upgrade failing with "Permission denied for Cloud Build" when switching to a different project: the upgrade now enables the Cloud Build API before attempting the image copy (the initial deploy always did this, but the upgrade path skipped it). The 403 error message now also distinguishes between an API-not-enabled error and a true IAM permission error.
+
 ## 2.13
 Image import: upload a `disk-image.tar.gz` from the browser directly to a GCS staging bucket (auto-created with CORS), then create a GCP image via the raw disk API (OS adaptation skipped). Staging file deleted automatically after import. Import runs in the background — dialog is closable at any time with a status banner on the Images page; cancelling cleans up the staging file. Configure page license server field now validates IPv4 format.
 
