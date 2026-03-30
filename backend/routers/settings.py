@@ -67,14 +67,30 @@ async def upload_key(file: UploadFile = File(...)):
 @router.delete("/keys/{key_id}")
 async def delete_key(key_id: str):
     keys = key_store.load_keys()
-    if not any(k.id == key_id for k in keys):
+    key_meta = next((k for k in keys if k.id == key_id), None)
+    if not key_meta:
         raise HTTPException(status_code=404, detail="Key not found")
     key_store.delete_key(key_id)
-    # If the active key was deleted, clear it (caller handles project switch)
+
+    key_project_ids = {p.id for p in key_meta.projects}
+    update: dict = {}
+
     if cfg.settings.active_key_id == key_id:
-        updated = cfg.settings.model_copy(update={"active_key_id": None, "active_project_id": None})
-        cfg.settings = updated
-        cfg.save_settings(updated)
+        update["active_key_id"] = None
+        update["active_project_id"] = None
+
+    # Always clear legacy key path so migrate_from_legacy doesn't re-import this key on restart
+    if cfg.settings.service_account_key_path:
+        update["service_account_key_path"] = None
+        update["service_account_key_name"] = None
+
+    # Remove per-project configs for this key's projects
+    update["project_configs"] = {k: v for k, v in cfg.settings.project_configs.items() if k not in key_project_ids}
+    update["scheduling_configs"] = {k: v for k, v in cfg.settings.scheduling_configs.items() if k not in key_project_ids}
+
+    updated = cfg.settings.model_copy(update=update)
+    cfg.settings = updated
+    cfg.save_settings(updated)
     return {"detail": "Key deleted"}
 
 

@@ -45,7 +45,7 @@ _PROJECT_DEFAULTS: dict = {
     "fs_admin_password": "",
     "remote_scheduling_enabled": False,
     "remote_backend_url": "",
-    "cloud_run_region": "europe-west1",
+    "cloud_run_region": "",
     "firestore_project_id": "",
 }
 
@@ -69,7 +69,7 @@ class AppSettings(BaseModel):
     fs_admin_password: str = ""
     remote_scheduling_enabled: bool = False
     remote_backend_url: str = ""
-    cloud_run_region: str = "europe-west1"
+    cloud_run_region: str = ""
     firestore_project_id: str = ""
     # Per-project config (project_id -> dict of _PER_PROJECT_FIELDS)
     project_configs: dict[str, dict] = {}
@@ -92,20 +92,55 @@ class AppSettings(BaseModel):
 
 
 def get_project_config(s: "AppSettings", project_id: str | None) -> dict:
-    """Return per-project settings, falling back to legacy top-level values."""
+    """Return per-project settings for the given project."""
     base = dict(_PROJECT_DEFAULTS)
-    # Overlay legacy top-level values (backward compat for existing settings files)
-    for k in _PER_PROJECT_FIELDS:
-        v = getattr(s, k, None)
-        if v is not None and v != _PROJECT_DEFAULTS.get(k):
-            base[k] = v
-    # Overlay old scheduling_configs if present
+    # Overlay old scheduling_configs if present (legacy)
     if project_id and project_id in s.scheduling_configs:
         base.update({k: v for k, v in s.scheduling_configs[project_id].items() if k in _PER_PROJECT_FIELDS})
     # Overlay project_configs (authoritative)
     if project_id and project_id in s.project_configs:
         base.update({k: v for k, v in s.project_configs[project_id].items() if k in _PER_PROJECT_FIELDS})
     return base
+
+
+def migrate_legacy_preferences(s: "AppSettings") -> "AppSettings":
+    """One-time migration: move top-level preference fields into project_configs and clear them."""
+    legacy = {k: getattr(s, k) for k in _PER_PROJECT_FIELDS
+              if getattr(s, k, None) not in (None, _PROJECT_DEFAULTS.get(k))}
+    if not legacy:
+        return s
+    update: dict = {k: _PROJECT_DEFAULTS[k] for k in legacy}  # clear top-level fields
+    if s.active_project_id:
+        existing = dict(s.project_configs.get(s.active_project_id, {}))
+        for k, v in legacy.items():
+            if k not in existing:  # don't overwrite already-migrated values
+                existing[k] = v
+        new_configs = dict(s.project_configs)
+        new_configs[s.active_project_id] = existing
+        update["project_configs"] = new_configs
+    return s.model_copy(update=update)
+
+
+# Fields that had hardcoded defaults which should now be treated as "not set"
+_LEGACY_DEFAULTS = {
+    "cloud_run_region": "europe-west1",
+}
+
+
+def migrate_legacy_defaults(s: "AppSettings") -> "AppSettings":
+    """Clear fields that were previously hardcoded to a default value but should now be blank."""
+    new_configs = {}
+    changed = False
+    for pid, cfg_dict in s.project_configs.items():
+        cleaned = dict(cfg_dict)
+        for field, old_default in _LEGACY_DEFAULTS.items():
+            if cleaned.get(field) == old_default:
+                del cleaned[field]
+                changed = True
+        new_configs[pid] = cleaned
+    if not changed:
+        return s
+    return s.model_copy(update={"project_configs": new_configs})
 
 
 def get_project_scheduling(s: "AppSettings", project_id: str | None) -> dict:

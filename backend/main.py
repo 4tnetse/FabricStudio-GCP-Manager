@@ -65,6 +65,14 @@ async def lifespan(app: FastAPI):
             cfg.settings = updated
             cfg.save_settings(updated)
 
+    # Migrate legacy top-level preference fields into project_configs
+    migrated = cfg.migrate_legacy_preferences(cfg.settings)
+    # Clear fields that had hardcoded defaults but should now be blank
+    migrated = cfg.migrate_legacy_defaults(migrated)
+    if migrated is not cfg.settings:
+        cfg.settings = migrated
+        cfg.save_settings(migrated)
+
     if APP_MODE == "full":
         asyncio.create_task(_daily_price_refresh())
     yield
@@ -273,12 +281,9 @@ async def _run_upgrade(upgrade_id: str, q: asyncio.Queue, project_id: str, regio
 
         # Step 1 — Ensure Cloud Build API is enabled (may not be if this is a first upgrade on this project)
         await log("Ensuring Cloud Build API is enabled...")
-        try:
-            from routers.cloud_run import _enable_apis
-            await loop.run_in_executor(None, _enable_apis, credentials, project_id)
-            await log("✓ APIs ready")
-        except Exception as exc:
-            await log(f"⚠  Could not enable APIs ({exc}) — continuing.")
+        from routers.cloud_run import _enable_apis
+        await loop.run_in_executor(None, _enable_apis, credentials, project_id)
+        await log("✓ APIs ready")
 
         # Step 2 — Copy image to GCR via Cloud Build (same as deploy)
         await log(f"Copying container image to gcr.io/{project_id} (v{version}) via Cloud Build (this may take a few minutes)...")

@@ -7,6 +7,7 @@ import { useCloudRunPermissions, useCloudRunSubnets, useStartDeploy, useStartUnd
 import { useSettings, useUpdateSettings, useResetSettings } from '@/api/settings'
 import { useKeys, useUploadKey, useDeleteKey, useRenameKey } from '@/api/keys'
 import { useZones, useZoneLocations } from '@/api/instances'
+import { useSelectProject } from '@/api/projects'
 import { useTheme, type AppTheme } from '@/context/ThemeContext'
 import type { Settings, KeyInfo } from '@/lib/types'
 import { CustomSelect } from '@/components/CustomSelect'
@@ -82,6 +83,7 @@ export default function SettingsPage() {
   const uploadKey = useUploadKey()
   const deleteKey = useDeleteKey()
   const renameKey = useRenameKey()
+  const selectProject = useSelectProject()
   const queryClient = useQueryClient()
   const detectCloudRunUrl = useDetectCloudRunUrl()
   const startDeploy = useStartDeploy()
@@ -148,7 +150,7 @@ export default function SettingsPage() {
         fs_admin_password: settings.fs_admin_password ?? '',
         remote_scheduling_enabled: settings.remote_scheduling_enabled ?? false,
         remote_backend_url: settings.remote_backend_url ?? '',
-        cloud_run_region: settings.cloud_run_region ?? 'europe-west1',
+        cloud_run_region: settings.cloud_run_region ?? '',
         firestore_project_id: settings.firestore_project_id ?? '',
       })
     }
@@ -242,10 +244,17 @@ export default function SettingsPage() {
       toast.error('Please upload a JSON key file')
       return
     }
+    const isFirstKey = !keys || keys.length === 0
     try {
       const meta = await uploadKey.mutateAsync(file)
       toast.success('Key file uploaded successfully')
-      setPendingKeyInfo(meta)
+      if (isFirstKey) {
+        if (meta.projects.length > 0) {
+          await selectProject.mutateAsync(meta.projects[0].id)
+        }
+      } else {
+        setPendingKeyInfo(meta)
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to upload key file')
     }
@@ -286,6 +295,8 @@ export default function SettingsPage() {
     const file = e.dataTransfer.files[0]
     if (file) handleFileUpload(file)
   }
+
+  const hasKey = !!(keys && keys.length > 0)
 
   const DNS_LABEL = '[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?'
   const DNS_DOMAIN_RE = new RegExp(`^${DNS_LABEL}(\\.${DNS_LABEL})*$`)
@@ -328,7 +339,7 @@ export default function SettingsPage() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
 
       {/* Left column: Preferences */}
-      <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
+      {hasKey && <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
         <div className="flex items-center gap-2">
           <Settings2 className="w-4 h-4 text-slate-400" />
           <h2 className="text-sm font-semibold text-slate-200">Preferences</h2>
@@ -466,7 +477,7 @@ export default function SettingsPage() {
             Save settings
           </button>
         </div>
-      </div>{/* end Preferences widget */}
+      </div>}{/* end Preferences widget */}
 
       {/* Right column: Keys + Appearance */}
       <div className="space-y-6">
@@ -571,7 +582,7 @@ export default function SettingsPage() {
       <ThemeSelector />
 
       {/* Scheduling */}
-      <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
+      {hasKey && <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
         <div className="flex items-center gap-2">
           <CalendarClock className="w-4 h-4 text-slate-400" />
           <h2 className="text-sm font-semibold text-slate-200">Scheduling</h2>
@@ -590,11 +601,34 @@ export default function SettingsPage() {
           </div>
           <div
             className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ml-4 ${form.remote_scheduling_enabled ? 'bg-blue-600' : 'bg-slate-700'}`}
-            onClick={() => {
+            onClick={async () => {
               const next = !form.remote_scheduling_enabled
-              setField('remote_scheduling_enabled', next)
-              if (next && !form.firestore_project_id && settings?.active_project_id) {
-                setField('firestore_project_id', settings.active_project_id)
+              if (!next) {
+                // Disabling — clear all scheduling settings and save immediately
+                setForm(prev => ({
+                  ...prev,
+                  remote_scheduling_enabled: false,
+                  remote_backend_url: '',
+                  cloud_run_region: '',
+                  firestore_project_id: '',
+                }))
+                setDetectState('idle')
+                setShowDeployPanel(false)
+                setDeployStreamUrl(null)
+                setShowManualUrl(false)
+                try {
+                  await updateSettings.mutateAsync({
+                    remote_scheduling_enabled: false,
+                    remote_backend_url: '',
+                    cloud_run_region: '',
+                    firestore_project_id: '',
+                  })
+                } catch { /* ignore */ }
+              } else {
+                setField('remote_scheduling_enabled', true)
+                if (!form.firestore_project_id && settings?.active_project_id) {
+                  setField('firestore_project_id', settings.active_project_id)
+                }
               }
             }}
           >
@@ -777,18 +811,25 @@ export default function SettingsPage() {
                       {permsData && (
                         <div className="flex flex-wrap gap-x-4 gap-y-1">
                           {permsData.groups.map((g) => (
-                            <div key={g.name} className="flex items-center gap-1.5 text-xs">
+                            <div key={g.name} className="flex items-start gap-1.5 text-xs">
                               {g.passed
-                                ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
-                                : <XCircle className="w-3.5 h-3.5 text-red-400" />}
-                              <span className={g.passed ? 'text-slate-300' : 'text-red-400'}>{g.name}</span>
+                                ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0 mt-px" />
+                                : <XCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-px" />}
+                              <div>
+                                <span className={g.passed ? 'text-slate-300' : 'text-red-400'}>{g.name}</span>
+                                {!g.passed && g.message && (
+                                  <p className="text-red-400/80 mt-0.5 leading-snug">{g.message}</p>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
                       )}
                       {permsData && !allPermsOk && (
                         <p className="text-xs text-red-400 mt-1.5">
-                          Missing permissions — the service account needs Owner or the specific roles above.
+                          {permsData.groups.some(g => !g.passed && g.message)
+                            ? 'Fix the issues above before deploying.'
+                            : 'Missing permissions — the service account needs Owner or the specific roles above.'}
                         </p>
                       )}
                     </div>
@@ -839,27 +880,28 @@ export default function SettingsPage() {
                       </button>
                     )}
 
-                    {/* Deploy log output */}
-                    {deployStreamUrl && (
-                      <div className="rounded-lg border border-slate-700 bg-slate-950 overflow-hidden">
-                        <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-800 bg-slate-900">
-                          {deployStreaming
-                            ? <><Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" /><span className="text-xs text-slate-400">Deploying...</span></>
-                            : deployFailed
-                              ? <><XCircle className="w-3.5 h-3.5 text-red-400" /><span className="text-xs text-red-400">Deploy failed</span></>
-                              : <><CheckCircle2 className="w-3.5 h-3.5 text-green-400" /><span className="text-xs text-green-400">Completed</span></>}
-                        </div>
-                        <pre className="p-3 text-xs font-mono text-slate-300 overflow-auto max-h-48">
-                          {deployLines.map((l, i) => (
-                            <div key={i}>{l}</div>
-                          ))}
-                          {deployError && <div className="text-red-400">{deployError}</div>}
-                        </pre>
-                      </div>
-                    )}
                   </div>
                 )}
 
+              </div>
+            )}
+
+            {/* Deploy log output — shown outside isConfigured block so it persists after deploy completes */}
+            {deployStreamUrl && (
+              <div className="rounded-lg border border-slate-700 bg-slate-950 overflow-hidden">
+                <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-800 bg-slate-900">
+                  {deployStreaming
+                    ? <><Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" /><span className="text-xs text-slate-400">Deploying...</span></>
+                    : deployFailed
+                      ? <><XCircle className="w-3.5 h-3.5 text-red-400" /><span className="text-xs text-red-400">Deploy failed</span></>
+                      : <><CheckCircle2 className="w-3.5 h-3.5 text-green-400" /><span className="text-xs text-green-400">Completed</span></>}
+                </div>
+                <pre className="p-3 text-xs font-mono text-slate-300 overflow-auto max-h-48">
+                  {deployLines.map((l, i) => (
+                    <div key={i}>{l}</div>
+                  ))}
+                  {deployError && <div className="text-red-400">{deployError}</div>}
+                </pre>
               </div>
             )}
 
@@ -876,7 +918,7 @@ export default function SettingsPage() {
             Save settings
           </button>
         </div>
-      </div>
+      </div>}
 
       </div>{/* end right column */}
 

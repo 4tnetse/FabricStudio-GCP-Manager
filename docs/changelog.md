@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.15
+Settings overhaul: preferences are now always stored per-project (never top-level); Preferences and Scheduling widgets are hidden when no key is configured; uploading the first key auto-selects its project without a dialog; uploading a duplicate key is rejected with a toast; deleting a key clears all associated project configs and scheduling settings. Cloud Run deploy improvements: Firestore database mode is now checked as a pre-flight condition (blocks deploy if in Datastore mode); the Firestore step hard-fails instead of warning; GCP cooldown after a recent database delete is handled with a retry and progress message; the deploy log stays visible after completion; the API enable step no longer shows a warning when APIs are already enabled (403 handling); the Cloud Run region field is no longer pre-populated with a default; disabling the Scheduling toggle clears and saves all scheduling settings immediately.
+
 ## 2.14
 Fix Cloud Run upgrade failing with "Permission denied for Cloud Build" when switching to a different project: the upgrade now enables the Cloud Build API before attempting the image copy (the initial deploy always did this, but the upgrade path skipped it). The 403 error message now also distinguishes between an API-not-enabled error and a true IAM permission error.
 

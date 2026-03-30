@@ -10,6 +10,7 @@ export interface PermissionGroup {
   name: string
   passed: boolean
   permissions: { name: string; granted: boolean }[]
+  message?: string
 }
 
 export interface PermissionsResult {

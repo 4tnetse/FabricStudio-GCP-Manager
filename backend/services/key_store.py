@@ -77,18 +77,24 @@ def all_projects_annotated() -> list[dict]:
 def add_key(file_bytes: bytes, original_filename: str, display_name: str | None = None) -> KeyMeta:
     """Save key file, probe GCP for projects, store metadata. Returns KeyMeta."""
     _ensure_dir()
-    key_id = uuid.uuid4().hex
-    dest = get_key_path(key_id)
-    dest.write_bytes(file_bytes)
-    try:
-        dest.chmod(0o600)
-    except Exception:
-        pass
 
     client_email = ""
     try:
         key_data = json.loads(file_bytes)
         client_email = key_data.get("client_email", "")
+    except Exception:
+        pass
+
+    if client_email:
+        for existing in load_keys():
+            if existing.client_email == client_email:
+                raise ValueError(f"A key for {client_email} is already configured")
+
+    key_id = uuid.uuid4().hex
+    dest = get_key_path(key_id)
+    dest.write_bytes(file_bytes)
+    try:
+        dest.chmod(0o600)
     except Exception:
         pass
 

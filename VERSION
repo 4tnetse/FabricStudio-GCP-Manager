@@ -1,7 +1,8 @@
-2.14
+2.15
 
 # Version history
 # ---------------
+# 2.15   Settings overhaul: per-project preferences (no top-level storage), Preferences/Scheduling widgets hidden when no key configured, first key auto-selects project, duplicate key rejected, key deletion clears all saved settings; Cloud Run deploy: Firestore mode pre-flight check, Firestore hard-fail on Datastore mode with cooldown retry, deploy log persists after completion, API enable 403 no longer warns when APIs already enabled, scheduling toggle off clears all settings; Cloud Run region no longer pre-populated
 # 2.14   Fix Cloud Run upgrade failing with "Permission denied for Cloud Build" on project switch: upgrade now enables Cloud Build API before building; 403 response distinguishes API-not-enabled from true permission denied
 # 2.13   Image import: upload disk-image.tar.gz from browser → GCS staging bucket (auto-created with CORS) → GCP image via raw disk API (no OS adaptation) → staging file deleted; background operation with progress banner; cancel cleans up staging file; Configure license server field validates IPv4
 # 2.12   Fix SSH schedules failing with unknown job_type 'ssh'; fix scheduled Configure/Clone jobs failing with "No admin password available" (read fs_admin_password from per-project config via get_project_config())

@@ -75,16 +75,26 @@ async def check_permissions():
             raise HTTPException(status_code=503, detail=f"Cloud Resource Manager API is disabled. Enable it at: {url}")
         raise HTTPException(status_code=500, detail=exc_str)
 
-    return {
-        "groups": [
-            {
-                "name": name,
-                "passed": all(p in granted for p in perms),
-                "permissions": [{"name": p, "granted": p in granted} for p in perms],
-            }
-            for name, perms in _PERMISSION_GROUPS
-        ]
-    }
+    groups = [
+        {
+            "name": name,
+            "passed": all(p in granted for p in perms),
+            "permissions": [{"name": p, "granted": p in granted} for p in perms],
+            "message": "",
+        }
+        for name, perms in _PERMISSION_GROUPS
+    ]
+
+    # Additional state checks
+    firestore_ok, firestore_msg = await loop.run_in_executor(None, _check_firestore_mode, credentials, project_id)
+    groups.append({
+        "name": "Firestore mode",
+        "passed": firestore_ok,
+        "permissions": [],
+        "message": firestore_msg,
+    })
+
+    return {"groups": groups}
 
 
 # ---------------------------------------------------------------------------
@@ -218,15 +228,24 @@ async def _run_deploy(deploy_id: str, q: asyncio.Queue, project_id: str, region:
         await log("Fetching project info...")
         project_number = await loop.run_in_executor(None, _get_project_number, credentials, project_id)
         service_account = f"{project_number}-compute@developer.gserviceaccount.com"
-        await log(f"✓ Runtime service account: {service_account}")
+        await log(f"✓ Cloud Run will run as: {service_account} (default compute SA)")
 
-        # Step 3 — Ensure Firestore database exists
+        # Step 3 — Ensure Firestore database exists (retry if GCP cooldown after recent delete)
+        import re as _re, asyncio as _asyncio
         await log("Setting up Firestore database (native mode)...")
-        try:
-            await loop.run_in_executor(None, _ensure_firestore, credentials, project_id, region)
-            await log("✓ Firestore ready")
-        except Exception as exc:
-            await log(f"⚠  Firestore: {exc}")
+        for _attempt in range(10):
+            try:
+                await loop.run_in_executor(None, _ensure_firestore, credentials, project_id, region)
+                await log("✓ Firestore ready")
+                break
+            except Exception as exc:
+                m = _re.search(r"retry in (\d+) seconds?", str(exc), _re.IGNORECASE)
+                if m:
+                    wait = int(m.group(1)) + 5
+                    await log(f"  Firestore not yet available (GCP cooldown after recent delete), waiting {wait}s...")
+                    await _asyncio.sleep(wait)
+                    continue
+                raise
 
         # Step 4 — Ensure firewall rule allows Cloud Run to reach instances
         await log("Ensuring firewall rule 'fs-gcpbackend-to-instances'...")
@@ -302,17 +321,37 @@ def _enable_apis(credentials, project_id: str) -> None:
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     base = f"https://serviceusage.googleapis.com/v1/projects/{project_id}/services"
     apis = ["run.googleapis.com", "firestore.googleapis.com", "cloudscheduler.googleapis.com", "cloudbuild.googleapis.com"]
-    for api in apis:
+    import time as _time
+
+    def _get_state(api: str) -> str | None:
         try:
             r = _req.get(f"{base}/{api}", headers=headers, timeout=10)
-            if r.ok and r.json().get("state") == "ENABLED":
-                continue
+            if r.ok:
+                return r.json().get("state")
         except Exception:
             pass
-        try:
-            _req.post(f"{base}/{api}:enable", headers=headers, timeout=120)
-        except Exception:
-            pass
+        return None
+
+    for api in apis:
+        state = _get_state(api)
+        if state == "ENABLED":
+            continue
+
+        resp = _req.post(f"{base}/{api}:enable", headers=headers, timeout=120)
+        if not resp.ok:
+            # Only hard-fail if the API is confirmed disabled — 403 often means it's
+            # already enabled but the SA lacks serviceusage.services.enable permission
+            if _get_state(api) == "DISABLED":
+                raise RuntimeError(f"Failed to enable {api}: HTTP {resp.status_code}: {resp.text}")
+            continue
+
+        # Poll until state == ENABLED (GCP propagation can take up to ~90s)
+        for _ in range(30):
+            _time.sleep(3)
+            if _get_state(api) == "ENABLED":
+                break
+        else:
+            raise RuntimeError(f"Timed out waiting for {api} to become enabled after 90s")
 
 
 FIREWALL_RULE_NAME = "fs-gcpbackend-to-instances"
@@ -422,20 +461,51 @@ def _get_project_number(credentials, project_id: str) -> str:
     return project.name.split("/")[1]  # "projects/123456" -> "123456"
 
 
+def _check_firestore_mode(credentials, project_id: str) -> tuple[bool, str]:
+    """Returns (passed, message). Fails if Firestore database exists in Datastore mode."""
+    try:
+        from google.cloud import firestore_admin_v1
+        from google.cloud.firestore_admin_v1.types import Database as _FSDatabase
+        from services.firestore_client import FIRESTORE_DATABASE_ID
+
+        client = firestore_admin_v1.FirestoreAdminClient(credentials=credentials)
+        db_name = f"projects/{project_id}/databases/{FIRESTORE_DATABASE_ID}"
+        try:
+            db = client.get_database(name=db_name)
+            if db.type_ == _FSDatabase.DatabaseType.DATASTORE_MODE:
+                return False, (
+                    f"Database '{FIRESTORE_DATABASE_ID}' exists in Datastore mode — "
+                    "Native mode is required. Use a different project or delete the database."
+                )
+            return True, ""
+        except Exception as e:
+            if "NOT_FOUND" in str(e):
+                return True, ""  # doesn't exist yet, will be created during deploy
+            return True, ""  # permission error or other — don't block
+    except Exception:
+        return True, ""
+
+
 def _ensure_firestore(credentials, project_id: str, region: str) -> None:
     from google.cloud import firestore_admin_v1
+    from google.cloud.firestore_admin_v1.types import Database as _FSDatabase
     from services.firestore_client import FIRESTORE_DATABASE_ID
 
     client = firestore_admin_v1.FirestoreAdminClient(credentials=credentials)
     db_name = f"projects/{project_id}/databases/{FIRESTORE_DATABASE_ID}"
 
     try:
-        client.get_database(name=db_name)
-        return  # Already exists
+        db = client.get_database(name=db_name)
+        if db.type_ == _FSDatabase.DatabaseType.DATASTORE_MODE:
+            raise RuntimeError(
+                f"Firestore database '{FIRESTORE_DATABASE_ID}' is in Datastore mode — "
+                "Native mode is required. Use a different project or delete the database."
+            )
+        return  # Already exists in correct mode
+    except RuntimeError:
+        raise
     except Exception:
-        pass
-
-    from google.cloud.firestore_admin_v1.types import Database as _FSDatabase
+        pass  # Not found or permission error — try to create
 
     op = client.create_database(
         parent=f"projects/{project_id}",
