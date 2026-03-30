@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.9
+Replace enable/disable schedule toggle with a reschedule button (Calendar icon) that opens a date/time picker popup pre-filled from the existing cron expression; enable/disable routes removed from backend.
+
 ## 2.8
 Fix Cloud Run upgrade: image is now copied to the project registry via Cloud Build before updating the service (previously failed with a missing image tag). Live upgrade log streams in the About popup with green/red status lines.
 

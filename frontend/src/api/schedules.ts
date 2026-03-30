@@ -92,21 +92,6 @@ export function useDeleteSchedule() {
   })
 }
 
-export function useEnableSchedule() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) => apiPost<Schedule>(`/schedules/${id}/enable`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['schedules'] }),
-  })
-}
-
-export function useDisableSchedule() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) => apiPost<Schedule>(`/schedules/${id}/disable`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['schedules'] }),
-  })
-}
 
 export function useJobRuns(scheduleId: string | null) {
   return useQuery({

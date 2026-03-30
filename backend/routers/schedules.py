@@ -311,41 +311,6 @@ async def delete_schedule(schedule_id: str, request: Request):
     await fs.delete_schedule(schedule_id)
 
 
-@router.post("/{schedule_id}/enable")
-async def enable_schedule(schedule_id: str, request: Request):
-    if (resp := await _maybe_proxy(request)):
-        return resp
-    _require_scheduling_configured()
-    result = await fs.update_schedule(schedule_id, {"enabled": True})
-    if result is None:
-        raise HTTPException(status_code=404, detail="Schedule not found.")
-    job_name = result.get("cloud_scheduler_job_name", "")
-    if job_name:
-        try:
-            from services.cloud_scheduler import resume_scheduler_job
-            await resume_scheduler_job(job_name)
-        except Exception:
-            pass
-    return result
-
-
-@router.post("/{schedule_id}/disable")
-async def disable_schedule(schedule_id: str, request: Request):
-    if (resp := await _maybe_proxy(request)):
-        return resp
-    _require_scheduling_configured()
-    result = await fs.update_schedule(schedule_id, {"enabled": False})
-    if result is None:
-        raise HTTPException(status_code=404, detail="Schedule not found.")
-    job_name = result.get("cloud_scheduler_job_name", "")
-    if job_name:
-        try:
-            from services.cloud_scheduler import pause_scheduler_job
-            await pause_scheduler_job(job_name)
-        except Exception:
-            pass
-    return result
-
 
 # ---------------------------------------------------------------------------
 # Trigger (Cloud Scheduler → Cloud Run, or manual "Run now")
