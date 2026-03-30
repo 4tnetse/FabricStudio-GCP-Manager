@@ -387,8 +387,9 @@ def _copy_image_to_gcr(credentials, project_id: str, version: str) -> str:
         timeout=30,
     )
     if not resp.ok:
+        print(f"[cloud_run] Cloud Build POST failed — HTTP {resp.status_code}\n{resp.text}", flush=True)
         raise RuntimeError(
-            f"Cloud Build API returned HTTP {resp.status_code}: {resp.text[:500]}"
+            f"Cloud Build API returned HTTP {resp.status_code}: {resp.text}"
         )
     resp.raise_for_status()
     op_name = resp.json()["name"]
