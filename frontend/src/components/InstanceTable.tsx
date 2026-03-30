@@ -587,8 +587,10 @@ function RowActions({ instance }: RowActionsProps) {
               </button>
             )}
             <button
-              onClick={() => { setOpen(false); setDialog('rename') }}
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"
+              onClick={() => { if (instance.status !== 'RUNNING') { setOpen(false); setDialog('rename') } }}
+              disabled={instance.status === 'RUNNING'}
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+              title={instance.status === 'RUNNING' ? 'Stop the instance before renaming' : undefined}
             >
               <Pencil className="w-3.5 h-3.5 text-slate-400" />
               Rename

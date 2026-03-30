@@ -422,6 +422,19 @@ class GCPComputeService:
             )
         return result
 
+    async def update_image_description(self, name: str, description: str) -> None:
+        client = compute_v1.ImagesClient(credentials=self._credentials)
+
+        def _patch():
+            op = client.patch(
+                project=self._project_id,
+                image=name,
+                image_resource=compute_v1.Image(description=description),
+            )
+            op.result()
+
+        await self._run(_patch)
+
     # ------------------------------------------------------------------ #
     #  Zones                                                               #
     # ------------------------------------------------------------------ #

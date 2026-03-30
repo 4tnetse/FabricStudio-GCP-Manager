@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Plus, Trash2, Loader2, RefreshCw, Wifi } from 'lucide-react'
+import { Plus, Trash2, Loader2, RefreshCw, Wifi, X } from 'lucide-react'
+import type { FirewallRule } from '@/lib/types'
 import {
   useFirewallAcl,
   useAddAclIp,
@@ -16,6 +17,36 @@ async function detectMyIp(): Promise<string> {
   return data.ip
 }
 
+function FirewallRuleDetail({ rule, onClose }: { rule: FirewallRule; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
+      <div className="bg-slate-900 border border-slate-700 rounded-xl p-5 w-full max-w-md space-y-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-100">{rule.name}</h2>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-300"><X className="w-4 h-4" /></button>
+        </div>
+        <div className="space-y-2 text-xs">
+          {([
+            ['Direction', <span className={rule.direction === 'INGRESS' ? 'text-green-400' : 'text-orange-400'}>{rule.direction}</span>],
+            ['Priority', rule.priority],
+            ['Status', <span className={rule.disabled ? 'text-slate-400' : 'text-green-400'}>{rule.disabled ? 'Disabled' : 'Active'}</span>],
+            ['Source Ranges', rule.source_ranges?.length ? rule.source_ranges.join(', ') : '—'],
+            ['Target Tags', rule.target_tags?.length ? rule.target_tags.join(', ') : '—'],
+            ['Allowed', rule.allowed?.length
+              ? rule.allowed.map(a => a.ports?.length ? `${a.IPProtocol}:${a.ports.join(',')}` : a.IPProtocol).join(', ')
+              : '—'],
+          ] as [string, React.ReactNode][]).map(([label, value]) => (
+            <div key={label} className="flex gap-3">
+              <span className="w-28 shrink-0 text-slate-400">{label}</span>
+              <span className="text-slate-200 break-all">{value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Firewall() {
   const { data: acl, isLoading: aclLoading } = useFirewallAcl()
   const addIp = useAddAclIp()
@@ -26,6 +57,7 @@ export default function Firewall() {
 
   const [newIp, setNewIp] = useState('')
   const [detectingIp, setDetectingIp] = useState(false)
+  const [selectedRule, setSelectedRule] = useState<FirewallRule | null>(null)
 
   async function handleAddIp() {
     const ip = newIp.trim()
@@ -72,6 +104,7 @@ export default function Firewall() {
 
   return (
     <div className="space-y-6">
+      {selectedRule && <FirewallRuleDetail rule={selectedRule} onClose={() => setSelectedRule(null)} />}
       <div>
         <h1 className="text-xl font-semibold text-slate-100">Firewall</h1>
         <p className="text-sm text-slate-400 mt-0.5">Manage firewall rules and access control</p>
@@ -190,7 +223,17 @@ export default function Firewall() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-sm font-semibold text-slate-200">All Firewall Rules</h2>
-            <p className="text-xs text-slate-400 mt-0.5">All rules in the current project</p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              All rules in the current project —{' '}
+              <a
+                href="https://console.cloud.google.com/net-security/firewall-manager/firewall-policies/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300"
+              >
+                Open in GCP Console
+              </a>
+            </p>
           </div>
           {rulesLoading && <Loader2 className="w-4 h-4 animate-spin text-slate-400" />}
         </div>
@@ -229,7 +272,7 @@ export default function Firewall() {
                   </tr>
                 ) : (
                   rules.map((rule) => (
-                    <tr key={rule.name} className="border-b border-slate-800 hover:bg-slate-800/30">
+                    <tr key={rule.name} className="border-b border-slate-800 hover:bg-slate-800/30 cursor-pointer" onClick={() => setSelectedRule(rule)}>
                       <td className="px-3 py-2.5 text-slate-200">{rule.name}</td>
                       <td className={`px-3 py-2.5 text-xs ${rule.direction === 'INGRESS' ? 'text-green-400' : 'text-orange-400'}`}>
                         {rule.direction}

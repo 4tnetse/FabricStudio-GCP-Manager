@@ -343,7 +343,7 @@ export default function App() {
                               {!upgradeStreamUrl && <span className="text-orange-400 text-xs">⚠ out of sync</span>}
                               <button
                                 onClick={() => { setUpgradeStreamUrl(null); upgradeRemote.mutate() }}
-                                disabled={upgradeRemote.isPending || upgradeStreaming}
+                                disabled={upgradeRemote.isPending || upgradeStreaming || (!upgradeStreaming && !!upgradeStreamUrl && !upgradeFailed)}
                                 className="flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white transition-colors"
                               >
                                 {(upgradeRemote.isPending || upgradeStreaming)

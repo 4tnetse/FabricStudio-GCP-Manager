@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.10
+Use external IP for all Fabric Studio API calls so DNS is no longer required; SSH scheduling (schedule SSH commands via Cloud Scheduler); firewall rule detail popup with GCP Console link; editable image description; rename disabled on running instances.
+
 ## 2.9
 Replace enable/disable schedule toggle with a reschedule button (Calendar icon) that opens a date/time picker popup pre-filled from the existing cron expression; enable/disable routes removed from backend.
 

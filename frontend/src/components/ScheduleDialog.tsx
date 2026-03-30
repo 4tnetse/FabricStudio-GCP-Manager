@@ -5,7 +5,7 @@ import { useCreateSchedule, type ScheduleCreate } from '@/api/schedules'
 import { useTheme } from '@/context/ThemeContext'
 
 interface Props {
-  jobType: 'clone' | 'configure'
+  jobType: 'clone' | 'configure' | 'ssh'
   payload: Record<string, unknown>
   projectId?: string
   onClose: () => void
@@ -171,7 +171,7 @@ export function ScheduleDialog({ jobType, payload, projectId, onClose }: Props) 
           <div className="flex items-center gap-2">
             <CalendarClock className="w-4 h-4 text-slate-400" />
             <h2 className="text-base font-semibold text-slate-100">
-              Schedule {jobType === 'clone' ? 'Clone' : 'Configure'} job
+              Schedule {jobType === 'clone' ? 'Clone' : jobType === 'configure' ? 'Configure' : 'SSH'} job
             </h2>
           </div>
           <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors">

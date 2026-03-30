@@ -1,9 +1,66 @@
-import { useImages } from '@/api/images'
-import { Loader2, RefreshCw, HardDrive } from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { useImages, useUpdateImageDescription } from '@/api/images'
+import { Loader2, RefreshCw, HardDrive, Pencil, Check, X } from 'lucide-react'
 
 function formatDate(ts: string | null): string {
   if (!ts) return '—'
   return new Date(ts).toLocaleString()
+}
+
+function DescriptionCell({ name, description }: { name: string; description: string }) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(description)
+  const update = useUpdateImageDescription()
+
+  async function handleSave() {
+    try {
+      await update.mutateAsync({ name, description: value })
+      toast.success('Description updated')
+      setEditing(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update description')
+    }
+  }
+
+  function handleCancel() {
+    setValue(description)
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <td className="px-3 py-2">
+        <div className="flex items-center gap-1">
+          <input
+            autoFocus
+            className="flex-1 px-2 py-1 rounded border border-slate-600 bg-slate-800 text-slate-200 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel() }}
+          />
+          <button onClick={handleSave} disabled={update.isPending} className="text-green-400 hover:text-green-300 disabled:opacity-50">
+            {update.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+          </button>
+          <button onClick={handleCancel} className="text-slate-500 hover:text-slate-300"><X className="w-3.5 h-3.5" /></button>
+        </div>
+      </td>
+    )
+  }
+
+  return (
+    <td className="px-3 py-2.5 text-slate-400 max-w-xs">
+      <div className="flex items-center gap-1.5 group">
+        <span className="truncate">{description || '—'}</span>
+        <button
+          onClick={() => { setValue(description); setEditing(true) }}
+          className="text-slate-500 hover:text-slate-300 shrink-0"
+        >
+          <Pencil className="w-3 h-3" />
+        </button>
+      </div>
+    </td>
+  )
 }
 
 export default function Images() {
@@ -69,7 +126,7 @@ export default function Images() {
                       </td>
                       <td className="px-3 py-2.5 text-slate-400">{image.disk_size_gb ?? '—'}</td>
                       <td className="px-3 py-2.5 text-slate-400">{formatDate(image.creation_timestamp)}</td>
-                      <td className="px-3 py-2.5 text-slate-400 max-w-xs truncate">{image.description ?? '—'}</td>
+                      <DescriptionCell name={image.name} description={image.description ?? ''} />
                     </tr>
                   ))
                 )}

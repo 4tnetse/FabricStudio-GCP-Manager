@@ -1,11 +1,13 @@
 import { useState, useMemo } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Download, Wifi, Search, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { CalendarClock, Loader2, Download, Wifi, Search, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { useExecuteSsh, useTestSsh } from '@/api/ssh'
 import { useInstances, usePublicIps } from '@/api/instances'
 import { useConfigs, useConfig } from '@/api/configs'
 import { LogStream } from '@/components/LogStream'
 import { CustomSelect } from '@/components/CustomSelect'
+import { ScheduleDialog } from '@/components/ScheduleDialog'
+import { useSettings } from '@/api/settings'
 
 export default function SSH() {
   const [addresses, setAddresses] = useState('')
@@ -20,12 +22,15 @@ export default function SSH() {
   const [rangeTo, setRangeTo] = useState<number | ''>('')
   const [selectedConfig, setSelectedConfig] = useState<string>('')
 
+  const [scheduleOpen, setScheduleOpen] = useState(false)
+
   const executeSsh = useExecuteSsh()
   const testSsh = useTestSsh()
   const { data: publicIps, isLoading: ipsLoading } = usePublicIps()
   const { data: instances = [], isLoading: instancesLoading } = useInstances()
   const { data: configFiles = [] } = useConfigs()
   const { data: configDetail } = useConfig(selectedConfig || null)
+  const { data: settings } = useSettings()
 
   const configCommands = configDetail
     ? configDetail.content
@@ -417,6 +422,15 @@ export default function SSH() {
                 'Execute'
               )}
             </button>
+            <button
+              onClick={() => setScheduleOpen(true)}
+              disabled={addressCount === 0}
+              title="Schedule this SSH job"
+              className="px-3 py-2.5 rounded-lg border border-slate-600 hover:border-slate-400 disabled:opacity-50 text-slate-300 hover:text-slate-100 flex items-center gap-1.5 text-sm transition-colors"
+            >
+              <CalendarClock className="w-4 h-4" />
+              Schedule
+            </button>
           </div>
         </div>
 
@@ -428,6 +442,20 @@ export default function SSH() {
           </div>
         </div>
       </div>
+
+      {scheduleOpen && (
+        <ScheduleDialog
+          jobType="ssh"
+          projectId={settings?.active_project_id ?? undefined}
+          payload={{
+            addresses: addresses.split('\n').map((l) => l.trim()).filter(Boolean),
+            commands: selectedConfig ? configCommands.split('\n').map((l) => l.trim()).filter(Boolean) : command.trim().split('\n').map((l) => l.trim()).filter(Boolean),
+            config_name: selectedConfig || undefined,
+            parallel: mode === 'parallel',
+          }}
+          onClose={() => setScheduleOpen(false)}
+        />
+      )}
     </div>
   )
 }

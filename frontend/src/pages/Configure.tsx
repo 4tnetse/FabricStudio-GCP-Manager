@@ -108,9 +108,10 @@ export default function Configure() {
     setWorkspaceFabrics([])
     setWorkspaceInstallIndex(-1)
     setDeleteAllWorkspaces(false)
+    const sourceInst = instances.find((i) => i.name === workspaceSource)
     apiGet<{ templates: { id: number; name: string; description: string }[] }>(
       '/ops/fs-templates',
-      { instance_name: workspaceSource },
+      { instance_name: workspaceSource, zone: sourceInst?.zone ?? settings?.default_zone ?? '' },
     )
       .then((data) => setWorkspaceTemplates(data.templates))
       .catch((err) => toast.error(err.message ?? 'Failed to fetch templates'))

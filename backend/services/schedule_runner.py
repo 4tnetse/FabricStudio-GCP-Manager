@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 
 import config as cfg
 from models.instance import BulkConfigureRequest, CloneRequest
+from routers.ssh import SshExecuteRequest
 from services import firestore_client as fs
 from services.parallel_runner import job_manager
 
@@ -70,6 +71,17 @@ async def run_triggered_job(schedule: dict, run_id: str) -> None:
             else:
                 from routers.operations import _bulk_configure_job
                 asyncio.create_task(_safe_job(_bulk_configure_job(job_id, req), job_id))
+
+        elif job_type == "ssh":
+            try:
+                req = SshExecuteRequest(**payload)
+            except Exception as exc:
+                await q.put(f"ERROR: invalid ssh payload: {exc}")
+                await job_manager.mark_done(job_id, failed=True)
+            else:
+                from routers.ssh import _ssh_job
+                commands = req.commands
+                asyncio.create_task(_safe_job(_ssh_job(job_id, req.addresses, commands, req.parallel), job_id))
 
         else:
             await q.put(f"ERROR: unknown job_type '{job_type}'")

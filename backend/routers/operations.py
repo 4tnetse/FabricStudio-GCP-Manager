@@ -22,21 +22,25 @@ from services.parallel_runner import job_manager
 _APP_MODE = os.environ.get("APP_MODE", "full")
 
 
-async def _resolve_host(zone: str, instance_name: str, fqdn: str) -> str:
-    """In backend (Cloud Run) mode, return the instance's internal IP to stay within the VPC.
-    Otherwise return the FQDN."""
-    if _APP_MODE != "backend":
-        return fqdn
+async def _resolve_host(zone: str, instance_name: str) -> str:
+    """Return the IP address to use for FS API calls.
+    - Cloud Run (backend) mode: internal IP (stays within VPC, no public IP needed)
+    - Local (full) mode: external/public IP (no DNS required)
+    Raises RuntimeError if no suitable IP is available."""
     try:
         creds = get_credentials()
         project_id = cfg.settings.active_project_id
         svc = GCPComputeService(creds, project_id)
         instance = await svc.get_instance(zone=zone, name=instance_name)
-        if instance.internal_ip:
-            return instance.internal_ip
-    except Exception:
-        pass
-    return fqdn
+        if _APP_MODE == "backend":
+            if instance.internal_ip:
+                return instance.internal_ip
+        else:
+            if instance.public_ip:
+                return instance.public_ip
+    except Exception as exc:
+        raise RuntimeError(f"Could not look up IP for {instance_name}: {exc}")
+    raise RuntimeError(f"Instance {instance_name} has no {'internal' if _APP_MODE == 'backend' else 'external'} IP address")
 
 router = APIRouter(prefix="/ops", tags=["operations"])
 
@@ -274,23 +278,21 @@ async def clone_instances(clone_req: CloneRequest, background_tasks: BackgroundT
 #  Configure                                                           #
 # ------------------------------------------------------------------ #
 
-def _build_instance_fqdn(product: str) -> str | None:
-    """Return the FQDN for the golden image (number=0) of a workshop."""
-    prefix = cfg.settings.instance_fqdn_prefix
-    domain = cfg.settings.dns_domain
-    if not prefix or not domain:
-        return None
-    return f"{prefix}0.{product}.{domain}"
-
 
 async def _configure_job(job_id: str, req: ConfigureRequest) -> None:
     q = job_manager.jobs[job_id]
     failed = False
 
     try:
-        fqdn = _build_instance_fqdn(req.product)
-        if not fqdn:
-            await q.put("ERROR: DNS settings (Instance FQDN prefix / DNS Domain) are not configured in Settings.")
+        instance_type = cfg.settings.default_type or "fs"
+        instance_name = InstanceName.from_parts(
+            type=instance_type, prepend=req.prepend, product=req.product, number=0
+        ).to_string()
+
+        try:
+            host = await _resolve_host(req.zone, instance_name)
+        except RuntimeError as exc:
+            await q.put(f"ERROR: {exc}")
             await job_manager.mark_done(job_id, failed=True)
             return
 
@@ -300,18 +302,18 @@ async def _configure_job(job_id: str, req: ConfigureRequest) -> None:
             await job_manager.mark_done(job_id, failed=True)
             return
 
-        await q.put(f"Waiting for Fabric Studio instance at {fqdn} to be ready…")
+        await q.put(f"Waiting for Fabric Studio instance at {host} to be ready…")
         try:
-            await wait_until_ready(fqdn, log=q.put)
+            await wait_until_ready(host, log=q.put)
         except TimeoutError as exc:
             await q.put(f"ERROR: {exc}")
             await job_manager.mark_done(job_id, failed=True)
             return
 
-        await q.put(f"Connecting to Fabric Studio instance at {fqdn}…")
+        await q.put(f"Connecting to Fabric Studio instance at {host}…")
 
         try:
-            async with FabricStudioClient(fqdn, default_password) as fs:
+            async with FabricStudioClient(host, default_password) as fs:
                 # Set license server
                 if req.license_server:
                     await q.put(f"Setting license server to https://{req.license_server}/license/…")
@@ -415,23 +417,18 @@ async def bulk_delete(body: BulkRequest, background_tasks: BackgroundTasks):
 
 @router.post("/bulk-shutdown")
 async def bulk_shutdown(body: BulkShutdownRequest):
-    prefix = cfg.settings.instance_fqdn_prefix
-    domain = cfg.settings.dns_domain
     password = body.admin_password or cfg.settings.fs_admin_password
 
-    if not prefix or not domain:
-        raise HTTPException(status_code=400, detail="DNS settings (Instance FQDN prefix / DNS Domain) are not configured in Settings.")
     if not password:
         raise HTTPException(status_code=400, detail="No admin password configured in Settings.")
 
     async def shutdown_one(item: BulkInstanceItem) -> dict:
         try:
-            parsed = InstanceName.parse(item.name)
-        except ValueError as exc:
+            host = await _resolve_host(item.zone, item.name)
+        except RuntimeError as exc:
             return {"name": item.name, "status": "error", "message": str(exc)}
-        fqdn = f"{prefix}{parsed.number}.{parsed.product}.{domain}"
         try:
-            async with FabricStudioClient(fqdn, password) as fs:
+            async with FabricStudioClient(host, password) as fs:
                 await fs.shutdown()
         except Exception as exc:
             return {"name": item.name, "status": "error", "message": str(exc)}
@@ -459,26 +456,16 @@ async def _bulk_configure_job(job_id: str, req: BulkConfigureRequest) -> None:
         await job_manager.mark_done(job_id, failed=True)
         return
 
-    prefix = cfg.settings.instance_fqdn_prefix
-    domain = cfg.settings.dns_domain
-    if not prefix or not domain:
-        await q.put("ERROR: DNS settings (Instance FQDN prefix / DNS Domain) are not configured in Settings.")
-        await job_manager.mark_done(job_id, failed=True)
-        return
-
     await q.put(f"Starting configure for {len(req.instances)} instance(s)…")
 
     async def configure_one(item: BulkConfigureItem) -> None:
         tag = f"[{item.name}]"
         try:
-            parsed = InstanceName.parse(item.name)
-        except ValueError as exc:
+            host = await _resolve_host(item.zone, item.name)
+        except RuntimeError as exc:
             await q.put(f"{tag} ERROR: {exc}")
             failures.append(item.name)
             return
-
-        fqdn = f"{prefix}{parsed.number}.{parsed.product}.{domain}"
-        host = await _resolve_host(item.zone, item.name, fqdn)
 
         async def log(msg: str) -> None:
             await q.put(f"{tag} {msg}")
@@ -566,32 +553,21 @@ async def bulk_configure(req: BulkConfigureRequest, background_tasks: Background
 # ------------------------------------------------------------------ #
 
 @router.get("/fs-templates")
-async def get_fs_templates(instance_name: str = Query(...)):
+async def get_fs_templates(instance_name: str = Query(...), zone: str = Query(...)):
     """Fetch available fabric templates from a Fabric Studio instance."""
-    try:
-        parsed = InstanceName.parse(instance_name)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-
-    prefix = cfg.settings.instance_fqdn_prefix
-    domain = cfg.settings.dns_domain
-    if not prefix or not domain:
-        raise HTTPException(status_code=400, detail="DNS settings not configured in Settings.")
-
-    fqdn = f"{prefix}{parsed.number}.{parsed.product}.{domain}"
     password = cfg.settings.fs_admin_password
     if not password:
         raise HTTPException(status_code=400, detail="No admin password configured in Settings.")
 
     try:
-        async with FabricStudioClient(fqdn, password) as fs:
+        host = await _resolve_host(zone, instance_name)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+    try:
+        async with FabricStudioClient(host, password) as fs:
             templates = await fs.list_templates()
         return {"templates": templates}
-    except httpx.ConnectError:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Cannot reach {fqdn} — make sure the instance is running and has a DNS record.",
-        )
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc))
 

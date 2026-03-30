@@ -43,7 +43,7 @@ function InstanceCombobox({ value, onChange }: { value: string; onChange: (v: st
         onChange={(e) => { setSearch(e.target.value); setOpen(true) }}
         onFocus={handleFocus}
         onBlur={() => { if (!open) setSearch('') }}
-        placeholder="e.g. fs-tve-fwb-000"
+        placeholder=""
         autoComplete="off"
       />
       {open && filtered.length > 0 && (
