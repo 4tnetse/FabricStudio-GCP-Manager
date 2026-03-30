@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.12
+Fix SSH schedules failing with "unknown job_type 'ssh'"; fix scheduled Configure/Clone jobs failing with "No admin password available" (fs_admin_password now read from per-project config via get_project_config() instead of the legacy top-level settings field).
+
 ## 2.11
 SSL retry on GCP operation polling (fixes clone failures on slow connections); SSH page overhaul: instance picker matches Configure page, load internal/external IPs separately, scheduling auto-uses internal IPs with deduplication; Configure range from-field is now a free-text combobox; SSH schedule job type label fixed to "SSH".
 

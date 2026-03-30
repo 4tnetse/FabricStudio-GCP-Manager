@@ -1,7 +1,8 @@
-2.11
+2.12
 
 # Version history
 # ---------------
+# 2.12   Fix SSH schedules failing with unknown job_type 'ssh'; fix scheduled Configure/Clone jobs failing with "No admin password available" (read fs_admin_password from per-project config via get_project_config())
 # 2.11   SSL retry on GCP operation polling; SSH page overhaul (instance picker, internal/external IP loading, schedule uses internal IPs, dedup); Configure range from-field editable; SSH schedule label fix
 # 2.10   Use external IP for all FS API calls (no DNS required); SSH scheduling; firewall rule detail popup + GCP Console link; editable image description; rename disabled on running instances
 # 2.9    Replace enable/disable schedule toggle with reschedule button (Calendar icon + date/time picker popup); remove enable/disable backend routes

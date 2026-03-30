@@ -33,15 +33,18 @@ async def run_triggered_job(schedule: dict, run_id: str) -> None:
     # ------------------------------------------------------------------
     original_settings = cfg.settings
     snapshot = schedule.get("settings_snapshot", {})
+    # Resolve the active project so we can read per-project config as fallback
+    active_project_id = schedule.get("project_id") or cfg.settings.active_project_id
+    project_cfg = cfg.get_project_config(cfg.settings, active_project_id)
     cfg.settings = cfg.settings.model_copy(update={
-        "active_project_id": schedule.get("project_id") or cfg.settings.active_project_id,
+        "active_project_id": active_project_id,
         "active_key_id": schedule.get("key_id") or cfg.settings.active_key_id,
-        "dns_domain": snapshot.get("dns_domain") or cfg.settings.dns_domain,
-        "instance_fqdn_prefix": snapshot.get("instance_fqdn_prefix") or cfg.settings.instance_fqdn_prefix,
-        "dns_zone_name": snapshot.get("dns_zone_name") or cfg.settings.dns_zone_name,
-        "fs_admin_password": snapshot.get("fs_admin_password") or cfg.settings.fs_admin_password,
-        "default_zone": snapshot.get("default_zone") or cfg.settings.default_zone,
-        "owner": snapshot.get("owner") or cfg.settings.owner,
+        "dns_domain": snapshot.get("dns_domain") or project_cfg.get("dns_domain") or "",
+        "instance_fqdn_prefix": snapshot.get("instance_fqdn_prefix") or project_cfg.get("instance_fqdn_prefix") or "",
+        "dns_zone_name": snapshot.get("dns_zone_name") or project_cfg.get("dns_zone_name") or "",
+        "fs_admin_password": snapshot.get("fs_admin_password") or project_cfg.get("fs_admin_password") or "",
+        "default_zone": snapshot.get("default_zone") or project_cfg.get("default_zone") or "",
+        "owner": snapshot.get("owner") or project_cfg.get("owner") or "",
     })
 
     log_lines: list[str] = []
