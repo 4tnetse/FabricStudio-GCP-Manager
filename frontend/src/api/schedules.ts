@@ -4,7 +4,7 @@ import { apiGet, apiPost, apiPut, apiDelete } from './client'
 export interface Schedule {
   id: string
   name: string
-  job_type: 'clone' | 'configure'
+  job_type: 'clone' | 'configure' | 'ssh'
   cron_expression: string
   timezone: string
   enabled: boolean
@@ -34,7 +34,7 @@ export interface JobRun {
 
 export interface ScheduleCreate {
   name: string
-  job_type: 'clone' | 'configure'
+  job_type: 'clone' | 'configure' | 'ssh'
   cron_expression: string
   timezone?: string
   enabled?: boolean
