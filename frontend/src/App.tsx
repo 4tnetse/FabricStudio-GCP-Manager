@@ -371,7 +371,7 @@ export default function App() {
                 </div>
                 <div className="font-mono text-xs text-slate-300 space-y-0.5 max-h-40 overflow-y-auto">
                   {upgradeLines.map((line, i) => (
-                    <div key={i} className={line.startsWith('✗') ? 'text-red-400' : line.startsWith('✓') ? 'text-green-400' : ''}>{line}</div>
+                    <div key={i} className={`break-all ${line.startsWith('✗') ? 'text-red-400' : line.startsWith('✓') ? 'text-green-400' : ''}`}>{line}</div>
                   ))}
                 </div>
               </div>

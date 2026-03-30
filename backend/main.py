@@ -309,7 +309,7 @@ async def _run_upgrade(upgrade_id: str, q: asyncio.Queue, project_id: str, regio
         await _upgrade_manager.mark_done(upgrade_id)
 
     except Exception as exc:
-        await log(f"✗ Upgrade failed: {str(exc)[:300]}")
+        await log(f"✗ Upgrade failed: {exc}")
         await _upgrade_manager.mark_done(upgrade_id, failed=True)
 
 
