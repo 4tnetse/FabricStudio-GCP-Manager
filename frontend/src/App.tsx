@@ -221,16 +221,15 @@ export default function App() {
   const isUpgrading = upgradeRemote.isPending || upgradeStreaming
   const localAheadOfRemote = !!(versionInfo?.remote_version && versionGt(versionInfo.local_version, versionInfo.remote_version))
   const githubHasVersion = !!(versionInfo?.latest_version && !versionGt(versionInfo.local_version, versionInfo.latest_version))
-  const waitingForGithub = aboutOpen && localAheadOfRemote && !githubHasVersion
 
   useEffect(() => {
-    if (!aboutOpen || isUpgrading) return
+    if (!aboutOpen || isUpgrading || !localAheadOfRemote) return
     queryClient.invalidateQueries({ queryKey: ['version'] })
     const interval = setInterval(() => {
       queryClient.invalidateQueries({ queryKey: ['version'] })
-    }, waitingForGithub ? 5_000 : 10_000)
+    }, 5_000)
     return () => clearInterval(interval)
-  }, [aboutOpen, isUpgrading, waitingForGithub])
+  }, [aboutOpen, isUpgrading, localAheadOfRemote])
 
   const mainScrollRef = useRef<HTMLDivElement>(null)
   const { pathname } = useLocation()
