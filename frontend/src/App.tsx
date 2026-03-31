@@ -320,11 +320,11 @@ export default function App() {
           {upgradeRemote.isSuccess && !upgradeRemote.isPending && (
             <span className="text-green-400">✓</span>
           )}
-          {!upgradeRemote.isPending && !upgradeRemote.isSuccess && localAheadOfRemote && githubHasVersion && (
+          {!upgradeRemote.isPending && !upgradeRemote.isSuccess && localAheadOfRemote && (
             <span className="text-orange-400 font-bold leading-none">↑</span>
           )}
           {versionInfo?.remote_configured && versionInfo.remote_version && (
-            <span className={`w-2 h-2 rounded-full shrink-0 ${localAheadOfRemote && githubHasVersion ? 'bg-orange-400' : 'bg-green-500'}`} />
+            <span className={`w-2 h-2 rounded-full shrink-0 ${localAheadOfRemote ? 'bg-orange-400' : 'bg-green-500'}`} />
           )}
         </button>
       </aside>
