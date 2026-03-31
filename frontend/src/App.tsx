@@ -1,5 +1,5 @@
 import type { ElementType } from 'react'
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import { apiGet, apiPost } from '@/api/client'
@@ -125,6 +125,17 @@ function NavActivityWrapper({ to, children }: { to: string; children: React.Reac
   )
 }
 
+function versionGt(a: string, b: string): boolean {
+  const pa = a.split('.').map(Number)
+  const pb = b.split('.').map(Number)
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const va = pa[i] ?? 0
+    const vb = pb[i] ?? 0
+    if (va !== vb) return va > vb
+  }
+  return false
+}
+
 export default function App() {
   const { data: health } = useQuery({
     queryKey: ['health'],
@@ -206,6 +217,22 @@ export default function App() {
   const { theme } = useTheme()
   const isSF = theme === 'security-fabric'
   const [aboutOpen, setAboutOpen] = useState(false)
+
+  const isUpgrading = upgradeRemote.isPending || upgradeStreaming
+  useEffect(() => {
+    if (!aboutOpen || isUpgrading) return
+    queryClient.invalidateQueries({ queryKey: ['version'] })
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ['version'] })
+    }, 10_000)
+    return () => clearInterval(interval)
+  }, [aboutOpen, isUpgrading])
+
+  const mainScrollRef = useRef<HTMLDivElement>(null)
+  const { pathname } = useLocation()
+  useLayoutEffect(() => {
+    mainScrollRef.current?.scrollTo(0, 0)
+  }, [pathname])
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -290,13 +317,13 @@ export default function App() {
           {upgradeRemote.isSuccess && !upgradeRemote.isPending && (
             <span className="text-green-400">✓</span>
           )}
-          {!upgradeRemote.isPending && !upgradeRemote.isSuccess && versionInfo?.update_available && (
-            <span className="text-blue-400 font-bold leading-none">↑</span>
+          {!upgradeRemote.isPending && !upgradeRemote.isSuccess && versionInfo?.remote_version && versionGt(versionInfo.local_version, versionInfo.remote_version) && (
+            <span className="text-orange-400 font-bold leading-none">↑</span>
           )}
           {versionInfo?.remote_configured && versionInfo.remote_version && (() => {
-            const inSync = versionInfo.remote_version === versionInfo.local_version
+            const localAhead = versionGt(versionInfo.local_version, versionInfo.remote_version)
             return (
-              <span className={`w-2 h-2 rounded-full shrink-0 ${inSync ? 'bg-green-500' : 'bg-orange-400'}`} />
+              <span className={`w-2 h-2 rounded-full shrink-0 ${localAhead ? 'bg-orange-400' : 'bg-green-500'}`} />
             )
           })()}
         </button>
@@ -364,11 +391,15 @@ export default function App() {
                   {versionInfo?.remote_configured && (
                     <p className="text-sm text-slate-400 flex items-center gap-1.5">
                       <span>Remote&nbsp;&nbsp;{versionInfo.remote_version ? `v${versionInfo.remote_version}` : '…'}</span>
-                      {versionInfo.remote_version && (
-                        versionInfo.remote_version === versionInfo.local_version && !upgradeStreamUrl
-                          ? <span className="text-green-400 text-xs">✓ in sync</span>
-                          : <>
-                              {!upgradeStreamUrl && <span className="text-orange-400 text-xs">⚠ out of sync</span>}
+                      {versionInfo.remote_version && (() => {
+                        const localAhead = versionGt(versionInfo.local_version, versionInfo.remote_version)
+                        if (!localAhead && !upgradeStreamUrl) {
+                          return <span className="text-green-400 text-xs">✓ in sync</span>
+                        }
+                        return (
+                          <>
+                            {!upgradeStreamUrl && localAhead && <span className="text-orange-400 text-xs">⚠ out of sync</span>}
+                            {localAhead && (
                               <button
                                 onClick={() => { setUpgradeStreamUrl(null); upgradeRemote.mutate() }}
                                 disabled={upgradeRemote.isPending || upgradeStreaming || (!upgradeStreaming && !!upgradeStreamUrl && !upgradeFailed)}
@@ -380,11 +411,13 @@ export default function App() {
                                   ? '✓ Done'
                                   : '↑ Upgrade'}
                               </button>
-                              {upgradeFailed && (
-                                <span className="text-red-400 text-xs">Failed</span>
-                              )}
-                            </>
-                      )}
+                            )}
+                            {upgradeFailed && (
+                              <span className="text-red-400 text-xs">Failed</span>
+                            )}
+                          </>
+                        )
+                      })()}
                     </p>
                   )}
                 </div>
@@ -450,7 +483,7 @@ export default function App() {
 
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 flex flex-col min-h-0 p-6 overflow-y-auto">
+        <div ref={mainScrollRef} className="flex-1 flex flex-col min-h-0 p-6 overflow-y-auto">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/build" element={<Build />} />

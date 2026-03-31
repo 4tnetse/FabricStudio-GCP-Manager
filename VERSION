@@ -1,7 +1,8 @@
-2.22
+2.23
 
 # Version history
 # ---------------
+# 2.23   Version check: semantic comparison (local > remote) for upgrade button and sidebar indicator; popup polls /version every 10s; stops polling during upgrade
 # 2.22   Near real-time schedule run log streaming: backend flushes to Firestore every 2s, frontend polls active runs every 2s, auto-expands running run and auto-scrolls log output
 # 2.21   Retry insert call with backoff on transient SSL/connection errors when creating instances from machine images (fixes parallel clone failures on cold-started Cloud Run)
 # 2.20   Push settings snapshot to remote backend after upgrade (admin password, DNS, SSH key, etc.)
