@@ -53,6 +53,7 @@ export interface Settings {
   remote_backend_url?: string | null
   cloud_run_region?: string | null
   firestore_project_id?: string | null
+  teams_webhook_url?: string | null
 }
 
 export interface FirewallRule {

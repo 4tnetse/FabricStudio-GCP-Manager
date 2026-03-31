@@ -346,7 +346,8 @@ async def trigger_schedule(schedule_id: str, background_tasks: BackgroundTasks, 
     run_id = run["id"]
 
     from services.schedule_runner import run_triggered_job
-    background_tasks.add_task(run_triggered_job, schedule, run_id)
+    triggered_by = run_data["triggered_by"]
+    background_tasks.add_task(run_triggered_job, schedule, run_id, triggered_by)
 
     return {"run_id": run_id, "schedule_id": schedule_id}
 

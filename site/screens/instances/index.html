@@ -1195,13 +1195,13 @@
 </tbody>
 </table>
 <h2 id="instance-table">Instance table</h2>
-<p>The table lists all instances with the following columns: name, zone, status, machine type, public IP, and labels.</p>
+<p>The table lists all instances with the following columns: name, zone, status, machine type, public IP, labels, and optionally FQDN (shown when a DNS prefix and domain are configured in Settings).</p>
 <h3 id="filtering">Filtering</h3>
 <ul>
-<li><strong>Name search</strong> — free-text search on instance name  </li>
-<li><strong>Group filter</strong> — filter by the <code>group</code> GCP label  </li>
-<li><strong>Purpose filter</strong> — filter by the <code>purpose</code> GCP label  </li>
-<li><strong>Status filter</strong> — filter by all possible intance statusses, or all instances  </li>
+<li><strong>Name search</strong> — free-text search on instance name</li>
+<li><strong>Group filter</strong> — filter by the <code>group</code> GCP label</li>
+<li><strong>Purpose filter</strong> — filter by the <code>purpose</code> GCP label</li>
+<li><strong>Status filter</strong> — filter by instance status (<code>RUNNING</code>, <code>TERMINATED</code>, <code>STAGING</code>, <code>PROVISIONING</code>, <code>STOPPING</code>, <code>UNKNOWN</code>), or all instances</li>
 <li><strong>Zone filter</strong> — filter by GCP zone</li>
 </ul>
 <h3 id="instance-detail">Instance detail</h3>
@@ -1210,11 +1210,12 @@
 <li>Status</li>
 <li>Zone, machine type, vCPUs, memory</li>
 <li>Boot disk size</li>
-<li>Estimated or exact hourly cost (~ indicates an estimate)</li>
-<li>FQDN, Public and internal IP addresses</li>
+<li>Estimated or exact hourly cost (<code>~</code> indicates an estimate based on list price)</li>
+<li>Public IP and internal IP</li>
+<li>FQDN (only shown when DNS is configured in Settings)</li>
 <li>Creation time</li>
 <li>All GCP labels</li>
-<li>All GCP tags (used for firewalling)</li>
+<li>All GCP tags (used for firewall rules)</li>
 </ul>
 <h3 id="row-actions">Row actions</h3>
 <p>Each row has an actions menu (three-dot) with:</p>
@@ -1244,18 +1245,18 @@
 </tr>
 <tr>
 <td><strong>Rename</strong></td>
-<td>Any</td>
-<td>Rename the instance</td>
+<td>Instance is not running</td>
+<td>Rename the instance (disabled while running)</td>
 </tr>
 <tr>
 <td><strong>Change Machine Type</strong></td>
-<td>Instance is stopped</td>
+<td>Any</td>
 <td>Change the machine type in GCP</td>
 </tr>
 <tr>
 <td><strong>Move Zone</strong></td>
-<td>Instance is stopped</td>
-<td>Change the zone in GCP</td>
+<td>Any</td>
+<td>Move the instance to a different zone in GCP</td>
 </tr>
 <tr>
 <td><strong>Edit Labels</strong></td>
@@ -1264,13 +1265,13 @@
 </tr>
 <tr>
 <td><strong>Delete</strong></td>
-<td>Instance is stopped</td>
+<td>Any</td>
 <td>Permanently delete the instance</td>
 </tr>
 </tbody>
 </table>
 <h3 id="bulk-actions">Bulk actions</h3>
-<p>Select multiple instances using the checkboxes. A bulk action bar appears:</p>
+<p>Select multiple instances using the checkboxes. A bulk action bar appears at the top of the table:</p>
 <table>
 <thead>
 <tr>
@@ -1293,7 +1294,7 @@
 </tr>
 <tr>
 <td><strong>Delete</strong></td>
-<td>All selected</td>
+<td>All selected — requires confirmation</td>
 </tr>
 </tbody>
 </table>

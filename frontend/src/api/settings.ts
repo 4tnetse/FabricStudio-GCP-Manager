@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiGet, apiPut, apiDelete, apiClient } from './client'
+import { apiGet, apiPut, apiDelete, apiPost, apiClient } from './client'
 import type { Settings } from '@/lib/types'
 
 export function useSettings() {
@@ -50,6 +50,12 @@ export function useDeleteKeyFile() {
       queryClient.invalidateQueries({ queryKey: ['instances'] })
       queryClient.invalidateQueries({ queryKey: ['images'] })
     },
+  })
+}
+
+export function useTestTeamsWebhook() {
+  return useMutation({
+    mutationFn: (webhook_url: string) => apiPost('/settings/test-teams', { webhook_url }),
   })
 }
 

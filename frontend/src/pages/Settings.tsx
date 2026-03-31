@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Upload, Loader2, Trash2, Key, Settings2, Palette, Pencil, CalendarClock, Search, CheckCircle2, XCircle, AlertTriangle, Rocket, ChevronDown, ChevronUp } from 'lucide-react'
+import { Upload, Loader2, Trash2, Key, Settings2, Palette, Pencil, CalendarClock, Search, CheckCircle2, XCircle, AlertTriangle, Rocket, ChevronDown, ChevronUp, Bell } from 'lucide-react'
 import { DocLink } from '@/components/DocLink'
 import { useDetectCloudRunUrl } from '@/api/schedules'
 import { useCloudRunPermissions, useCloudRunSubnets, useStartDeploy, useStartUndeploy, useDeployStream } from '@/api/cloudrun'
-import { useSettings, useUpdateSettings, useResetSettings } from '@/api/settings'
+import { useSettings, useUpdateSettings, useResetSettings, useTestTeamsWebhook } from '@/api/settings'
 import { useKeys, useUploadKey, useDeleteKey, useRenameKey } from '@/api/keys'
 import { useZones, useZoneLocations } from '@/api/instances'
 import { useSelectProject } from '@/api/projects'
@@ -153,6 +153,7 @@ export default function SettingsPage() {
         remote_backend_url: settings.remote_backend_url ?? '',
         cloud_run_region: settings.cloud_run_region ?? '',
         firestore_project_id: settings.firestore_project_id ?? '',
+        teams_webhook_url: settings.teams_webhook_url ?? '',
       })
     }
   }, [settings])
@@ -163,6 +164,8 @@ export default function SettingsPage() {
 
   const [isSavingPrefs, setIsSavingPrefs] = useState(false)
   const [isSavingScheduling, setIsSavingScheduling] = useState(false)
+  const [isSavingNotifications, setIsSavingNotifications] = useState(false)
+  const testTeams = useTestTeamsWebhook()
 
   async function handleSavePrefs() {
     setIsSavingPrefs(true)
@@ -184,6 +187,29 @@ export default function SettingsPage() {
       toast.error(err instanceof Error ? err.message : 'Failed to save settings')
     } finally {
       setIsSavingPrefs(false)
+    }
+  }
+
+  async function handleSaveNotifications() {
+    setIsSavingNotifications(true)
+    try {
+      await updateSettings.mutateAsync({ teams_webhook_url: form.teams_webhook_url })
+      toast.success('Settings saved')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save settings')
+    } finally {
+      setIsSavingNotifications(false)
+    }
+  }
+
+  async function handleTestTeams() {
+    const url = (form.teams_webhook_url as string) ?? ''
+    if (!url) { toast.error('Enter a webhook URL first'); return }
+    try {
+      await testTeams.mutateAsync(url)
+      toast.success('Test message sent — check your Teams channel')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to send test message')
     }
   }
 
@@ -342,7 +368,8 @@ export default function SettingsPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
 
-      {/* Left column: Preferences */}
+      {/* Left column: Preferences + Scheduling */}
+      <div className="space-y-6">
       {hasKey && <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
         <div className="flex items-center gap-2">
           <Settings2 className="w-4 h-4 text-slate-400" />
@@ -482,108 +509,6 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>}{/* end Preferences widget */}
-
-      {/* Right column: Keys + Appearance */}
-      <div className="space-y-6">
-
-      {/* Service Account Keys */}
-      <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
-        <div className="flex items-center gap-2">
-          <Key className="w-4 h-4 text-slate-400" />
-          <h2 className="text-sm font-semibold text-slate-200">Service Account Keys</h2>
-        </div>
-
-        {/* Key list */}
-        {keys && keys.length > 0 && (
-          <div className="space-y-2">
-            {keys.map((key) => (
-              <div key={key.id} className="flex items-start gap-3 px-3 py-3 rounded-lg bg-slate-800/60 border border-slate-700">
-                <Key className="w-3.5 h-3.5 text-green-400 mt-0.5 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  {editingKeyId === key.id ? (
-                    <div className="flex items-center gap-2 mb-1">
-                      <input
-                        className="flex-1 px-2 py-0.5 rounded bg-slate-700 border border-slate-600 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        value={editingName}
-                        onChange={(e) => setEditingName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleRenameConfirm(key.id)
-                          if (e.key === 'Escape') setEditingKeyId(null)
-                        }}
-                        autoFocus
-                      />
-                      <button onClick={() => handleRenameConfirm(key.id)} className="text-xs text-blue-400 hover:text-blue-300 px-1">Save</button>
-                      <button onClick={() => setEditingKeyId(null)} className="text-xs text-slate-500 hover:text-slate-300 px-1">Cancel</button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="text-sm font-medium text-slate-200 truncate">{key.display_name}</span>
-                      <button
-                        onClick={() => { setEditingKeyId(key.id); setEditingName(key.display_name) }}
-                        className="text-slate-600 hover:text-slate-400 transition-colors shrink-0"
-                        title="Rename"
-                      >
-                        <Pencil className="w-3 h-3" />
-                      </button>
-                    </div>
-                  )}
-                  {key.client_email && (
-                    <div className="text-xs text-slate-500 truncate font-mono">{key.client_email}</div>
-                  )}
-                  <div className="text-xs text-slate-600 mt-0.5">
-                    {key.projects.length === 0
-                      ? 'No projects'
-                      : key.projects.map((p) => p.name || p.id).join(', ')}
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleDeleteKey(key.id)}
-                  className="text-slate-600 hover:text-red-400 transition-colors shrink-0 mt-0.5"
-                  title="Delete key"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Upload drop zone */}
-        <div
-          onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={handleDrop}
-          className={`relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-8 cursor-pointer transition-colors ${
-            dragging ? 'border-blue-500 bg-blue-900/20' : 'border-slate-700 hover:border-slate-500 hover:bg-slate-800/40'
-          }`}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          {uploadKey.isPending ? (
-            <Loader2 className="w-6 h-6 animate-spin text-slate-400 mb-2" />
-          ) : (
-            <Upload className="w-6 h-6 text-slate-400 mb-2" />
-          )}
-          <p className="text-sm text-slate-300">
-            {uploadKey.isPending ? 'Uploading...' : 'Drop JSON key file here or click to browse'}
-          </p>
-          <p className="text-xs text-slate-500 mt-1">GCP service account JSON key</p>
-          <p className="text-xs text-slate-500 mt-2">GCP Console → IAM & Admin → Service Accounts → select account → Keys tab → Add Key → JSON</p>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) handleFileUpload(file)
-              e.target.value = ''
-            }}
-          />
-        </div>
-      </div>{/* end Service Account Keys widget */}
-
-      {/* Appearance */}
-      <ThemeSelector />
 
       {/* Scheduling */}
       {hasKey && <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
@@ -924,9 +849,151 @@ export default function SettingsPage() {
         </div>
       </div>}
 
+      </div>{/* end left column */}
+
+      {/* Right column: Service Account Keys + Notifications + Appearance */}
+      <div className="space-y-6">
+
+      {/* Service Account Keys */}
+      <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Key className="w-4 h-4 text-slate-400" />
+          <h2 className="text-sm font-semibold text-slate-200">Service Account Keys</h2>
+        </div>
+
+        {/* Key list */}
+        {keys && keys.length > 0 && (
+          <div className="space-y-2">
+            {keys.map((key) => (
+              <div key={key.id} className="flex items-start gap-3 px-3 py-3 rounded-lg bg-slate-800/60 border border-slate-700">
+                <Key className="w-3.5 h-3.5 text-green-400 mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  {editingKeyId === key.id ? (
+                    <div className="flex items-center gap-2 mb-1">
+                      <input
+                        className="flex-1 px-2 py-0.5 rounded bg-slate-700 border border-slate-600 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleRenameConfirm(key.id)
+                          if (e.key === 'Escape') setEditingKeyId(null)
+                        }}
+                        autoFocus
+                      />
+                      <button onClick={() => handleRenameConfirm(key.id)} className="text-xs text-blue-400 hover:text-blue-300 px-1">Save</button>
+                      <button onClick={() => setEditingKeyId(null)} className="text-xs text-slate-500 hover:text-slate-300 px-1">Cancel</button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-sm font-medium text-slate-200 truncate">{key.display_name}</span>
+                      <button
+                        onClick={() => { setEditingKeyId(key.id); setEditingName(key.display_name) }}
+                        className="text-slate-600 hover:text-slate-400 transition-colors shrink-0"
+                        title="Rename"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                  {key.client_email && (
+                    <div className="text-xs text-slate-500 truncate font-mono">{key.client_email}</div>
+                  )}
+                  <div className="text-xs text-slate-600 mt-0.5">
+                    {key.projects.length === 0
+                      ? 'No projects'
+                      : key.projects.map((p) => p.name || p.id).join(', ')}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDeleteKey(key.id)}
+                  className="text-slate-600 hover:text-red-400 transition-colors shrink-0 mt-0.5"
+                  title="Delete key"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Upload drop zone */}
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+          className={`relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-8 cursor-pointer transition-colors ${
+            dragging ? 'border-blue-500 bg-blue-900/20' : 'border-slate-700 hover:border-slate-500 hover:bg-slate-800/40'
+          }`}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {uploadKey.isPending ? (
+            <Loader2 className="w-6 h-6 animate-spin text-slate-400 mb-2" />
+          ) : (
+            <Upload className="w-6 h-6 text-slate-400 mb-2" />
+          )}
+          <p className="text-sm text-slate-300">
+            {uploadKey.isPending ? 'Uploading...' : 'Drop JSON key file here or click to browse'}
+          </p>
+          <p className="text-xs text-slate-500 mt-1">GCP service account JSON key</p>
+          <p className="text-xs text-slate-500 mt-2">GCP Console → IAM & Admin → Service Accounts → select account → Keys tab → Add Key → JSON</p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) handleFileUpload(file)
+              e.target.value = ''
+            }}
+          />
+        </div>
+      </div>{/* end Service Account Keys widget */}
+
+      {/* Notifications */}
+      <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Bell className="w-4 h-4 text-slate-400" />
+          <h2 className="text-sm font-semibold text-slate-200">Notifications</h2>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-300 mb-1">
+            Microsoft Teams webhook URL
+          </label>
+          <input
+            className={inputClass}
+            placeholder="https://…webhook.office.com/webhookb2/…"
+            value={(form.teams_webhook_url as string) ?? ''}
+            onChange={(e) => setField('teams_webhook_url', e.target.value as Settings['teams_webhook_url'])}
+          />
+        </div>
+        <div className="flex justify-end gap-2 pt-1">
+          <button
+            onClick={handleTestTeams}
+            disabled={testTeams.isPending || !form.teams_webhook_url}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800 text-sm disabled:opacity-50"
+          >
+            {testTeams.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Bell className="w-3.5 h-3.5" />}
+            Test
+          </button>
+          <button
+            onClick={handleSaveNotifications}
+            disabled={isSavingNotifications}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50 transition-colors ${isSF ? 'bg-[#db291c] hover:bg-[#c4241a]' : 'bg-blue-600 hover:bg-blue-500'}`}
+          >
+            {isSavingNotifications ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            Save
+          </button>
+        </div>
+      </div>
+
+      {/* Appearance */}
+      <ThemeSelector />
+
       </div>{/* end right column */}
 
       </div>{/* end two-column grid */}
+
 
 
       {/* Reset confirmation dialog */}

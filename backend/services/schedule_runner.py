@@ -22,7 +22,7 @@ from services import firestore_client as fs
 from services.parallel_runner import job_manager
 
 
-async def run_triggered_job(schedule: dict, run_id: str) -> None:
+async def run_triggered_job(schedule: dict, run_id: str, triggered_by: str = "scheduler") -> None:
     """Execute a schedule and write results to the Firestore job_run document."""
 
     job_id = str(uuid.uuid4())
@@ -139,6 +139,20 @@ async def run_triggered_job(schedule: dict, run_id: str) -> None:
         )
     except Exception:
         pass  # If Firestore is unavailable, there is not much we can do
+
+    # Teams notification (best-effort)
+    webhook_url = original_settings.teams_webhook_url
+    if webhook_url:
+        from services.teams_notify import notify_teams
+        await notify_teams(
+            webhook_url=webhook_url,
+            schedule_name=schedule.get("name", "Unknown schedule"),
+            job_type=schedule.get("job_type", "unknown"),
+            status="failed" if failed else "completed",
+            project_id=active_project_id or "",
+            triggered_by=triggered_by,
+            error_summary=error_summary if failed else None,
+        )
 
 
 async def _safe_job(coro, job_id: str) -> None:

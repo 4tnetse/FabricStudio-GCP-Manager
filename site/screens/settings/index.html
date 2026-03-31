@@ -836,6 +836,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#notifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notifications
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Notifications">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#setting-up-a-teams-workflow-webhook" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setting up a Teams Workflow webhook
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#appearance" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1065,6 +1093,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#notifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notifications
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Notifications">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#setting-up-a-teams-workflow-webhook" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setting up a Teams Workflow webhook
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#appearance" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1197,6 +1253,23 @@
 </ul>
 <p>After uploading a key, a dialog appears to switch to the new project.</p>
 <p>The active project is selected from the sidebar project selector.</p>
+<h2 id="notifications">Notifications</h2>
+<p>Send a message to a Microsoft Teams channel when a scheduled job completes or fails.</p>
+<h3 id="setting-up-a-teams-workflow-webhook">Setting up a Teams Workflow webhook</h3>
+<p>Microsoft deprecated the old Incoming Webhook connector. Use a <strong>Power Automate Workflow</strong> instead:</p>
+<ol>
+<li>In Teams, open the channel where you want to receive notifications</li>
+<li>Click <strong><code>...</code></strong> (More options) next to the channel name</li>
+<li>Select <strong>Workflows</strong></li>
+<li>Search for <strong>"Post to a channel when a webhook request is received"</strong></li>
+<li>Select it → click <strong>Add workflow</strong> → give it a name → click <strong>Next</strong> → <strong>Add workflow</strong></li>
+<li>Copy the <strong>webhook URL</strong> that Teams generates</li>
+</ol>
+<p>Paste the URL into the <strong>Microsoft Teams webhook URL</strong> field in Settings and click <strong>Save</strong>.</p>
+<p>Click <strong>Test</strong> to send a sample notification to the channel and verify the connection.</p>
+<blockquote>
+<p><strong>Note:</strong> The webhook URL is project-wide and applies to all scheduled jobs regardless of which GCP project they run in.</p>
+</blockquote>
 <h2 id="appearance">Appearance</h2>
 <p>Choose between three UI themes:</p>
 <table>

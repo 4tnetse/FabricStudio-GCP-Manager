@@ -31,6 +31,27 @@ After uploading a key, a dialog appears to switch to the new project.
 
 The active project is selected from the sidebar project selector.
 
+## Notifications
+
+Send a message to a Microsoft Teams channel when a scheduled job completes or fails.
+
+### Setting up a Teams Workflow webhook
+
+Microsoft deprecated the old Incoming Webhook connector. Use a **Power Automate Workflow** instead:
+
+1. In Teams, open the channel where you want to receive notifications
+2. Click **`...`** (More options) next to the channel name
+3. Select **Workflows**
+4. Search for **"Post to a channel when a webhook request is received"**
+5. Select it → click **Add workflow** → give it a name → click **Next** → **Add workflow**
+6. Copy the **webhook URL** that Teams generates
+
+Paste the URL into the **Microsoft Teams webhook URL** field in Settings and click **Save**.
+
+Click **Test** to send a sample notification to the channel and verify the connection.
+
+> **Note:** The webhook URL is project-wide and applies to all scheduled jobs regardless of which GCP project they run in.
+
 ## Appearance
 
 Choose between three UI themes:

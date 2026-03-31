@@ -50,6 +50,30 @@ async def update_settings(update: SettingsUpdate):
     return {"detail": "Settings saved"}
 
 
+# ---- Notifications ----
+
+class TeamsTestRequest(BaseModel):
+    webhook_url: str
+
+
+@router.post("/test-teams")
+async def test_teams_webhook(body: TeamsTestRequest):
+    """Send a test message to the given Teams webhook URL."""
+    from services.teams_notify import notify_teams
+    try:
+        await notify_teams(
+            webhook_url=body.webhook_url,
+            schedule_name="Test notification",
+            job_type="configure",
+            status="completed",
+            project_id=cfg.settings.active_project_id or "example-project",
+            triggered_by="manual",
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"ok": True}
+
+
 # ---- Key management ----
 
 @router.get("/keys")

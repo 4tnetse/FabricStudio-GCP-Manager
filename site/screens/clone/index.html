@@ -623,6 +623,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#scheduling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scheduling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#output-panel" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1048,6 +1059,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#scheduling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scheduling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#output-panel" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1098,12 +1120,12 @@
 <tr>
 <td><strong>Workshop name</strong></td>
 <td>Yes</td>
-<td>Base name for the cloned instances. Auto-filled from the source instance name.</td>
+<td>Base name for the cloned instances. Auto-filled from the source instance name. Must start with a letter; only lowercase letters, digits and hyphens; no trailing hyphen; max 59 characters.</td>
 </tr>
 <tr>
 <td><strong>Customer, Partner or Event</strong></td>
 <td>No</td>
-<td>Applied as a <code>purpose</code> label on all cloned instances (e.g. <code>fortinet-workshop</code>)</td>
+<td>Applied as a <code>purpose</code> label on all cloned instances (e.g. <code>fortinet-workshop</code>). Lowercase letters, digits, underscores and dashes only; max 63 characters.</td>
 </tr>
 <tr>
 <td><strong>Destination zone</strong></td>
@@ -1130,8 +1152,10 @@
 <h2 id="dns">DNS</h2>
 <p>If DNS settings are configured in Settings, DNS records are created automatically for each cloned instance.</p>
 <p>If DNS settings are incomplete, a warning dialog appears before cloning starts. You must either configure the missing settings or explicitly choose to continue without DNS record creation.</p>
+<h2 id="scheduling">Scheduling</h2>
+<p>Click the <strong>Schedule</strong> button next to Clone to schedule this job via Cloud Scheduler. The current form values (source, zone, name, range, purpose, overwrite) are saved as the job payload. Requires Cloud Run scheduling to be configured in Settings.</p>
 <h2 id="output-panel">Output panel</h2>
-<p>The right panel streams live clone output. Each batch is shown as it completes.</p>
+<p>The right panel streams live clone output. Each batch is shown as it completes. A spinner appears on the Clone nav item when a clone is running in the background.</p>
 
 
 

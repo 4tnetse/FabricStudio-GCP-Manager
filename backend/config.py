@@ -71,6 +71,8 @@ class AppSettings(BaseModel):
     remote_backend_url: str = ""
     cloud_run_region: str = ""
     firestore_project_id: str = ""
+    # Global notification settings
+    teams_webhook_url: str = ""
     # Per-project config (project_id -> dict of _PER_PROJECT_FIELDS)
     project_configs: dict[str, dict] = {}
     # Legacy alias — old settings files may have this key

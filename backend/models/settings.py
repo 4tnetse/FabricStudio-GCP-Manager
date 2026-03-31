@@ -18,6 +18,7 @@ class SettingsUpdate(BaseModel):
     remote_backend_url: str | None = None
     cloud_run_region: str | None = None
     firestore_project_id: str | None = None
+    teams_webhook_url: str | None = None
 
     @field_validator("dns_domain")
     @classmethod
