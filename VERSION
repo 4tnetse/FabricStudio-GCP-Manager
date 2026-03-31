@@ -1,7 +1,8 @@
-2.23
+2.24
 
 # Version history
 # ---------------
+# 2.24   Upgrade button gated on GitHub release availability; polls every 5s when waiting, shows "No new version available" until confirmed; GitHub version cache reduced from 1h to 60s
 # 2.23   Version check: semantic comparison (local > remote) for upgrade button and sidebar indicator; popup polls /version every 10s; stops polling during upgrade
 # 2.22   Near real-time schedule run log streaming: backend flushes to Firestore every 2s, frontend polls active runs every 2s, auto-expands running run and auto-scrolls log output
 # 2.21   Retry insert call with backoff on transient SSL/connection errors when creating instances from machine images (fixes parallel clone failures on cold-started Cloud Run)

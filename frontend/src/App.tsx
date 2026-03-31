@@ -219,14 +219,18 @@ export default function App() {
   const [aboutOpen, setAboutOpen] = useState(false)
 
   const isUpgrading = upgradeRemote.isPending || upgradeStreaming
+  const localAheadOfRemote = !!(versionInfo?.remote_version && versionGt(versionInfo.local_version, versionInfo.remote_version))
+  const githubHasVersion = !!(versionInfo?.latest_version && !versionGt(versionInfo.local_version, versionInfo.latest_version))
+  const waitingForGithub = aboutOpen && localAheadOfRemote && !githubHasVersion
+
   useEffect(() => {
     if (!aboutOpen || isUpgrading) return
     queryClient.invalidateQueries({ queryKey: ['version'] })
     const interval = setInterval(() => {
       queryClient.invalidateQueries({ queryKey: ['version'] })
-    }, 10_000)
+    }, waitingForGithub ? 5_000 : 10_000)
     return () => clearInterval(interval)
-  }, [aboutOpen, isUpgrading])
+  }, [aboutOpen, isUpgrading, waitingForGithub])
 
   const mainScrollRef = useRef<HTMLDivElement>(null)
   const { pathname } = useLocation()
@@ -399,7 +403,10 @@ export default function App() {
                         return (
                           <>
                             {!upgradeStreamUrl && localAhead && <span className="text-orange-400 text-xs">⚠ out of sync</span>}
-                            {localAhead && (
+                            {localAhead && !githubHasVersion && (
+                              <span className="text-slate-500 text-xs">No new version available</span>
+                            )}
+                            {localAhead && githubHasVersion && (
                               <button
                                 onClick={() => { setUpgradeStreamUrl(null); upgradeRemote.mutate() }}
                                 disabled={upgradeRemote.isPending || upgradeStreaming || (!upgradeStreaming && !!upgradeStreamUrl && !upgradeFailed)}

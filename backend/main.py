@@ -128,7 +128,7 @@ _VERSION_FILE = Path(__file__).parent.parent / "VERSION"
 
 # Cache remote version to avoid hitting the Cloud Run API on every request
 _remote_version_cache: dict = {"version": None, "expires": 0.0}
-# Cache latest GitHub release version (1 hour — unauthenticated rate limit is 60 req/hour)
+# Cache latest GitHub release version (60 seconds — short enough to detect new releases promptly)
 _github_version_cache: dict = {"version": None, "expires": 0.0}
 
 _upgrade_manager = _JobManager()
@@ -176,7 +176,7 @@ async def _fetch_remote_version() -> str | None:
 
 
 async def _fetch_latest_version() -> str | None:
-    """Fetch the latest release tag from GitHub, cached for 1 hour."""
+    """Fetch the latest release tag from GitHub, cached for 60 seconds."""
     import time
     import asyncio
 
@@ -202,7 +202,7 @@ async def _fetch_latest_version() -> str | None:
     try:
         version = await asyncio.get_event_loop().run_in_executor(None, _run)
         _github_version_cache["version"] = version
-        _github_version_cache["expires"] = now + 3600  # cache for 1 hour
+        _github_version_cache["expires"] = now + 60  # cache for 60 seconds
         return version
     except Exception:
         return None
