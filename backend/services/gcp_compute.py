@@ -100,6 +100,7 @@ def _parse_firewall(fw: Any) -> FirewallRule:
         direction=fw.direction or "INGRESS",
         priority=fw.priority or 1000,
         source_ranges=list(fw.source_ranges) if fw.source_ranges else [],
+        source_tags=list(fw.source_tags) if fw.source_tags else [],
         target_tags=list(fw.target_tags) if fw.target_tags else [],
         allowed=allowed_list,
         disabled=fw.disabled or False,
@@ -394,19 +395,49 @@ class GCPComputeService:
         fw = await self._run(_get)
         return _parse_firewall(fw)
 
-    async def set_firewall_disabled(self, rule_name: str, disabled: bool) -> None:
+    async def create_firewall_rule(
+        self,
+        name: str,
+        network: str,
+        priority: int,
+        allowed_tcp: list[str],
+        allowed_udp: list[str],
+        source_ranges: list[str],
+        target_tags: list[str],
+        source_tags: list[str] | None = None,
+    ) -> None:
+        client = compute_v1.FirewallsClient(credentials=self._credentials)
+        allowed = []
+        if allowed_tcp:
+            allowed.append(compute_v1.Allowed(I_p_protocol="tcp", ports=allowed_tcp))
+        if allowed_udp:
+            allowed.append(compute_v1.Allowed(I_p_protocol="udp", ports=allowed_udp))
+        body = compute_v1.Firewall(
+            name=name,
+            network=f"projects/{self._project_id}/global/networks/{network}",
+            priority=priority,
+            direction="INGRESS",
+            allowed=allowed,
+            source_ranges=source_ranges if source_ranges else None,
+            source_tags=source_tags if source_tags else None,
+            target_tags=target_tags,
+            log_config=compute_v1.FirewallLogConfig(enable=False),
+        )
+
+        def _create():
+            op = client.insert(project=self._project_id, firewall_resource=body)
+            _wait_for_op(op)
+
+        await self._run(_create)
+
+    async def delete_firewall_rule(self, name: str) -> None:
         client = compute_v1.FirewallsClient(credentials=self._credentials)
 
-        def _update():
-            body = compute_v1.Firewall(disabled=disabled)
-            # Fire and don't wait — GCP processes async
-            client.patch(
-                project=self._project_id,
-                firewall=rule_name,
-                firewall_resource=body,
-            )
+        def _delete():
+            op = client.delete(project=self._project_id, firewall=name)
+            _wait_for_op(op)
 
-        await self._run(_update)
+        await self._run(_delete)
 
     async def update_firewall_source_ranges(
         self, rule_name: str, source_ranges: list[str]
@@ -575,6 +606,7 @@ class GCPComputeService:
             raise last_exc  # type: ignore[misc]
 
         await self._run(_create)
+        await self.add_tags(zone, name, ["fabric-studio"])
 
     async def get_subnetwork_for_zone(self, zone: str) -> str | None:
         """Return the subnetwork URL for the given zone.

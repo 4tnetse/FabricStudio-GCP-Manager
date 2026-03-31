@@ -112,7 +112,7 @@ async def _build_job(job_id: str, build_cfg: BuildConfig) -> None:
                 image=build_cfg.image,
                 trial_key=build_cfg.trial_key,
                 labels=labels,
-                tags=["workshop-source-any", "workshop-source-networks"],
+                tags=["workshop-source-any", "workshop-source-networks", "fabric-studio"],
                 poc_definitions=build_cfg.poc_definitions,
                 poc_launch=build_cfg.poc_launch,
                 subnetwork=subnetwork,
@@ -481,6 +481,62 @@ async def bulk_shutdown(body: BulkShutdownRequest):
 #  Bulk configure                                                      #
 # ------------------------------------------------------------------ #
 
+async def _convert_to_license_server(
+    fs,
+    svc: GCPComputeService,
+    zone: str,
+    name: str,
+    log,
+) -> None:
+    """Run the 7-step conversion of an instance to a license server."""
+    await log("Converting to license server…")
+
+    await log("Step 1/7: Uninstalling fabric runtime…")
+    await fs.uninstall_fabric()
+    await log("Waiting for uninstall to complete…")
+    await fs.wait_for_tasks()
+
+    await log("Step 2/7: Deleting all existing fabrics…")
+    await fs.delete_all_fabrics()
+
+    await log("Step 3/7: Clearing remote license server URL…")
+    await fs.clear_license_server()
+
+    await log("Step 4/7: Enabling built-in license service…")
+    await fs.enable_license_service()
+
+    await log("Step 5/7: Updating GCP labels…")
+    await svc.add_labels(zone=zone, name=name, labels={
+        "group": "production",
+        "purpose": "licenseserver",
+        "delete": "no",
+    })
+
+    await log("Step 6/7: Updating GCP firewall tags (add 'license-server', remove 'fabric-studio')…")
+    await svc.add_tags(zone=zone, name=name, tags=["license-server"])
+    await svc.remove_tags(zone=zone, name=name, tags=["fabric-studio"])
+
+    await log("Step 7/7: Checking for 'license-server' firewall rule…")
+    try:
+        await svc.get_firewall_rule("license-server")
+        await log("Firewall rule 'license-server' already exists — skipping.")
+    except Exception:
+        await log("Creating firewall rule 'license-server'…")
+        await svc.create_firewall_rule(
+            name="license-server",
+            network="default",
+            priority=900,
+            allowed_tcp=["443"],
+            allowed_udp=[],
+            source_ranges=[],
+            target_tags=["license-server"],
+            source_tags=["fabric-studio"],
+        )
+        await log("Firewall rule 'license-server' created.")
+
+    await log("License server conversion complete.")
+
+
 async def _bulk_configure_job(job_id: str, req: BulkConfigureRequest) -> None:
     q = job_manager.jobs[job_id]
     failures: list[str] = []
@@ -544,7 +600,12 @@ async def _bulk_configure_job(job_id: str, req: BulkConfigureRequest) -> None:
                     await q.put(f"{tag} Setting guest password…")
                     await fs.change_user_password("guest", req.guest_password)
                 if req.hostname_template:
-                    hostname = req.hostname_template.replace("{count}", str(parsed.number))
+                    try:
+                        parsed = InstanceName.parse(item.name)
+                        count = parsed.number
+                    except Exception:
+                        count = 0
+                    hostname = req.hostname_template.replace("{count}", str(count))
                     await q.put(f"{tag} Setting hostname to '{hostname}'…")
                     await fs.set_hostname(hostname)
                 valid_fabrics = [f for f in req.workspace_fabrics if f.get("name") and f.get("template_name")]
@@ -573,6 +634,11 @@ async def _bulk_configure_job(job_id: str, req: BulkConfigureRequest) -> None:
                         fabric_id = await fs.get_fabric_id_by_name(fabric_to_install["name"])
                         await fs.install_fabric(fabric_id)
                         await q.put(f"{tag} Fabric '{fabric_to_install['name']}' installation started.")
+
+                if req.convert_to_license_server:
+                    svc = _get_service()
+                    await _convert_to_license_server(fs, svc, item.zone, item.name, log)
+
             await q.put(f"{tag} Done.")
         except Exception as exc:
             await q.put(f"{tag} ERROR: {exc}")

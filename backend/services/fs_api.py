@@ -132,6 +132,28 @@ class FabricStudioClient:
         )
         r.raise_for_status()
 
+    async def clear_license_server(self) -> None:
+        """Clear the remote license server URL and disable the client."""
+        r = await self._client.post(
+            f"{self._base}/api/v1/system/license/client/server/url",
+            json={"server": ""},
+            headers=self._headers(),
+        )
+        r.raise_for_status()
+        r = await self._client.post(
+            f"{self._base}/api/v1/system/license/client/server:disable",
+            headers=self._headers(),
+        )
+        r.raise_for_status()
+
+    async def enable_license_service(self) -> None:
+        """Enable the built-in license service on this instance (serve licenses to remote clients)."""
+        r = await self._client.post(
+            f"{self._base}/api/v1/system/license/server/service:enable",
+            headers=self._headers(),
+        )
+        r.raise_for_status()
+
     async def _get_user_id(self, username: str) -> int:
         """Return the numeric ID of a user by username."""
         r = await self._client.get(

@@ -257,18 +257,20 @@ export default function Configure() {
     })
     setConfiguring(true)
     try {
+      const isNewLicenseServer = licenseServerInstance === '__new_license_server__'
       const payload = {
         instances: items,
         old_admin_password: oldAdminPassword || undefined,
         admin_password: adminPassword || undefined,
         guest_password: guestPassword || undefined,
         trial_key: trialKey || undefined,
-        license_server: licenseServerIp || undefined,
+        license_server: (!isNewLicenseServer && licenseServerIp) ? licenseServerIp : undefined,
         hostname_template: hostnameTemplate || undefined,
         delete_all_workspaces: hasValidFabrics || deleteAllWorkspaces,
         workspace_fabrics: workspaceFabrics.filter(f => f.name && f.templateId).map((f, i) => ({ name: f.name, template_name: workspaceTemplates.find(t => String(t.id) === f.templateId)?.name ?? '', install: i === workspaceInstallIndex })),
         ssh_keys: sshKeys.filter(Boolean),
         delete_existing_keys: deleteExistingKeys,
+        convert_to_license_server: isNewLicenseServer || undefined,
       }
       const result = await apiPost<{ job_id: string }>('/ops/bulk-configure', payload)
       setConfigureStreamUrl(`/api/ops/${result.job_id}/stream`)
@@ -554,11 +556,12 @@ export default function Configure() {
                 onChange={setLicenseServerInstance}
                 options={[
                   { value: '', label: 'None' },
+                  { value: '__new_license_server__', label: 'This will be a new license server' },
                   ...instances.map((i) => ({ value: i.name, label: i.name })),
                 ]}
                 searchable
               />
-              {licenseServerIp && (
+              {licenseServerIp && licenseServerInstance !== '__new_license_server__' && (
                 <p className="text-xs text-slate-500 mt-1">Internal IP: <span className="font-mono text-slate-400">{licenseServerIp}</span></p>
               )}
             </div>
@@ -758,12 +761,13 @@ export default function Configure() {
             admin_password: adminPassword || undefined,
             guest_password: guestPassword || undefined,
             trial_key: trialKey || undefined,
-            license_server: licenseServerIp || undefined,
+            license_server: (licenseServerInstance !== '__new_license_server__' && licenseServerIp) ? licenseServerIp : undefined,
             hostname_template: hostnameTemplate || undefined,
             delete_all_workspaces: hasValidFabrics || deleteAllWorkspaces,
             workspace_fabrics: workspaceFabrics.filter(f => f.name && f.templateId).map((f, i) => ({ name: f.name, template_name: workspaceTemplates.find(t => String(t.id) === f.templateId)?.name ?? '', install: i === workspaceInstallIndex })),
             ssh_keys: sshKeys.filter(Boolean),
             delete_existing_keys: deleteExistingKeys,
+            convert_to_license_server: licenseServerInstance === '__new_license_server__' || undefined,
           }}
           onClose={() => setScheduleOpen(false)}
         />
