@@ -1,13 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { Plus, Minus, Info, Loader2 } from 'lucide-react'
-import { apiPost } from '@/api/client'
+import { Plus, Minus, Info, Loader2, CheckCircle2, AlertCircle, X } from 'lucide-react'
 import { useSettings } from '@/api/settings'
 import { useZones, useMachineTypes, useZoneLocations } from '@/api/instances'
 import { useImages } from '@/api/images'
 import { zoneLabel } from '@/lib/zones'
 import { LogStream } from '@/components/LogStream'
 import { CustomSelect } from '@/components/CustomSelect'
+import { useBuild } from '@/context/BuildContext'
 
 interface LabelPair {
   key: string
@@ -27,14 +27,29 @@ export default function Build() {
   const [diskSizeGb, setDiskSizeGb] = useState('200')
   const [group, setGroup] = useState(settings?.group ?? '')
   const [labels, setLabels] = useState<LabelPair[]>([])
-  const [building, setBuilding] = useState(false)
-  const [streaming, setStreaming] = useState(false)
-  const [streamUrl, setStreamUrl] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   const { data: machineTypes = [], isLoading: machineTypesLoading } = useMachineTypes(zone)
   const { data: images = [] } = useImages()
 
+  const { buildJob, buildFormSnapshot, lines, isStreaming, handleStartBuild, handleDismiss } = useBuild()
+
+  // Restore form values from snapshot when navigating back to an active/finished build
+  useEffect(() => {
+    if (buildJob && buildFormSnapshot) {
+      setPrepend(buildFormSnapshot.prepend)
+      setProduct(buildFormSnapshot.product)
+      setZone(buildFormSnapshot.zone)
+      setMachineType(buildFormSnapshot.machineType)
+      setImage(buildFormSnapshot.image)
+      setDiskSizeGb(buildFormSnapshot.diskSizeGb)
+      setGroup(buildFormSnapshot.group)
+      setLabels(buildFormSnapshot.labels)
+    }
+  }, []) // Only on mount — snapshot is stable while job is alive
+
   const instanceName = `fs-${prepend || '<initials>'}-${product || '<workshop>'}-000`
+  const isActive = buildJob?.phase === 'building'
 
   function addLabel() {
     setLabels((prev) => [...prev, { key: '', value: '' }])
@@ -52,16 +67,22 @@ export default function Build() {
   const diskSizeError = diskSizeGb !== '' && (isNaN(diskSizeNum) || diskSizeNum < 10 || diskSizeNum > 65536)
 
   async function handleBuild() {
-    if (!prepend || !product || !zone) {
-      toast.error('Prepend, product, and zone are required')
+    if (!prepend || !product || !zone || !image || !machineType) {
+      const missing = [
+        !prepend && 'Initials',
+        !product && 'Workshop name',
+        !zone && 'Zone',
+        !image && 'Image',
+        !machineType && 'Machine type',
+      ].filter(Boolean).join(', ')
+      toast.error(`Required fields missing: ${missing}`)
       return
     }
     if (diskSizeError) {
       toast.error('Disk size must be between 10 and 65536 GB')
       return
     }
-    setBuilding(true)
-    setStreamUrl(null)
+    setSubmitting(true)
     try {
       const payload = {
         prepend,
@@ -75,13 +96,9 @@ export default function Build() {
           return acc
         }, { delete: 'no', ...(group ? { group } : {}) }),
       }
-      const result = await apiPost<{ job_id: string }>('/ops/build', payload)
-      setStreamUrl(`/api/ops/${result.job_id}/stream`)
-      toast.success('Build started')
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Build failed')
+      await handleStartBuild(payload, instanceName, { prepend, product, zone, machineType, image, diskSizeGb, group, labels })
     } finally {
-      setBuilding(false)
+      setSubmitting(false)
     }
   }
 
@@ -96,9 +113,32 @@ export default function Build() {
         <p className="text-sm text-slate-400 mt-0.5">Create your workshop golden image</p>
       </div>
 
+      {/* Status banner when a build is active (or just finished) and navigated back */}
+      {buildJob && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-sm">
+          {isActive ? (
+            <Loader2 className="w-4 h-4 animate-spin text-blue-400 shrink-0" />
+          ) : buildJob.phase === 'done' ? (
+            <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
+          ) : (
+            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+          )}
+          <span className="text-slate-300 truncate">
+            {isActive && `Building '${buildJob.instanceName}'…`}
+            {buildJob.phase === 'done' && `'${buildJob.instanceName}' built successfully.`}
+            {buildJob.phase === 'failed' && `Build of '${buildJob.instanceName}' failed.`}
+          </span>
+          {!isActive && (
+            <button onClick={handleDismiss} className="text-slate-500 hover:text-slate-300 shrink-0 ml-auto">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: build form */}
-        <div className={`space-y-4 rounded-xl border border-slate-700 bg-slate-800/30 p-5 ${streaming ? 'opacity-40 pointer-events-none' : ''}`}>
+        <div className={`space-y-4 rounded-xl border border-slate-700 bg-slate-800/30 p-5 ${isActive ? 'opacity-40 pointer-events-none' : ''}`}>
           <h2 className="text-sm font-semibold text-slate-200">Create golden image</h2>
 
           <div className="grid grid-cols-2 gap-3">
@@ -238,10 +278,10 @@ export default function Build() {
 
           <button
             onClick={handleBuild}
-            disabled={building || streaming}
+            disabled={submitting || isActive}
             className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors"
           >
-            {building || streaming ? (
+            {submitting || isActive ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Building...
@@ -252,11 +292,15 @@ export default function Build() {
           </button>
         </div>
 
-        {/* Right: log output — relative wrapper so absolute child doesn't inflate grid row */}
+        {/* Right: log output */}
         <div className="relative">
           <div className="absolute inset-0 rounded-xl border border-slate-700 bg-slate-800/30 p-5 flex flex-col gap-3 overflow-hidden">
             <h2 className="text-sm font-medium text-slate-300 shrink-0">Output</h2>
-            <LogStream url={streamUrl} className="flex-1 min-h-0" onStreamingChange={setStreaming} />
+            <LogStream
+              lines={lines}
+              isStreaming={isStreaming}
+              className="flex-1 min-h-0"
+            />
           </div>
         </div>
       </div>

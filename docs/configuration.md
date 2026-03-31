@@ -36,31 +36,20 @@ TCP ports: 22, 80, 443, 8000, 8080, 8888, 10000-20000, 20808, 20909, 22222
 UDP ports: 53, 514, 1812, 1813  
 Enforcement: disabled  
 
-### 3. Obtain and upload Fabric Studio to GCP
+### 3. Import the Fabric Studio image
 
-Obtain the Fabric Studio image for GCP. This version has a raw disk compressed and zipped in a tar.gz.
+Use the **Images** page in FS GCP Manager to import the Fabric Studio disk image.
 
-If you have the .vmdk or .qcow2 you first need to convert it to a raw disk e.g.  
-`qemu-img dd -f vmdk -O raw bs=4M count=1K if=fabricstudio.vmdk of=disk.raw tar -cvzf fabric-studio_2.0.6.tar.gz disk.raw`
+Obtain the Fabric Studio image for GCP — a raw disk compressed as a `.tar.gz`. If you have a `.vmdk` or `.qcow2`, convert it first:
 
-Upload the tar.gz to [GCP Compute Images](https://console.cloud.google.com/compute/images)  
-Note: skip OS Adaptation
+```bash
+qemu-img convert -f vmdk -O raw fabricstudio.vmdk disk.raw
+tar -czf fabric-studio.tar.gz disk.raw
+```
 
-### 4. Resize the Fabric Studio image
+Then go to **Images → Import Image**, upload the `.tar.gz`, and give it a name. The image will be created directly in GCP. Disk resizing and initial password setup happen automatically when you build an instance from it.
 
-Create a temporary instance from the newly uploaded image at [GCP Compute Images](https://console.cloud.google.com/compute/images).
-
-Set the disk size to 200GB and set the network tags workshop-source-networks and workshop-source-any in the instance creation wizard.
-
-SSH to the new instance and set a strong password. you need to enter this password later in the Settings page.
-
-Extend the disk by typing `system disk extend`
-
-Shutdown the Fabric Studio instance: `system execute shutdown`
-
-Create a new machine image, e.g. fabric-studio-200g,  from your temporary instance at [GCP Compute Instances](https://console.cloud.google.com/compute/instances).
-
-### 5. Enable GCP DNS
+### 4. Enable GCP DNS
 
 You will need GCP Cloud DNS to auto generate DNS A records for your Fabric Studio instances.
 
@@ -269,7 +258,7 @@ All Fabric Studio instances will connect to this license server to obtain licens
 
 ### 1. Build the instance
 
-In the Build page, fill out the fields and choose the 200GB image. Set the group to production.
+In the Build page, fill out the fields, set **Disk size** to `200`, and set the group to `production`.
 
 Rename the instance to srv-<your initials>-license-001.
 

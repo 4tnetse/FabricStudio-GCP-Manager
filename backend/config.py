@@ -121,10 +121,10 @@ def migrate_legacy_preferences(s: "AppSettings") -> "AppSettings":
     return s.model_copy(update=update)
 
 
-# Fields that had hardcoded defaults which should now be treated as "not set"
-_LEGACY_DEFAULTS = {
-    "cloud_run_region": "europe-west1",
-}
+# Fields that had hardcoded defaults which should now be treated as "not set".
+# NOTE: cloud_run_region was previously here but was removed — clearing it would
+# silently wipe a legitimately configured "europe-west1" region on every restart.
+_LEGACY_DEFAULTS: dict = {}
 
 
 def migrate_legacy_defaults(s: "AppSettings") -> "AppSettings":

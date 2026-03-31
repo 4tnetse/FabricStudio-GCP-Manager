@@ -119,7 +119,38 @@ async def _build_job(job_id: str, build_cfg: BuildConfig) -> None:
                 disk_size_gb=build_cfg.disk_size_gb,
             )
             await q.put(f"Instance {name} created successfully")
-            await create_dns_for_instance(name, build_cfg.zone, log=q.put)
+
+            try:
+                await create_dns_for_instance(name, build_cfg.zone, log=q.put)
+            except Exception as exc:
+                await q.put(f"WARNING: DNS creation failed for {name}: {exc}")
+
+            admin_password = pc.get("fs_admin_password", "")
+            if not admin_password:
+                await q.put(f"No admin password configured — skipping initial password setup for {name}")
+                return
+
+            try:
+                host = await _resolve_host(build_cfg.zone, name)
+            except RuntimeError as exc:
+                await q.put(f"WARNING: Could not resolve host for {name}, skipping password setup: {exc}")
+                return
+
+            await q.put(f"Waiting for Fabric Studio API on {name} to be ready…")
+            try:
+                await wait_until_ready(host, log=q.put)
+            except TimeoutError as exc:
+                await q.put(f"WARNING: {exc} — skipping password setup for {name}")
+                return
+
+            try:
+                async with FabricStudioClient(host, "") as fs:
+                    await fs.change_admin_password("", admin_password)
+                await q.put(f"Admin password set on {name}")
+            except Exception as exc:
+                await q.put(f"WARNING: Could not set initial password on {name}: {exc}")
+                return
+
 
         tasks = [build_one(name) for name in names]
         results = await asyncio.gather(*tasks, return_exceptions=True)

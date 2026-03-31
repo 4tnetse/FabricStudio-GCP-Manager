@@ -26,6 +26,8 @@ import { cn } from '@/lib/utils'
 import { ProjectSelector } from '@/components/ProjectSelector'
 import { useTheme } from '@/context/ThemeContext'
 import { useSettings } from '@/api/settings'
+import { useBuild } from '@/context/BuildContext'
+import { useImport } from '@/context/ImportContext'
 
 import Dashboard from '@/pages/Dashboard'
 import Build from '@/pages/Build'
@@ -94,8 +96,27 @@ function SidebarLink({
     >
       <Icon className={cn('w-4 h-4 shrink-0', isActive ? (isSF ? 'text-white' : 'text-blue-400') : (isSF ? 'text-slate-400 group-hover:text-white' : 'text-slate-500 group-hover:text-slate-400'))} />
       <span>{label}</span>
-      {isActive && <ChevronRight className={cn('w-3.5 h-3.5 ml-auto', isSF ? 'text-white/60' : 'text-slate-500')} />}
+      {isActive ? <ChevronRight className={cn('w-3.5 h-3.5 ml-auto', isSF ? 'text-white/60' : 'text-slate-500')} /> : null}
     </NavLink>
+  )
+}
+
+function NavActivityWrapper({ to, children }: { to: string; children: React.ReactNode }) {
+  const { buildJob } = useBuild()
+  const { importJob } = useImport()
+  const location = useLocation()
+  const onThisPage = location.pathname === to || (to !== '/' && location.pathname.startsWith(to))
+  const buildActive = to === '/build' && buildJob?.phase === 'building'
+  const importActive = to === '/images' && importJob && (importJob.phase === 'uploading' || importJob.phase === 'importing')
+  const showSpinner = (buildActive || importActive) && !onThisPage
+  if (!showSpinner) return <>{children}</>
+  return (
+    <div className="relative">
+      {children}
+      <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+        <Loader2 className="w-3 h-3 animate-spin text-blue-400" />
+      </span>
+    </div>
   )
 }
 
@@ -218,7 +239,9 @@ export default function App() {
         {/* Nav links */}
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
           {NAV_ITEMS.filter((item) => item.to !== '/schedules' || !!settings?.remote_scheduling_enabled).map((item) => (
-            <SidebarLink key={item.to} {...item} disabled={!hasKey} />
+            <NavActivityWrapper key={item.to} to={item.to}>
+              <SidebarLink {...item} disabled={!hasKey} />
+            </NavActivityWrapper>
           ))}
         </nav>
 

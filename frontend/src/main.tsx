@@ -6,6 +6,7 @@ import { Toaster } from 'sonner'
 import App from './App'
 import { ThemeProvider } from './context/ThemeContext'
 import { ImportProvider } from './context/ImportContext'
+import { BuildProvider } from './context/BuildContext'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -23,8 +24,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <BrowserRouter future={{ v7_relativeSplatPath: true }}>
         <ThemeProvider>
           <ImportProvider>
-            <App />
-            <Toaster position="bottom-right" richColors expand />
+            <BuildProvider>
+              <App />
+              <Toaster position="bottom-right" richColors expand />
+            </BuildProvider>
           </ImportProvider>
         </ThemeProvider>
       </BrowserRouter>

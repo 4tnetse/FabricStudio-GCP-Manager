@@ -4,13 +4,18 @@ import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface LogStreamProps {
-  url: string | null
+  url?: string | null
+  lines?: string[]
+  isStreaming?: boolean
   className?: string
   onStreamingChange?: (isStreaming: boolean) => void
 }
 
-export function LogStream({ url, className, onStreamingChange }: LogStreamProps) {
-  const { lines, isStreaming, error } = useSSEStream(url)
+export function LogStream({ url, lines: linesProp, isStreaming: isStreamingProp, className, onStreamingChange }: LogStreamProps) {
+  const sse = useSSEStream(linesProp !== undefined ? null : (url ?? null))
+  const lines = linesProp ?? sse.lines
+  const isStreaming = isStreamingProp ?? sse.isStreaming
+  const error = sse.error
 
   useEffect(() => {
     onStreamingChange?.(isStreaming)
@@ -21,7 +26,7 @@ export function LogStream({ url, className, onStreamingChange }: LogStreamProps)
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [lines])
 
-  if (!url) {
+  if (!url && linesProp === undefined) {
     return (
       <div
         className={cn(
