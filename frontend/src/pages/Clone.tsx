@@ -6,6 +6,7 @@ import { useSettings } from '@/api/settings'
 import { useInstances, useZones, useZoneLocations } from '@/api/instances'
 import { LogStream } from '@/components/LogStream'
 import { CustomSelect } from '@/components/CustomSelect'
+import { DocLink } from '@/components/DocLink'
 import { ScheduleDialog } from '@/components/ScheduleDialog'
 import { zoneLabel } from '@/lib/zones'
 import { useOps } from '@/context/OpsContext'
@@ -185,9 +186,12 @@ export default function Clone() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="page-title-row">
         <h1 className="text-xl font-semibold text-slate-100">Clone</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Clone an existing instance to create multiple copies</p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <p className="text-sm text-slate-400">Clone an existing instance to create multiple copies</p>
+          <DocLink path="screens/clone/" />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

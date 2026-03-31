@@ -10,6 +10,7 @@ import { ScheduleDialog } from '@/components/ScheduleDialog'
 import { useSettings } from '@/api/settings'
 import { useTheme } from '@/context/ThemeContext'
 import { useOps } from '@/context/OpsContext'
+import { DocLink } from '@/components/DocLink'
 
 function formatSelection(names: Set<string>): string {
   if (names.size === 0) return ''
@@ -274,9 +275,12 @@ export default function SSH() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="page-title-row">
         <h1 className="text-xl font-semibold text-slate-100">SSH</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Execute commands on multiple instances via SSH</p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <p className="text-sm text-slate-400">Execute commands on multiple instances via SSH</p>
+          <DocLink path="screens/ssh/" />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

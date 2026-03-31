@@ -219,17 +219,38 @@ export default function App() {
   const [aboutOpen, setAboutOpen] = useState(false)
 
   const isUpgrading = upgradeRemote.isPending || upgradeStreaming
-  const localAheadOfRemote = !!(versionInfo?.remote_version && versionGt(versionInfo.local_version, versionInfo.remote_version))
+
+  type LocalStatus = 'UNINITIALIZED' | 'UP_TO_DATE' | 'OUTDATED'
+  type RemoteStatus = 'UNINITIALIZED' | 'NO_REMOTE' | 'IN_SYNC' | 'LOCAL_AHEAD' | 'REMOTE_AHEAD'
+
+  const localStatus: LocalStatus = !versionInfo
+    ? 'UNINITIALIZED'
+    : versionInfo.update_available
+      ? 'OUTDATED'
+      : 'UP_TO_DATE'
+
+  const remoteStatus: RemoteStatus = !versionInfo
+    ? 'UNINITIALIZED'
+    : !versionInfo.remote_configured
+      ? 'NO_REMOTE'
+      : !versionInfo.remote_version
+        ? 'UNINITIALIZED'
+        : versionInfo.remote_version === versionInfo.local_version
+          ? 'IN_SYNC'
+          : versionGt(versionInfo.local_version, versionInfo.remote_version)
+            ? 'LOCAL_AHEAD'
+            : 'REMOTE_AHEAD'
+
   const githubHasVersion = !!(versionInfo?.latest_version && !versionGt(versionInfo.local_version, versionInfo.latest_version))
 
   useEffect(() => {
-    if (!aboutOpen || isUpgrading || !localAheadOfRemote) return
+    if (!aboutOpen || isUpgrading || remoteStatus !== 'LOCAL_AHEAD') return
     queryClient.invalidateQueries({ queryKey: ['version'] })
     const interval = setInterval(() => {
       queryClient.invalidateQueries({ queryKey: ['version'] })
     }, 5_000)
     return () => clearInterval(interval)
-  }, [aboutOpen, isUpgrading, localAheadOfRemote])
+  }, [aboutOpen, isUpgrading, remoteStatus])
 
   const mainScrollRef = useRef<HTMLDivElement>(null)
   const { pathname } = useLocation()
@@ -301,17 +322,17 @@ export default function App() {
         <button
           onClick={() => setAboutOpen(true)}
           title={[
-            versionInfo?.remote_configured && versionInfo?.remote_version
-              ? `Remote: v${versionInfo.remote_version} — ${versionInfo.remote_version === versionInfo.local_version ? 'in sync' : 'out of sync'}`
+            remoteStatus !== 'NO_REMOTE' && remoteStatus !== 'UNINITIALIZED' && versionInfo?.remote_version
+              ? `Remote: v${versionInfo.remote_version} — ${remoteStatus === 'IN_SYNC' ? 'in sync' : remoteStatus === 'LOCAL_AHEAD' ? 'out of sync' : 'remote ahead'}`
               : null,
-            versionInfo?.update_available
+            localStatus === 'OUTDATED' && versionInfo?.latest_version
               ? `v${versionInfo.latest_version} available`
               : null,
           ].filter(Boolean).join(' · ') || undefined}
           className="px-4 py-2.5 text-xs text-left select-none flex items-center gap-1.5 transition-colors hover:text-slate-400"
-          style={{ color: versionInfo?.update_available ? 'white' : undefined }}
+          style={{ color: localStatus === 'OUTDATED' ? 'white' : undefined }}
         >
-          <span className={versionInfo?.update_available ? '' : 'text-slate-600'}>
+          <span className={localStatus === 'OUTDATED' ? '' : 'text-slate-600'}>
             v{health?.version ?? '…'}
           </span>
           {upgradeRemote.isPending && (
@@ -320,11 +341,17 @@ export default function App() {
           {upgradeRemote.isSuccess && !upgradeRemote.isPending && (
             <span className="text-green-400">✓</span>
           )}
-          {!upgradeRemote.isPending && !upgradeRemote.isSuccess && localAheadOfRemote && (
-            <span className="text-orange-400 font-bold leading-none">↑</span>
-          )}
-          {versionInfo?.remote_configured && versionInfo.remote_version && (
-            <span className={`w-2 h-2 rounded-full shrink-0 ${localAheadOfRemote ? 'bg-orange-400' : 'bg-green-500'}`} />
+          <span className={`w-2 h-2 rounded-full shrink-0 ${
+            localStatus === 'UNINITIALIZED' ? 'bg-blue-400' :
+            localStatus === 'UP_TO_DATE' ? 'bg-green-500' :
+            'bg-orange-400'
+          }`} />
+          {remoteStatus !== 'NO_REMOTE' && (
+            <span className={`w-2 h-2 rounded-full shrink-0 ${
+              remoteStatus === 'UNINITIALIZED' ? 'bg-blue-400' :
+              remoteStatus === 'IN_SYNC' ? 'bg-green-500' :
+              'bg-orange-400'
+            }`} />
           )}
         </button>
       </aside>
@@ -349,75 +376,71 @@ export default function App() {
                 <div className="space-y-0.5 mt-0.5">
                   <p className="text-sm text-slate-400 flex items-center gap-1.5">
                     <span>Local&nbsp;&nbsp;&nbsp;v{versionInfo?.local_version ?? health?.version ?? '…'}</span>
-                    {versionInfo && (
-                      versionInfo.update_available && versionInfo.latest_version ? (
-                        <>
-                          <span className="text-blue-400 text-xs">↑ v{versionInfo.latest_version} available</span>
-                          <a
-                            href="/manual/changelog/"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            release notes →
-                          </a>
-                          <a
-                            href="/manual/upgrade/"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-slate-400 hover:text-slate-200 hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            how to upgrade →
-                          </a>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-green-400 text-xs">✓ up to date</span>
-                          <a
-                            href="/manual/changelog/"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-slate-400 hover:text-slate-200 hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            release notes →
-                          </a>
-                        </>
-                      )
+                    {localStatus === 'OUTDATED' && (
+                      <>
+                        <span className="text-orange-400 text-xs">⚠ update available{versionInfo?.latest_version ? ` (v${versionInfo.latest_version})` : ''}</span>
+                        <a
+                          href="/manual/changelog/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-slate-400 hover:text-slate-200 hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          release notes →
+                        </a>
+                        <a
+                          href="/manual/upgrade/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-slate-400 hover:text-slate-200 hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          how to upgrade →
+                        </a>
+                      </>
+                    )}
+                    {localStatus === 'UP_TO_DATE' && (
+                      <>
+                        <span className="text-green-400 text-xs">✓ up to date</span>
+                        <a
+                          href="/manual/changelog/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-slate-400 hover:text-slate-200 hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          release notes →
+                        </a>
+                      </>
                     )}
                   </p>
                   {versionInfo?.remote_configured && (
                     <p className="text-sm text-slate-400 flex items-center gap-1.5">
                       <span>Remote&nbsp;&nbsp;{versionInfo.remote_version ? `v${versionInfo.remote_version}` : '…'}</span>
-                      {versionInfo.remote_version && (() => {
-                        const localAhead = versionGt(versionInfo.local_version, versionInfo.remote_version)
-                        if (!localAhead && !upgradeStreamUrl) {
-                          return <span className="text-green-400 text-xs">✓ in sync</span>
-                        }
-                        return (
-                          <>
-                            {!upgradeStreamUrl && localAhead && <span className="text-orange-400 text-xs">⚠ out of sync</span>}
-                            {localAhead && (
-                              <button
-                                onClick={() => { setUpgradeStreamUrl(null); upgradeRemote.mutate() }}
-                                disabled={upgradeRemote.isPending || upgradeStreaming || (!upgradeStreaming && !!upgradeStreamUrl && !upgradeFailed)}
-                                className="flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white transition-colors"
-                              >
-                                {(upgradeRemote.isPending || upgradeStreaming)
-                                  ? <><Loader2 className="w-3 h-3 animate-spin" /> Upgrading…</>
-                                  : (!upgradeStreaming && upgradeStreamUrl && !upgradeFailed)
-                                  ? '✓ Done'
-                                  : '↑ Upgrade'}
-                              </button>
-                            )}
-                            {upgradeFailed && (
-                              <span className="text-red-400 text-xs">Failed</span>
-                            )}
-                          </>
-                        )
-                      })()}
+                      {remoteStatus === 'UNINITIALIZED' && <Loader2 className="w-3 h-3 animate-spin text-blue-400" />}
+                      {remoteStatus === 'IN_SYNC' && !upgradeStreamUrl && <span className="text-green-400 text-xs">✓ in sync</span>}
+                      {remoteStatus === 'REMOTE_AHEAD' && <span className="text-orange-400 text-xs">⚠ remote is ahead</span>}
+                      {remoteStatus === 'LOCAL_AHEAD' && (
+                        <>
+                          {!upgradeStreamUrl && <span className="text-orange-400 text-xs">⚠ out of sync</span>}
+                          {githubHasVersion ? (
+                            <button
+                              onClick={() => { setUpgradeStreamUrl(null); upgradeRemote.mutate() }}
+                              disabled={upgradeRemote.isPending || upgradeStreaming || (!upgradeStreaming && !!upgradeStreamUrl && !upgradeFailed)}
+                              className="flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white transition-colors"
+                            >
+                              {(upgradeRemote.isPending || upgradeStreaming)
+                                ? <><Loader2 className="w-3 h-3 animate-spin" /> Upgrading…</>
+                                : (!upgradeStreaming && upgradeStreamUrl && !upgradeFailed)
+                                ? '✓ Done'
+                                : '↑ Upgrade'}
+                            </button>
+                          ) : (
+                            <span className="text-slate-500 text-xs">No new version available</span>
+                          )}
+                          {upgradeFailed && <span className="text-red-400 text-xs">Failed</span>}
+                        </>
+                      )}
                     </p>
                   )}
                 </div>

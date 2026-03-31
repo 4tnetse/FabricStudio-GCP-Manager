@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useInstances } from '@/api/instances'
 import { apiGet, apiPost, apiDelete } from '@/api/client'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { DocLink } from '@/components/DocLink'
 
 function useInstanceLabels(zone: string, name: string) {
   return useQuery({
@@ -97,9 +98,12 @@ export default function Labels() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="page-title-row">
         <h1 className="text-xl font-semibold text-slate-100">Labels</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Manage instance labels</p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <p className="text-sm text-slate-400">Manage instance labels</p>
+          <DocLink path="screens/labels/" />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

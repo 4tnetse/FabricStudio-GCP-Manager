@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Upload, Loader2, Trash2, Key, Settings2, Palette, Pencil, CalendarClock, Search, CheckCircle2, XCircle, AlertTriangle, Rocket, ChevronDown, ChevronUp } from 'lucide-react'
+import { DocLink } from '@/components/DocLink'
 import { useDetectCloudRunUrl } from '@/api/schedules'
 import { useCloudRunPermissions, useCloudRunSubnets, useStartDeploy, useStartUndeploy, useDeployStream } from '@/api/cloudrun'
 import { useSettings, useUpdateSettings, useResetSettings } from '@/api/settings'
@@ -331,9 +332,12 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="page-title-row">
         <h1 className="text-xl font-semibold text-slate-100">Settings</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Configure your GCP connection and preferences</p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <p className="text-sm text-slate-400">Configure your GCP connection and preferences</p>
+          <DocLink path="screens/settings/" />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">

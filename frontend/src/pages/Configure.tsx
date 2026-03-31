@@ -9,6 +9,7 @@ import { LogStream } from '@/components/LogStream'
 import { CustomSelect } from '@/components/CustomSelect'
 import { ScheduleDialog } from '@/components/ScheduleDialog'
 import { useOps } from '@/context/OpsContext'
+import { DocLink } from '@/components/DocLink'
 
 function RangeFromCombobox({ value, onChange, instances }: { value: string; onChange: (v: string) => void; instances: { name: string }[] }) {
   const [open, setOpen] = useState(false)
@@ -285,9 +286,12 @@ export default function Configure() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="page-title-row">
         <h1 className="text-xl font-semibold text-slate-100">Configure</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Configure Fabric Studio instances</p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <p className="text-sm text-slate-400">Configure Fabric Studio instances</p>
+          <DocLink path="screens/configure/" />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -750,7 +754,7 @@ export default function Configure() {
               const inst = instances.find((i) => i.name === name)
               return { name, zone: inst?.zone ?? settings?.default_zone ?? '' }
             }),
-            old_admin_password: oldAdminPassword || undefined,
+            old_admin_password: oldAdminPassword || settings?.fs_admin_password || undefined,
             admin_password: adminPassword || undefined,
             guest_password: guestPassword || undefined,
             trial_key: trialKey || undefined,

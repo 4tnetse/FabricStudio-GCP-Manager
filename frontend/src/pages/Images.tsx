@@ -5,6 +5,7 @@ import { useImport } from '@/context/ImportContext'
 import {
   AlertCircle, Check, CheckCircle2, HardDrive, Loader2, Pencil, RefreshCw, Upload, X,
 } from 'lucide-react'
+import { DocLink } from '@/components/DocLink'
 
 function formatDate(ts: string | null): string {
   if (!ts) return '—'
@@ -269,10 +270,11 @@ export default function Images() {
     <div className="space-y-6">
       {dialogOpen && <ImportDialog onClose={() => setDialogOpen(false)} />}
 
-      <div className="page-title-row flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-100">Images</h1>
-          <p className="text-sm text-slate-400 mt-0.5">Available images in the current project</p>
+      <div className="page-title-row">
+        <h1 className="text-xl font-semibold text-slate-100">Images</h1>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <p className="text-sm text-slate-400">Available images in the current project</p>
+          <DocLink path="screens/images/" />
         </div>
       </div>
 

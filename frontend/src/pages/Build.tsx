@@ -7,6 +7,7 @@ import { useImages } from '@/api/images'
 import { zoneLabel } from '@/lib/zones'
 import { LogStream } from '@/components/LogStream'
 import { CustomSelect } from '@/components/CustomSelect'
+import { DocLink } from '@/components/DocLink'
 import { useBuild } from '@/context/BuildContext'
 
 interface LabelPair {
@@ -108,9 +109,12 @@ export default function Build() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="page-title-row">
         <h1 className="text-xl font-semibold text-slate-100">Build</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Create your workshop golden image</p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <p className="text-sm text-slate-400">Create your workshop golden image</p>
+          <DocLink path="screens/build/" />
+        </div>
       </div>
 
       {/* Status banner when a build is active (or just finished) and navigated back */}

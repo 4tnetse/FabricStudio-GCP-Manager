@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { FileCode, Plus, Trash2, Save, FileText } from 'lucide-react'
 import { useConfigs, useConfig, useCreateConfig, useUpdateConfig, useDeleteConfig } from '@/api/configs'
+import { DocLink } from '@/components/DocLink'
 
 const NEW_FILE = '__new__'
 
@@ -88,9 +89,12 @@ export default function Configurations() {
 
   return (
     <div className="flex flex-col h-full gap-4">
-      <div>
+      <div className="page-title-row">
         <h1 className="text-xl font-semibold text-slate-100">SSH Configurations</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Manage and edit configuration files</p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <p className="text-sm text-slate-400">Manage and edit configuration files</p>
+          <DocLink path="screens/configurations/" />
+        </div>
       </div>
 
       <div className="flex gap-4 flex-1 min-h-0">

@@ -2,6 +2,7 @@ import type { ElementType } from 'react'
 import { useInstances } from '@/api/instances'
 import { useSettings } from '@/api/settings'
 import { InstanceTable } from '@/components/InstanceTable'
+import { DocLink } from '@/components/DocLink'
 import { Server, Play, Square, Loader2 } from 'lucide-react'
 
 function StatCard({
@@ -43,9 +44,12 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col h-full gap-6">
-      <div>
+      <div className="page-title-row">
         <h1 className="text-xl font-semibold text-slate-100">Instances</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Overview of all instances in your project</p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <p className="text-sm text-slate-400">Overview of all instances in your project</p>
+          <DocLink path="screens/instances/" />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0">

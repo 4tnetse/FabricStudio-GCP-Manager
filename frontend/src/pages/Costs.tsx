@@ -1,6 +1,7 @@
 import { useCostSummary } from '@/api/costs'
 import { useSettings } from '@/api/settings'
 import { Loader2, ExternalLink, AlertTriangle, Info } from 'lucide-react'
+import { DocLink } from '@/components/DocLink'
 
 export default function Costs() {
   const { data, isLoading, error } = useCostSummary()
@@ -11,9 +12,12 @@ export default function Costs() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="page-title-row">
         <h1 className="text-xl font-semibold text-slate-100">Costs</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Billing overview for the active GCP project</p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <p className="text-sm text-slate-400">Billing overview for the active GCP project</p>
+          <DocLink path="screens/costs/" />
+        </div>
       </div>
 
       {isLoading && (

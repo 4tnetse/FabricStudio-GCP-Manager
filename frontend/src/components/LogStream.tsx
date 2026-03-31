@@ -23,7 +23,9 @@ export function LogStream({ url, lines: linesProp, isStreaming: isStreamingProp,
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (lines.length > 0) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
   }, [lines])
 
   if (!url && linesProp === undefined) {

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Plus, Trash2, Loader2, RefreshCw, Wifi, X } from 'lucide-react'
 import type { FirewallRule } from '@/lib/types'
+import { DocLink } from '@/components/DocLink'
 import {
   useFirewallAcl,
   useAddAclIp,
@@ -105,9 +106,12 @@ export default function Firewall() {
   return (
     <div className="space-y-6">
       {selectedRule && <FirewallRuleDetail rule={selectedRule} onClose={() => setSelectedRule(null)} />}
-      <div>
+      <div className="page-title-row">
         <h1 className="text-xl font-semibold text-slate-100">Firewall</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Manage firewall rules and access control</p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <p className="text-sm text-slate-400">Manage firewall rules and access control</p>
+          <DocLink path="screens/firewall/" />
+        </div>
       </div>
 
       {/* Section 1: Source IP Allowlist */}
