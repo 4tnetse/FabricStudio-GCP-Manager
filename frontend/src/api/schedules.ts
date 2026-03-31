@@ -110,6 +110,15 @@ export function useJobRun(runId: string | null) {
   })
 }
 
+export function useActiveJobRun(runId: string | null, active: boolean) {
+  return useQuery({
+    queryKey: ['job-runs', runId, 'live'],
+    queryFn: () => apiGet<JobRun>(`/schedules/runs/${runId}`),
+    enabled: !!runId && active,
+    refetchInterval: 2_000,
+  })
+}
+
 export function useDetectCloudRunUrl() {
   return useMutation({
     mutationFn: () => apiGet<{ url: string; region: string }>('/schedules/cloud-run-url'),

@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { CalendarClock, Loader2, Play, Trash2, ChevronRight, Eye, Calendar } from 'lucide-react'
+import { DocLink } from '@/components/DocLink'
 import {
   useSchedules,
   useDeleteSchedule,
   useUpdateSchedule,
   useTriggerSchedule,
   useJobRuns,
+  useActiveJobRun,
   type Schedule,
   type JobRun,
 } from '@/api/schedules'
@@ -203,17 +205,33 @@ function PayloadPreview({ jobType, payload }: { jobType: string; payload: Record
 }
 
 function RunLogsPanel({ run }: { run: JobRun }) {
+  const isRunning = run.status === 'running'
+  const { data: liveRun } = useActiveJobRun(run.id, isRunning)
+  const displayRun = liveRun ?? run
+  const lines = displayRun.log_lines
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (isRunning && lines.length > 0) {
+      const el = scrollRef.current
+      if (el) el.scrollTop = el.scrollHeight
+    }
+  }, [lines.length, isRunning])
+
   return (
     <div className="mt-3 rounded-lg border border-slate-700 bg-slate-900 p-3">
-      <p className="text-xs font-medium text-slate-400 mb-2">Log output</p>
-      <div className="font-mono text-xs text-slate-300 space-y-0.5 max-h-64 overflow-y-auto">
-        {run.log_lines.length === 0 && <span className="text-slate-500">No log lines recorded.</span>}
-        {run.log_lines.map((line, i) => (
+      <div className="flex items-center gap-2 mb-2">
+        <p className="text-xs font-medium text-slate-400">Log output</p>
+        {isRunning && <Loader2 className="w-3 h-3 animate-spin text-slate-500" />}
+      </div>
+      <div ref={scrollRef} className="font-mono text-xs text-slate-300 space-y-0.5 max-h-64 overflow-y-auto">
+        {lines.length === 0 && <span className="text-slate-500">No log lines recorded.</span>}
+        {lines.map((line, i) => (
           <div key={i} className="whitespace-pre-wrap break-all">{line}</div>
         ))}
       </div>
-      {run.error_summary && (
-        <div className="mt-2 text-xs text-red-400 border-t border-slate-800 pt-2">{run.error_summary}</div>
+      {displayRun.error_summary && (
+        <div className="mt-2 text-xs text-red-400 border-t border-slate-800 pt-2">{displayRun.error_summary}</div>
       )}
     </div>
   )
@@ -222,6 +240,16 @@ function RunLogsPanel({ run }: { run: JobRun }) {
 function RunsPanel({ schedule }: { schedule: Schedule }) {
   const { data: runs = [], isLoading } = useJobRuns(schedule.id)
   const [expandedRun, setExpandedRun] = useState<string | null>(null)
+  const autoExpandedRef = useRef<string | null>(null)
+
+  // Auto-expand newly detected running run
+  const runningRun = runs.find((r) => r.status === 'running')
+  useEffect(() => {
+    if (runningRun && autoExpandedRef.current !== runningRun.id) {
+      autoExpandedRef.current = runningRun.id
+      setExpandedRun(runningRun.id)
+    }
+  }, [runningRun?.id])
 
   if (isLoading) {
     return (
@@ -523,9 +551,12 @@ export default function Schedules() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="page-title-row">
         <h1 className="text-xl font-semibold text-slate-100">Schedules</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Scheduled Clone and Configure jobs</p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <p className="text-sm text-slate-400">Scheduled Clone and Configure jobs</p>
+          <DocLink path="screens/schedules/" />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

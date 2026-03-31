@@ -91,6 +91,7 @@ async def run_triggered_job(schedule: dict, run_id: str) -> None:
             await job_manager.mark_done(job_id, failed=True)
 
         flushed = 0
+        last_flush_time = asyncio.get_event_loop().time()
         # Drain queue until sentinel
         while True:
             try:
@@ -107,11 +108,14 @@ async def run_triggered_job(schedule: dict, run_id: str) -> None:
                 break
             log_lines.append(line)
 
-            # Flush new lines to Firestore every 5 lines to give live visibility
-            if len(log_lines) % 5 == 0:
+            # Flush to Firestore every 5 lines or every 2 seconds (whichever comes first)
+            now_t = asyncio.get_event_loop().time()
+            unflushed = len(log_lines) - flushed
+            if unflushed > 0 and (unflushed >= 5 or now_t - last_flush_time >= 2.0):
                 try:
                     await fs.append_log_lines(run_id, log_lines[flushed:])
                     flushed = len(log_lines)
+                    last_flush_time = now_t
                 except Exception:
                     pass  # best-effort
 
