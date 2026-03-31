@@ -686,17 +686,6 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#manual-ip-entry" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Manual IP entry
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#by-name" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -712,6 +701,17 @@
     <span class="md-ellipsis">
       
         By range
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manual-ip-entry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual IP entry
       
     </span>
   </a>
@@ -735,10 +735,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#command" class="md-nav__link">
+  <a href="#configuration-file" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Command
+        Configuration file
       
     </span>
   </a>
@@ -746,10 +746,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#configuration-file" class="md-nav__link">
+  <a href="#command" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Configuration file
+        Command
       
     </span>
   </a>
@@ -1088,17 +1088,6 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#manual-ip-entry" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Manual IP entry
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#by-name" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1114,6 +1103,17 @@
     <span class="md-ellipsis">
       
         By range
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manual-ip-entry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual IP entry
       
     </span>
   </a>
@@ -1137,10 +1137,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#command" class="md-nav__link">
+  <a href="#configuration-file" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Command
+        Configuration file
       
     </span>
   </a>
@@ -1148,10 +1148,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#configuration-file" class="md-nav__link">
+  <a href="#command" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Configuration file
+        Command
       
     </span>
   </a>
@@ -1203,13 +1203,15 @@
 <h1 id="ssh">SSH</h1>
 <p>Execute commands across multiple instances simultaneously via SSH.</p>
 <h2 id="selecting-targets">Selecting targets</h2>
-<p>Three methods are available for selecting target instances:</p>
-<h3 id="manual-ip-entry">Manual IP entry</h3>
-<p>Enter IP addresses directly in the <strong>IP Addresses</strong> text area, one per line. Click <strong>Load all</strong> to automatically populate the list with all public IPs from the active project.</p>
+<p>Three methods are available and can be combined:</p>
 <h3 id="by-name">By name</h3>
-<p>Open the <strong>Select instances by name</strong> picker to choose instances by name. Only instances with a public IP are shown. The IP addresses are automatically added to the text area.</p>
+<p>Open the <strong>Select instances by name</strong> picker to choose instances by name. All instances are shown — use the search box to filter, <strong>Select all</strong> to select all visible, or <strong>Clear</strong> to deselect all. A selection summary shows the selected instances in compact range notation.</p>
+<p>When instances are selected by name, their public IP is used (internal IP as fallback). IPs are resolved automatically — they are not shown in the IP Addresses field.</p>
 <h3 id="by-range">By range</h3>
-<p>Open the <strong>Select instances by range</strong> panel, choose a <strong>From instance</strong> and enter a <strong>To number</strong>. The public IPs for all matching instances in that range are loaded into the text area.</p>
+<p>Open the <strong>Select instances by range</strong> panel, choose a <strong>From instance</strong> and enter a <strong>To number</strong>. Matching instance names are added to the selection and their IPs resolved the same way as by-name selection.</p>
+<h3 id="manual-ip-entry">Manual IP entry</h3>
+<p>Enter IP addresses directly in the <strong>IP Addresses</strong> field, one per line. Click <strong>Load internal IPs</strong> or <strong>Load external IPs</strong> to auto-populate the field with all internal or external IPs from the active project.</p>
+<p>The manual IP field and name/range selection can be used together — the final address list is deduplicated.</p>
 <h2 id="execution-mode">Execution mode</h2>
 <table>
 <thead>
@@ -1229,11 +1231,11 @@
 </tr>
 </tbody>
 </table>
-<h2 id="command">Command</h2>
-<p>Enter the command to execute in the <strong>Command</strong> text area (e.g. Fabric Studio CLI commands like <code>runtime fabric uninstall</code>).</p>
-<p>If a <strong>configuration file</strong> is selected, the command field is disabled and the commands from the file are used instead.</p>
 <h2 id="configuration-file">Configuration file</h2>
 <p>Select a configuration file from the dropdown to use its commands instead of a manual command. See <a href="../configurations/">SSH Configurations</a> for managing these files.</p>
+<h2 id="command">Command</h2>
+<p>Enter the command to execute (e.g. Fabric Studio CLI commands like <code>get system status</code>).</p>
+<p>If a <strong>configuration file</strong> is selected, the command field is disabled and the commands from the file are used instead.</p>
 <h2 id="buttons">Buttons</h2>
 <table>
 <thead>
@@ -1251,10 +1253,15 @@
 <td><strong>Execute</strong></td>
 <td>Run the command or configuration file on all selected hosts</td>
 </tr>
+<tr>
+<td><strong>Schedule</strong></td>
+<td>Schedule this SSH job via Cloud Scheduler (uses internal IPs only — external IPs in the manual list are skipped with a warning)</td>
+</tr>
 </tbody>
 </table>
 <h2 id="output-panel">Output panel</h2>
 <p>The right panel streams live SSH output as responses come in from each host.</p>
+<p>The job runs in the background. You can navigate to other pages while it is running — a status banner on the SSH page shows the current state (running / completed / failed) when you return.</p>
 
 
 

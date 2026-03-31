@@ -1239,11 +1239,14 @@
 </tr>
 <tr>
 <td><strong>SSH public key</strong></td>
-<td>Deafult public key installed on instances during Configure and Clone operations</td>
+<td>Default public key installed on instances during Configure and Clone operations</td>
 </tr>
 </tbody>
 </table>
 <p>Click <strong>Save settings</strong> to apply changes. Click <strong>Reset all settings</strong> to remove all settings (requires re-configuration).</p>
+<blockquote>
+<p><strong>Note:</strong> The Preferences widget is only shown after at least one service account key has been uploaded.</p>
+</blockquote>
 <h2 id="service-account-keys">Service account keys</h2>
 <p>Upload one or more <a href="https://console.cloud.google.com/iam-admin/serviceaccounts">GCP service account JSON key</a> files. Each key can have multiple projects.</p>
 <ul>
@@ -1251,7 +1254,7 @@
 <li><strong>Rename</strong> — click the pencil icon next to a key name.</li>
 <li><strong>Delete</strong> — click the trash icon next to a key.</li>
 </ul>
-<p>After uploading a key, a dialog appears to switch to the new project.</p>
+<p>When uploading the first key, the first available project is selected automatically. When uploading additional keys, a dialog appears to optionally switch to a project from the new key.</p>
 <p>The active project is selected from the sidebar project selector.</p>
 <h2 id="notifications">Notifications</h2>
 <p>Send a message to a Microsoft Teams channel when a scheduled job completes or fails.</p>
@@ -1309,16 +1312,16 @@
 <td>Toggle to enable scheduled Clone and Configure jobs</td>
 </tr>
 <tr>
-<td><strong>Detect Cloud Run</strong></td>
+<td><strong>Cloud Run region</strong></td>
+<td>Region where the scheduler Cloud Run service is deployed. Required before deploying.</td>
+</tr>
+<tr>
+<td><strong>Detect</strong></td>
 <td>Searches all GCP regions for the <code>fabricstudio-scheduler</code> service and auto-fills Region and Backend URL</td>
 </tr>
 <tr>
-<td><strong>GCP Cloud Run Region</strong></td>
-<td>Region where the scheduler Cloud Run service is deployed (auto-filled by Detect or Deploy)</td>
-</tr>
-<tr>
-<td><strong>GCP Remote Backend URL</strong></td>
-<td>HTTPS URL of the <code>fabricstudio-scheduler</code> Cloud Run service (auto-filled by Detect or Deploy)</td>
+<td><strong>Enter URL manually</strong></td>
+<td>Toggle to reveal a text field for entering the Cloud Run backend URL directly</td>
 </tr>
 <tr>
 <td><strong>GCP Firestore Project ID</strong></td>
@@ -1326,7 +1329,10 @@
 </tr>
 </tbody>
 </table>
-<p>Click <strong>Save Scheduling</strong> to apply changes.</p>
+<p>Click <strong>Save settings</strong> to apply changes.</p>
+<blockquote>
+<p><strong>Note:</strong> The Scheduling widget is only shown after at least one service account key has been uploaded.</p>
+</blockquote>
 <h3 id="deploy-to-gcp">Deploy to GCP</h3>
 <p>Click <strong>Deploy to GCP</strong> to expand the deploy panel and set up the scheduling backend without leaving the app.</p>
 <p>The panel first checks all required GCP permissions for the active service account and shows which are granted or missing. Fix any missing permissions before deploying (see <a href="../../configuration/#scheduling-setup-optional">Scheduling setup</a> for the required roles).</p>

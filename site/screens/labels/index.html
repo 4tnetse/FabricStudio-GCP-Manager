@@ -1060,19 +1060,18 @@
 <p>Add and remove GCP labels on any instance.</p>
 <h2 id="usage">Usage</h2>
 <ol>
-<li>Select an instance from the dropdown.</li>
-<li>Existing labels are shown as key/value pairs.</li>
-<li>Add new labels with <strong>Add label</strong>.</li>
-<li>Update labels by <strong>Adding a label</strong> with the same key.</li>
-<li>Remove labels with the delete button next to each row.</li>
-<li>Click <strong>Save</strong> to apply the changes.</li>
+<li>Select an instance from the searchable dropdown (zone is shown next to each name).</li>
+<li>Existing labels are loaded and shown as key = value pairs.</li>
+<li>Click the trash icon next to a label to remove it — applied immediately.</li>
+<li>Enter a key and value and click <strong>Add</strong> (or press Enter) to add a new label — applied immediately.</li>
+<li>To update an existing label, add a new label with the same key — the value will be overwritten.</li>
 </ol>
+<p>All changes are applied directly to GCP — there is no Save button.</p>
 <h2 id="label-format">Label format</h2>
 <p>GCP label keys and values must:</p>
 <ul>
 <li>Contain only lowercase letters, digits, underscores, and hyphens</li>
 <li>Be at most 63 characters long</li>
-<li>Keys and values may contain lowercase letters, digits, underscores, and hyphens</li>
 </ul>
 <h2 id="notes">Notes</h2>
 <p>The Labels page can also be opened directly from the <strong>Instances</strong> page via the <strong>Edit Labels</strong> row action.</p>

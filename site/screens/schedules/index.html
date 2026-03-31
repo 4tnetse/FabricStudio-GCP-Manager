@@ -833,6 +833,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Creating schedules">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rescheduling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rescheduling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -1068,6 +1085,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Creating schedules">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rescheduling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rescheduling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -1091,7 +1125,7 @@
 
 
 <h1 id="schedules">Schedules</h1>
-<p>Schedule Clone and Configure jobs to run automatically on a cron schedule via GCP Cloud Scheduler and Cloud Run.</p>
+<p>Schedule Clone, Configure, and SSH jobs to run automatically via GCP Cloud Scheduler and Cloud Run.</p>
 <blockquote>
 <p><strong>Requires:</strong> Remote scheduling must be enabled and configured in <a href="../settings/#scheduling">Settings</a>.</p>
 </blockquote>
@@ -1100,8 +1134,8 @@
 <p>The left panel shows all defined schedules. Each schedule displays:</p>
 <ul>
 <li><strong>Name</strong> — user-defined label</li>
-<li><strong>Job type</strong> — <code>clone</code> or <code>configure</code></li>
-<li><strong>Enabled / disabled</strong> badge</li>
+<li><strong>Job type</strong> — <code>clone</code>, <code>configure</code>, or <code>ssh</code></li>
+<li><strong>Last run status</strong> badge — <code>running</code>, <code>last run: ok</code>, or <code>last run: error</code></li>
 <li><strong>Cron expression</strong> and timezone</li>
 </ul>
 <h3 id="actions">Actions</h3>
@@ -1118,12 +1152,16 @@
 <td>Trigger the job immediately, regardless of the cron schedule</td>
 </tr>
 <tr>
-<td><strong>Toggle</strong></td>
-<td>Enable or disable the schedule (also pauses/resumes the Cloud Scheduler job)</td>
+<td><strong>Preview</strong> (👁)</td>
+<td>Show the job parameters and who created the schedule</td>
+</tr>
+<tr>
+<td><strong>Reschedule</strong> (📅)</td>
+<td>Change the run date, time, and timezone</td>
 </tr>
 <tr>
 <td><strong>Delete</strong> (🗑)</td>
-<td>Delete the schedule and its Cloud Scheduler job</td>
+<td>Delete the schedule — a confirmation dialog warns that the Cloud Scheduler job will also be removed</td>
 </tr>
 </tbody>
 </table>
@@ -1137,10 +1175,10 @@
 <li><strong>Duration</strong> — elapsed time</li>
 <li><strong>Triggered by</strong> — <code>scheduler</code> (automatic) or <code>manual</code> (Run now button)</li>
 </ul>
-<p>Click a run row to expand it and view the full log output.</p>
+<p>Click a run row to expand it and view the full log output. Runs that are currently active expand automatically and their log is polled live until the run finishes. If a run failed, an error summary is shown at the bottom of the log.</p>
 <hr />
 <h2 id="creating-schedules">Creating schedules</h2>
-<p>Schedules are created from the <strong>Clone</strong> or <strong>Configure</strong> pages using the <strong>Schedule</strong> button next to the main action button.</p>
+<p>Schedules are created from the <strong>Clone</strong>, <strong>Configure</strong>, or <strong>SSH</strong> pages using the <strong>Schedule</strong> button next to the main action button.</p>
 <p>The schedule dialog lets you configure:</p>
 <table>
 <thead>
@@ -1155,24 +1193,22 @@
 <td>A descriptive label for this schedule</td>
 </tr>
 <tr>
-<td><strong>Cron expression</strong></td>
-<td>Standard 5-field cron syntax (e.g. <code>0 8 * * 1</code> for every Monday at 08:00)</td>
+<td><strong>Run at</strong></td>
+<td>Date and time pickers — month, day, year, hour, minute (in 5-minute steps)</td>
 </tr>
 <tr>
 <td><strong>Timezone</strong></td>
-<td>IANA timezone (e.g. <code>Europe/Brussels</code>). Pre-filled from your browser.</td>
-</tr>
-<tr>
-<td><strong>Enabled</strong></td>
-<td>Whether the schedule starts active</td>
+<td>Dropdown of common IANA timezones (e.g. <code>Europe/Brussels</code>). Pre-filled from your browser.</td>
 </tr>
 <tr>
 <td><strong>Job parameters</strong></td>
-<td>Read-only — shows the current form values that will be used when the job runs</td>
+<td>Read-only JSON — shows the current form values that will be used when the job runs</td>
 </tr>
 </tbody>
 </table>
-<p>Preset buttons are available for common schedules (daily, weekly, hourly, etc.) and a human-readable preview of the cron expression is shown below the field.</p>
+<p>A preview of the selected date and time is shown below the time pickers. The schedule always starts enabled.</p>
+<h3 id="rescheduling">Rescheduling</h3>
+<p>Click the <strong>Reschedule</strong> (📅) button on any schedule to open the same date/time/timezone picker and update when the job next runs.</p>
 
 
 

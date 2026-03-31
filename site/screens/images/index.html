@@ -730,6 +730,28 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#deleting-an-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deleting an image
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#renaming-an-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Renaming an image
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#import-image" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1021,6 +1043,28 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#deleting-an-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deleting an image
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#renaming-an-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Renaming an image
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#import-image" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1103,11 +1147,11 @@
 <tbody>
 <tr>
 <td><strong>Name</strong></td>
-<td>Image name</td>
+<td>Image name — click the pencil icon to rename inline</td>
 </tr>
 <tr>
 <td><strong>Family</strong></td>
-<td>Image family (e.g. <code>fortigate-7-6-1</code>)</td>
+<td>Image family (e.g. <code>fortigate-7-6-1</code>) — click the pencil icon to edit inline</td>
 </tr>
 <tr>
 <td><strong>Status</strong></td>
@@ -1123,13 +1167,18 @@
 </tr>
 <tr>
 <td><strong>Description</strong></td>
-<td>Editable image description — click the pencil icon to edit inline</td>
+<td>Free-text description — click the pencil icon to edit inline</td>
 </tr>
 </tbody>
 </table>
-<p>Use the <strong>Refresh</strong> button to reload the list. The selected image can be used when building a new instance on the <a href="../build/">Build</a> page.</p>
+<p>For all inline edits, press <strong>Enter</strong> to save or <strong>Escape</strong> to cancel.</p>
+<p>Use the <strong>Refresh</strong> button to reload the list.</p>
+<h2 id="deleting-an-image">Deleting an image</h2>
+<p>Click the trash icon on any row to delete the image. A confirmation dialog appears before the delete is executed. This action cannot be undone.</p>
+<h2 id="renaming-an-image">Renaming an image</h2>
+<p>Click the pencil icon in the <strong>Name</strong> column to rename an image. Renaming runs as a background operation (GCP creates a new image from the existing one, then deletes the original). A status banner appears at the top of the page showing the rename progress. The image list refreshes automatically when the rename completes.</p>
 <h2 id="import-image">Import Image</h2>
-<p>Click <strong>Import Image</strong> to upload a <code>disk-image.tar.gz</code> file from your local device and register it as a GCP custom image.</p>
+<p>Click <strong>Import Image</strong> to upload a <code>disk-image.tar.gz</code> file from your local device and register it as a GCP custom image. The button is disabled while another import is already in progress.</p>
 <h3 id="import-dialog-fields">Import dialog fields</h3>
 <table>
 <thead>
@@ -1165,7 +1214,7 @@
 <li>The staging file is deleted from GCS automatically after the image is created, whether the import succeeds or fails.</li>
 </ol>
 <h3 id="background-operation">Background operation</h3>
-<p>The dialog can be closed at any time during upload or import — the operation continues in the background. A status banner appears on the Images page showing the current progress. Click <strong>View</strong> on the banner to reopen the dialog and see the live log. Click <strong>Cancel</strong> to abort; any staging file already uploaded is deleted immediately.</p>
+<p>The dialog can be closed at any time during upload or import — the operation continues in the background. A status banner appears on the Images page showing the current progress (including an inline upload progress bar during the upload phase). Click <strong>View</strong> on the banner to reopen the dialog and see the live log. Click <strong>Cancel</strong> to abort; any staging file already uploaded is deleted immediately.</p>
 
 
 

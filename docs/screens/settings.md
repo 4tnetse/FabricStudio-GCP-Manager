@@ -15,9 +15,11 @@ Configure your GCP connection and application preferences.
 | **DNS Domain** | Base domain for instance FQDNs (e.g. `labs.yourdomain.com`) |
 | **Instance FQDN prefix** | Prefix applied to instance names in FQDNs (e.g. `fs`) |
 | **DNS Zone name** | Managed zone name in Google Cloud DNS (e.g. `labs-yourdomain-com`) |
-| **SSH public key** | Deafult public key installed on instances during Configure and Clone operations |
+| **SSH public key** | Default public key installed on instances during Configure and Clone operations |
 
 Click **Save settings** to apply changes. Click **Reset all settings** to remove all settings (requires re-configuration).
+
+> **Note:** The Preferences widget is only shown after at least one service account key has been uploaded.
 
 ## Service account keys
 
@@ -27,7 +29,7 @@ Upload one or more [GCP service account JSON key](https://console.cloud.google.c
 - **Rename** — click the pencil icon next to a key name.
 - **Delete** — click the trash icon next to a key.
 
-After uploading a key, a dialog appears to switch to the new project.
+When uploading the first key, the first available project is selected automatically. When uploading additional keys, a dialog appears to optionally switch to a project from the new key.
 
 The active project is selected from the sidebar project selector.
 
@@ -69,12 +71,14 @@ Configure and deploy remote scheduling via GCP Cloud Run and Cloud Scheduler.
 | Setting | Description |
 |---|---|
 | **Enable remote scheduling** | Toggle to enable scheduled Clone and Configure jobs |
-| **Detect Cloud Run** | Searches all GCP regions for the `fabricstudio-scheduler` service and auto-fills Region and Backend URL |
-| **GCP Cloud Run Region** | Region where the scheduler Cloud Run service is deployed (auto-filled by Detect or Deploy) |
-| **GCP Remote Backend URL** | HTTPS URL of the `fabricstudio-scheduler` Cloud Run service (auto-filled by Detect or Deploy) |
+| **Cloud Run region** | Region where the scheduler Cloud Run service is deployed. Required before deploying. |
+| **Detect** | Searches all GCP regions for the `fabricstudio-scheduler` service and auto-fills Region and Backend URL |
+| **Enter URL manually** | Toggle to reveal a text field for entering the Cloud Run backend URL directly |
 | **GCP Firestore Project ID** | GCP project that hosts Firestore. Defaults to the active project when scheduling is enabled |
 
-Click **Save Scheduling** to apply changes.
+Click **Save settings** to apply changes.
+
+> **Note:** The Scheduling widget is only shown after at least one service account key has been uploaded.
 
 ### Deploy to GCP
 

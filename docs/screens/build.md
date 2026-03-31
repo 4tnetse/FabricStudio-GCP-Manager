@@ -30,6 +30,8 @@ The `000` suffix marks this as the golden image.
 
 The right panel streams live build output once the build is started.
 
+You can navigate to other pages while a build is in progress — it continues running in the background. When you return to the Build page, a status banner shows the current state (building / completed / failed) and the form is restored with the values used for that build. The form is locked while the build is running.
+
 ## Post-build automation
 
 After the instance is created and running, the build job automatically performs the following steps if configured:

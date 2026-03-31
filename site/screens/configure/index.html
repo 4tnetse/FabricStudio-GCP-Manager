@@ -609,6 +609,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Configure section">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#converting-an-instance-into-a-license-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Converting an instance into a license server
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -616,6 +633,17 @@
     <span class="md-ellipsis">
       
         Fabric Workspace section
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-a-configure-job" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running a configure job
       
     </span>
   </a>
@@ -1101,6 +1129,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Configure section">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#converting-an-instance-into-a-license-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Converting an instance into a license server
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1108,6 +1153,17 @@
     <span class="md-ellipsis">
       
         Fabric Workspace section
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-a-configure-job" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running a configure job
       
     </span>
   </a>
@@ -1158,10 +1214,11 @@
 
 <h1 id="configure">Configure</h1>
 <p>Bulk-configure one or more Fabric Studio instances via the Fabric Studio REST API.</p>
+<p>Make sure the selected instances are running before starting a configure job.</p>
 <h2 id="select-instances">Select instances</h2>
 <p>Two methods are available for selecting instances:</p>
 <h3 id="by-name">By name</h3>
-<p>Open the <strong>Select instances by name</strong> picker to browse and search all instances. Use <strong>Select all</strong> or filter by name and select a subset.</p>
+<p>Open the <strong>Select instances by name</strong> picker to browse and search all instances. Use <strong>Select all</strong> or filter by name and select a subset. Use <strong>Clear</strong> to deselect all.</p>
 <h3 id="by-range">By range</h3>
 <p>Open the <strong>Select instances by range</strong> panel, choose a <strong>From instance</strong> and enter a <strong>To number</strong>. All instances in that range will be selected (names are constructed from the base name of the from-instance).</p>
 <p>The selection summary shows a compact list of selected instances (contiguous ranges are compressed, e.g. <code>fs-tve-hol-001 to fs-tve-hol-010</code>).</p>
@@ -1193,7 +1250,7 @@
 </tr>
 <tr>
 <td><strong>Fabric Studio License Server</strong></td>
-<td>Select the instance acting as the license server. Its internal IP is automatically used to configure the destination instances.</td>
+<td>Select the instance acting as the license server, or select <strong>This will be a new license server</strong> to convert the selected instances into license servers.</td>
 </tr>
 <tr>
 <td><strong>Guest password</strong></td>
@@ -1205,6 +1262,17 @@
 </tr>
 </tbody>
 </table>
+<h3 id="converting-an-instance-into-a-license-server">Converting an instance into a license server</h3>
+<p>Selecting <strong>This will be a new license server</strong> from the License Server dropdown runs a 7-step conversion on each selected instance:</p>
+<ol>
+<li>Uninstall the Fabric Runtime</li>
+<li>Delete all Fabrics</li>
+<li>Clear the remote license server setting</li>
+<li>Enable the built-in license service</li>
+<li>Update GCP labels (<code>group</code>, <code>purpose</code>, remove <code>delete</code>)</li>
+<li>Swap the firewall network tag from <code>fabric-studio</code> to <code>license-server</code></li>
+<li>Create the <code>license-server</code> firewall rule if it does not exist</li>
+</ol>
 <h2 id="fabric-workspace-section">Fabric Workspace section</h2>
 <p>Configure Fabric Workspace templates from a source instance.</p>
 <ol>
@@ -1212,10 +1280,13 @@
 <li>Templates are loaded automatically from the source instance.</li>
 <li>Add one or more <strong>Fabrics</strong> (name + template).</li>
 <li>Optionally select one fabric to <strong>install</strong> immediately (radio button).</li>
-<li>Check <strong>Delete all workspaces</strong> to remove existing workspaces before creating new ones (automatically checked when any fabrics are defined).</li>
+<li>Check <strong>Delete all workspaces</strong> to remove existing workspaces before creating new ones (automatically checked and locked when any fabrics are defined).</li>
 </ol>
 <p>!!! warning
     If template fetching fails with a DNS error, make sure the source instance is running and has a valid DNS record.</p>
+<h2 id="running-a-configure-job">Running a configure job</h2>
+<p>Click <strong>Configure (N)</strong> to start the job immediately. Click <strong>Schedule</strong> to schedule it for a later time via Cloud Scheduler.</p>
+<p>The job runs in the background. You can navigate to other pages while it is running — a status banner on the Configure page shows the current state (running / completed / failed) when you return.</p>
 <h2 id="output-panel">Output panel</h2>
 <p>The right panel streams live configure output. Progress is shown per instance.</p>
 <h2 id="api-call-order">API call order</h2>
@@ -1224,7 +1295,7 @@
 <li>Authenticate (current admin password → new admin password will be configured if set)</li>
 <li>Registration token</li>
 <li>SSH keys</li>
-<li>License server</li>
+<li>License server (or license server conversion — see above)</li>
 <li>Guest password</li>
 <li>Hostname</li>
 <li>Fabric Workspace (delete existing → create fabrics → install selected fabric)</li>

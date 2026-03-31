@@ -35,4 +35,6 @@ Click the **Schedule** button next to Clone to schedule this job via Cloud Sched
 
 ## Output panel
 
-The right panel streams live clone output. Each batch is shown as it completes. A spinner appears on the Clone nav item when a clone is running in the background.
+The right panel streams live clone output. Each batch is shown as it completes.
+
+The clone runs in the background. You can navigate to other pages while it is running — a status banner on the Clone page shows the current state (running / completed / failed) when you return, and a spinner appears on the Clone nav item while it is active.

@@ -1059,13 +1059,13 @@
 <h1 id="firewall">Firewall</h1>
 <p>View and manage GCP firewall rules and access controls for the active project.</p>
 <h2 id="source-ip-allowlist">Source IP Allowlist</h2>
-<p>Manage a list of allowed source IP addresses for workshop access.</p>
+<p>Manages the <code>workshop-source-networks</code> GCP firewall rule — a list of allowed source IP addresses for workshop access.</p>
 <ul>
-<li>Click <strong>Add</strong> to add an IP manually, or click <strong>Detect</strong> to auto-detect your current public IP.</li>
-<li>Click the delete button next to an IP to remove it from the allowlist.</li>
+<li>Type an IP or CIDR range (e.g. <code>203.0.113.0/24</code>) and click <strong>Add</strong> (or press Enter), or click <strong>Detect</strong> to auto-detect your current public IP.</li>
+<li>Click the trash icon next to an IP to remove it from the allowlist.</li>
 </ul>
 <h2 id="global-access">Global Access</h2>
-<p>Toggle global access on or off.</p>
+<p>Toggles the <code>workshop-source-any</code> GCP firewall rule — allows all source IPs.</p>
 <table>
 <thead>
 <tr>
@@ -1111,15 +1111,20 @@
 <td>Source IP ranges the rule applies to</td>
 </tr>
 <tr>
+<td><strong>Source Tags</strong></td>
+<td>GCP network tags used as traffic source</td>
+</tr>
+<tr>
 <td><strong>Target Tags</strong></td>
 <td>GCP network tags targeted by the rule</td>
 </tr>
 <tr>
 <td><strong>Status</strong></td>
-<td>Enabled or disabled</td>
+<td>Active or disabled</td>
 </tr>
 </tbody>
 </table>
+<p>Click any row to open a detail popup with the full rule information including allowed protocols and ports.</p>
 <p>Firewall rules are read from the GCP Compute Engine API for the active project.</p>
 
 

@@ -13,11 +13,11 @@ Create and manage configuration files containing Fabric Studio CLI commands for 
 
 1. Select a file from the left panel.
 2. Edit the content in the right panel.
-3. Click **Save** when done.
+3. Click **Save** when done. The Save button is only enabled after the content has been changed.
 
 ## Deleting a file
 
-Click the trash icon in the editor header. The `example.conf` file cannot be deleted.
+Click the trash icon in the editor header and confirm the prompt. The `example.conf` file cannot be deleted.
 
 ## File format
 

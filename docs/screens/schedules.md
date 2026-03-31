@@ -1,6 +1,6 @@
 # Schedules
 
-Schedule Clone and Configure jobs to run automatically on a cron schedule via GCP Cloud Scheduler and Cloud Run.
+Schedule Clone, Configure, and SSH jobs to run automatically via GCP Cloud Scheduler and Cloud Run.
 
 > **Requires:** Remote scheduling must be enabled and configured in [Settings](settings.md#scheduling).
 
@@ -11,8 +11,8 @@ Schedule Clone and Configure jobs to run automatically on a cron schedule via GC
 The left panel shows all defined schedules. Each schedule displays:
 
 - **Name** — user-defined label
-- **Job type** — `clone` or `configure`
-- **Enabled / disabled** badge
+- **Job type** — `clone`, `configure`, or `ssh`
+- **Last run status** badge — `running`, `last run: ok`, or `last run: error`
 - **Cron expression** and timezone
 
 ### Actions
@@ -20,8 +20,9 @@ The left panel shows all defined schedules. Each schedule displays:
 | Button | Description |
 |---|---|
 | **Run now** (▶) | Trigger the job immediately, regardless of the cron schedule |
-| **Toggle** | Enable or disable the schedule (also pauses/resumes the Cloud Scheduler job) |
-| **Delete** (🗑) | Delete the schedule and its Cloud Scheduler job |
+| **Preview** (👁) | Show the job parameters and who created the schedule |
+| **Reschedule** (📅) | Change the run date, time, and timezone |
+| **Delete** (🗑) | Delete the schedule — a confirmation dialog warns that the Cloud Scheduler job will also be removed |
 
 Click a schedule row to select it and view its run history on the right.
 
@@ -36,22 +37,25 @@ The right panel shows the run history for the selected schedule. Each run displa
 - **Duration** — elapsed time
 - **Triggered by** — `scheduler` (automatic) or `manual` (Run now button)
 
-Click a run row to expand it and view the full log output.
+Click a run row to expand it and view the full log output. Runs that are currently active expand automatically and their log is polled live until the run finishes. If a run failed, an error summary is shown at the bottom of the log.
 
 ---
 
 ## Creating schedules
 
-Schedules are created from the **Clone** or **Configure** pages using the **Schedule** button next to the main action button.
+Schedules are created from the **Clone**, **Configure**, or **SSH** pages using the **Schedule** button next to the main action button.
 
 The schedule dialog lets you configure:
 
 | Field | Description |
 |---|---|
 | **Name** | A descriptive label for this schedule |
-| **Cron expression** | Standard 5-field cron syntax (e.g. `0 8 * * 1` for every Monday at 08:00) |
-| **Timezone** | IANA timezone (e.g. `Europe/Brussels`). Pre-filled from your browser. |
-| **Enabled** | Whether the schedule starts active |
-| **Job parameters** | Read-only — shows the current form values that will be used when the job runs |
+| **Run at** | Date and time pickers — month, day, year, hour, minute (in 5-minute steps) |
+| **Timezone** | Dropdown of common IANA timezones (e.g. `Europe/Brussels`). Pre-filled from your browser. |
+| **Job parameters** | Read-only JSON — shows the current form values that will be used when the job runs |
 
-Preset buttons are available for common schedules (daily, weekly, hourly, etc.) and a human-readable preview of the cron expression is shown below the field.
+A preview of the selected date and time is shown below the time pickers. The schedule always starts enabled.
+
+### Rescheduling
+
+Click the **Reschedule** (📅) button on any schedule to open the same date/time/timezone picker and update when the job next runs.

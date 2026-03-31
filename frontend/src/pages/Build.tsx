@@ -49,7 +49,7 @@ export default function Build() {
     }
   }, []) // Only on mount — snapshot is stable while job is alive
 
-  const instanceName = `fs-${prepend || '<initials>'}-${product || '<workshop>'}-000`
+  const instanceName = `${settings?.default_type || '<prefix>'}-${prepend || '<initials>'}-${product || '<workshop>'}-000`
   const isActive = buildJob?.phase === 'building'
 
   function addLabel() {

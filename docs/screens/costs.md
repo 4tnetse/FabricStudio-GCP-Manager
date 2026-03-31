@@ -10,4 +10,4 @@ The Costs page shows the **Billing Account** linked to the active project, inclu
 !!! info
     Detailed cost breakdowns are not available via the GCP Billing API. Use the link to the GCP Billing Console to view per-service and per-resource usage.
 
-If the service account lacks billing permissions, an error is shown with a direct link to the GCP Billing Console. If billing is not enabled for the project, a notification is shown instead.
+If the service account does not have billing permissions, a warning is shown with a link to the GCP Billing Console. If billing is not enabled for the project, a notice is shown instead.
