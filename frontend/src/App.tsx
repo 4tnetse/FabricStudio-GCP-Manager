@@ -399,10 +399,7 @@ export default function App() {
                         return (
                           <>
                             {!upgradeStreamUrl && localAhead && <span className="text-orange-400 text-xs">⚠ out of sync</span>}
-                            {localAhead && !githubHasVersion && (
-                              <span className="text-slate-500 text-xs">No new version available</span>
-                            )}
-                            {localAhead && githubHasVersion && (
+                            {localAhead && (
                               <button
                                 onClick={() => { setUpgradeStreamUrl(null); upgradeRemote.mutate() }}
                                 disabled={upgradeRemote.isPending || upgradeStreaming || (!upgradeStreaming && !!upgradeStreamUrl && !upgradeFailed)}
