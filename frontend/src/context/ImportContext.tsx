@@ -6,6 +6,7 @@ import { useSSEStream } from '@/hooks/useSSEStream'
 import { useTheme } from '@/context/ThemeContext'
 
 export type ImportPhase = 'uploading' | 'importing' | 'done' | 'failed'
+export type RenamePhase = 'renaming' | 'done' | 'failed'
 
 export interface ImportJob {
   phase: ImportPhase
@@ -14,6 +15,14 @@ export interface ImportJob {
   bucket: string
   objectName: string
   streamUrl: string | null
+}
+
+export interface RenameJob {
+  id: string
+  phase: RenamePhase
+  oldName: string
+  newName: string
+  lines: string[]
 }
 
 interface ImportContextValue {
@@ -25,6 +34,9 @@ interface ImportContextValue {
   barColor: string
   handleStartImport: (name: string, family: string, description: string, file: File) => Promise<void>
   handleCancelImport: () => void
+  renameJobs: RenameJob[]
+  dismissRenameJob: (id: string) => void
+  handleRenameStarted: (oldName: string, newName: string, jobId: string) => void
 }
 
 const ImportContext = createContext<ImportContextValue>({
@@ -36,11 +48,16 @@ const ImportContext = createContext<ImportContextValue>({
   barColor: 'bg-blue-500',
   handleStartImport: async () => {},
   handleCancelImport: () => {},
+  renameJobs: [],
+  dismissRenameJob: () => {},
+  handleRenameStarted: () => {},
 })
 
 export function ImportProvider({ children }: { children: ReactNode }) {
   const [importJob, setImportJob] = useState<ImportJob | null>(null)
+  const [renameJobs, setRenameJobs] = useState<RenameJob[]>([])
   const xhrRef = useRef<XMLHttpRequest | null>(null)
+  const esMapRef = useRef<Map<string, EventSource>>(new Map())
   const { theme } = useTheme()
 
   const getUploadUrl = useGetUploadUrl()
@@ -51,7 +68,7 @@ export function ImportProvider({ children }: { children: ReactNode }) {
 
   const barColor = theme === 'security-fabric' ? 'bg-[#EE3124]' : 'bg-blue-500'
 
-  // Detect when streaming ends → mark done/failed
+  // Detect when import streaming ends → mark done/failed
   const wasStreamingRef = useRef(false)
   useEffect(() => {
     if (wasStreamingRef.current && !isStreaming && importJob?.phase === 'importing') {
@@ -60,6 +77,43 @@ export function ImportProvider({ children }: { children: ReactNode }) {
     }
     wasStreamingRef.current = isStreaming
   }, [isStreaming])
+
+  function handleRenameStarted(oldName: string, newName: string, jobId: string) {
+    const job: RenameJob = { id: jobId, oldName, newName, phase: 'renaming', lines: [] }
+    setRenameJobs(prev => [...prev, job])
+
+    const es = new EventSource(`/api/ops/${jobId}/stream`)
+    esMapRef.current.set(jobId, es)
+    let done = false
+
+    const handleData = (data: string) => {
+      if (data === '__DONE__' || data === '__FAILED__') {
+        done = true
+        es.close()
+        esMapRef.current.delete(jobId)
+        const failed = data === '__FAILED__'
+        setRenameJobs(prev => prev.map(j => j.id === jobId ? { ...j, phase: failed ? 'failed' : 'done' } : j))
+        return
+      }
+      setRenameJobs(prev => prev.map(j => j.id === jobId ? { ...j, lines: [...j.lines, data] } : j))
+    }
+
+    es.onmessage = (e: MessageEvent) => handleData(e.data)
+    es.addEventListener('log', (e: MessageEvent) => handleData(e.data))
+    es.onerror = () => {
+      if (!done) {
+        setRenameJobs(prev => prev.map(j => j.id === jobId ? { ...j, phase: 'failed' } : j))
+      }
+      es.close()
+      esMapRef.current.delete(jobId)
+    }
+  }
+
+  function dismissRenameJob(id: string) {
+    esMapRef.current.get(id)?.close()
+    esMapRef.current.delete(id)
+    setRenameJobs(prev => prev.filter(j => j.id !== id))
+  }
 
   async function handleStartImport(name: string, family: string, description: string, file: File) {
     let uploadInfo: { upload_url: string; gcs_uri: string; bucket: string; object_name: string }
@@ -146,6 +200,8 @@ export function ImportProvider({ children }: { children: ReactNode }) {
       lines, isStreaming, streamError,
       barColor,
       handleStartImport, handleCancelImport,
+      renameJobs, dismissRenameJob,
+      handleRenameStarted,
     }}>
       {children}
     </ImportContext.Provider>

@@ -1,7 +1,8 @@
-2.27
+2.28
 
 # Version history
 # ---------------
+# 2.28   Images: delete confirm dialog (in-app modal replaces browser confirm); rename runs as background job — returns job_id immediately, streams progress in banner; multiple concurrent renames supported with independent banners; rename state in ImportContext persists across navigation
 # 2.27   Configure/Clone/SSH: status banner (running/done/failed with dismiss) matching Build page; Configure: remove Internal IP hint from license server dropdown; Firewall: Source IP Allowlist creates rule on first add and deletes on last remove; Global Access creates/deletes workshop-source-any rule; source tags column in All Rules table; rules sorted by priority ascending; Version check: ghcr.io image availability replaces GitHub releases API
 # 2.26   Configure: "This will be a new license server" option — 7-step conversion (uninstall fabric runtime, delete fabrics, clear remote license server, enable built-in license service, update GCP labels group/purpose/delete, swap firewall tags fabric-studio→license-server, create license-server firewall rule if missing); fix hostname template 'parsed' NameError in bulk configure
 # 2.25   Version indicator redesign: two-dot sidebar (local + remote, each independently colored blue/green/orange); typed state machine (localStatus/remoteStatus) replaces ad-hoc booleans; upgrade button gated on GitHub confirmation with polling; Docker build fixed (node:20→node:22); CI opted into Node.js 24; doc links added to all page headers; LogStream no-op scroll fix

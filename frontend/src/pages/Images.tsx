@@ -122,7 +122,7 @@ function FamilyCell({ name, family }: { name: string; family: string }) {
   )
 }
 
-function NameCell({ name }: { name: string }) {
+function NameCell({ name, onRenameStarted }: { name: string; onRenameStarted: (oldName: string, newName: string, jobId: string) => void }) {
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(name)
   const rename = useRenameImage()
@@ -131,9 +131,9 @@ function NameCell({ name }: { name: string }) {
     const trimmed = value.trim()
     if (!trimmed || trimmed === name) { setEditing(false); return }
     try {
-      await rename.mutateAsync({ name, newName: trimmed })
-      toast.success(`Image renamed to '${trimmed}'`)
+      const result = await rename.mutateAsync({ name, newName: trimmed })
       setEditing(false)
+      onRenameStarted(name, trimmed, result.job_id)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to rename image')
     }
@@ -362,28 +362,84 @@ function ImportDialog({ onClose }: { onClose: () => void }) {
   )
 }
 
+// ── Delete confirm dialog ──────────────────────────────────────────────────
+function DeleteConfirmDialog({ name, onConfirm, onCancel, isPending }: {
+  name: string
+  onConfirm: () => void
+  onCancel: () => void
+  isPending: boolean
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-sm mx-4 shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
+          <h2 className="text-sm font-semibold text-slate-100">Delete Image</h2>
+          <button onClick={onCancel} className="text-slate-400 hover:text-slate-200">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="px-5 py-4 space-y-1">
+          <p className="text-sm text-slate-300">Are you sure you want to delete this image?</p>
+          <p className="text-sm font-mono text-slate-100">{name}</p>
+          <p className="text-xs text-slate-500 pt-1">This cannot be undone.</p>
+        </div>
+        <div className="flex justify-end gap-2 px-5 py-4 border-t border-slate-700">
+          <button
+            onClick={onCancel}
+            disabled={isPending}
+            className="px-4 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800 text-sm disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isPending}
+            className="px-4 py-2 rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-medium flex items-center gap-2"
+          >
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Images page ────────────────────────────────────────────────────────────
 export default function Images() {
   const { data: images, isLoading, isFetching, refetch } = useImages()
   const [dialogOpen, setDialogOpen] = useState(false)
-  const { importJob, setImportJob, lines, isStreaming, streamError, barColor, handleCancelImport } = useImport()
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null)
+  const { importJob, setImportJob, barColor, handleCancelImport, renameJobs, dismissRenameJob, handleRenameStarted } = useImport()
   const deleteImage = useDeleteImage()
 
   const jobActive = importJob && (importJob.phase === 'uploading' || importJob.phase === 'importing')
-  const showBanner = !!importJob && !dialogOpen
+  const showImportBanner = !!importJob && !dialogOpen
 
   // Refetch when import completes successfully
-  const prevPhase = useRef(importJob?.phase)
+  const prevImportPhase = useRef(importJob?.phase)
   useEffect(() => {
-    if (prevPhase.current === 'importing' && importJob?.phase === 'done') refetch()
-    prevPhase.current = importJob?.phase
+    if (prevImportPhase.current === 'importing' && importJob?.phase === 'done') refetch()
+    prevImportPhase.current = importJob?.phase
   }, [importJob?.phase])
 
-  async function handleDelete(name: string) {
-    if (!window.confirm(`Delete image '${name}'? This cannot be undone.`)) return
+  // Refetch whenever any rename job transitions to done
+  const prevRenameJobsRef = useRef(renameJobs)
+  useEffect(() => {
+    const prev = prevRenameJobsRef.current
+    renameJobs.forEach(job => {
+      const was = prev.find(j => j.id === job.id)
+      if (was?.phase === 'renaming' && job.phase === 'done') refetch()
+    })
+    prevRenameJobsRef.current = renameJobs
+  }, [renameJobs])
+
+  async function handleDelete() {
+    if (!pendingDelete) return
     try {
-      await deleteImage.mutateAsync(name)
-      toast.success(`Image '${name}' deleted`)
+      await deleteImage.mutateAsync(pendingDelete)
+      toast.success(`Image '${pendingDelete}' deleted`)
+      setPendingDelete(null)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete image')
     }
@@ -392,6 +448,14 @@ export default function Images() {
   return (
     <div className="space-y-6">
       {dialogOpen && <ImportDialog onClose={() => setDialogOpen(false)} />}
+      {pendingDelete && (
+        <DeleteConfirmDialog
+          name={pendingDelete}
+          onConfirm={handleDelete}
+          onCancel={() => setPendingDelete(null)}
+          isPending={deleteImage.isPending}
+        />
+      )}
 
       <div className="page-title-row">
         <h1 className="text-xl font-semibold text-slate-100">Images</h1>
@@ -401,8 +465,31 @@ export default function Images() {
         </div>
       </div>
 
+      {/* Rename status banners */}
+      {renameJobs.map(job => (
+        <div key={job.id} className="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-sm">
+          {job.phase === 'renaming' ? (
+            <Loader2 className="w-4 h-4 animate-spin text-blue-400 shrink-0" />
+          ) : job.phase === 'done' ? (
+            <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
+          ) : (
+            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+          )}
+          <span className="text-slate-300 truncate">
+            {job.phase === 'renaming' && `Renaming '${job.oldName}' to '${job.newName}'…`}
+            {job.phase === 'done' && `Image renamed to '${job.newName}'.`}
+            {job.phase === 'failed' && `Rename of '${job.oldName}' failed.`}
+          </span>
+          {job.phase !== 'renaming' && (
+            <button onClick={() => dismissRenameJob(job.id)} className="text-slate-500 hover:text-slate-300 shrink-0 ml-auto">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      ))}
+
       {/* Inline import status banner */}
-      {showBanner && (
+      {showImportBanner && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-sm">
           {jobActive ? (
             <Loader2 className="w-4 h-4 animate-spin text-blue-400 shrink-0" />
@@ -493,7 +580,7 @@ export default function Images() {
                 ) : (
                   images.map((image) => (
                     <tr key={image.name} className="border-b border-slate-800 hover:bg-slate-800/30">
-                      <NameCell name={image.name} />
+                      <NameCell name={image.name} onRenameStarted={handleRenameStarted} />
                       <FamilyCell name={image.name} family={image.family ?? ''} />
                       <td className={`px-3 py-2.5 ${image.status === 'READY' ? 'text-green-400' : 'text-slate-400'}`}>{image.status}</td>
                       <td className="px-3 py-2.5 text-slate-400">{image.disk_size_gb ?? '—'}</td>
@@ -501,7 +588,7 @@ export default function Images() {
                       <DescriptionCell name={image.name} description={image.description ?? ''} />
                       <td className="px-3 py-2.5">
                         <button
-                          onClick={() => handleDelete(image.name)}
+                          onClick={() => setPendingDelete(image.name)}
                           disabled={deleteImage.isPending}
                           className="p-1 text-slate-500 hover:text-red-400 disabled:opacity-50"
                           title="Delete image"

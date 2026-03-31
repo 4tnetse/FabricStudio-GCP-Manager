@@ -36,11 +36,9 @@ export function useDeleteImage() {
 }
 
 export function useRenameImage() {
-  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ name, newName }: { name: string; newName: string }) =>
-      apiPost(`/images/${name}/rename`, { new_name: newName }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['images'] }),
+      apiPost<{ job_id: string }>(`/images/${name}/rename`, { new_name: newName }),
   })
 }
 

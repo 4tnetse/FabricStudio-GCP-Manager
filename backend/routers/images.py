@@ -75,14 +75,29 @@ async def delete_image(name: str):
     return {"ok": True}
 
 
-@router.post("/{name}/rename")
-async def rename_image(name: str, body: ImageRenameRequest):
-    svc = _get_service()
+async def _rename_job(job_id: str, name: str, new_name: str) -> None:
+    q = job_manager.jobs[job_id]
+    failed = False
     try:
-        await svc.rename_image(name, body.new_name)
+        print(f"[images] rename_job start: {name} -> {new_name}", flush=True)
+        await q.put(f"Copying image '{name}' to '{new_name}'…")
+        svc = _get_service()
+        await svc.rename_image(name, new_name)
+        print(f"[images] rename_job success: {new_name}", flush=True)
+        await q.put(f"Image renamed to '{new_name}' successfully.")
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Failed to rename image: {exc}")
-    return {"ok": True}
+        print(f"[images] rename_job failed: {exc}", flush=True)
+        await q.put(f"ERROR: {exc}")
+        failed = True
+    await job_manager.mark_done(job_id, failed=failed)
+
+
+@router.post("/{name}/rename")
+async def rename_image(name: str, body: ImageRenameRequest, background_tasks: BackgroundTasks):
+    job_id = str(uuid.uuid4())
+    job_manager.create_job(job_id)
+    background_tasks.add_task(_rename_job, job_id, name, body.new_name)
+    return {"job_id": job_id}
 
 
 @router.get("/upload-url")
