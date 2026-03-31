@@ -1,7 +1,8 @@
-2.19
+2.20
 
 # Version history
 # ---------------
+# 2.20   Push settings snapshot to remote backend after upgrade (admin password, DNS, SSH key, etc.)
 # 2.19   Configure/Clone/SSH background streaming + nav spinner; Configure license server as instance dropdown; input validation (token, passwords, SSH keys); Schedules human-readable preview; scheduler legacy template_id removed; date picker defaults to current date/time
 # 2.18   Build form persists values during active build (navigating away and back restores the form); disk extend API call removed — OS auto-expands LVM at first boot
 # 2.17   Fix all per-project settings fields (dns, admin password, ssh key, owner, default_type, cloud run region, backend url) read from empty top-level cfg.settings instead of get_project_config() — broken since 2.15 migration; build page disk size field (default 200 GB, validated 10–65536)

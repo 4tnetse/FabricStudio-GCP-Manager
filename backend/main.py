@@ -270,6 +270,59 @@ async def stream_upgrade(upgrade_id: str):
     )
 
 
+_REMOTE_PREFERENCE_FIELDS = {
+    "initials", "default_zone", "default_type", "owner", "group",
+    "ssh_public_key", "dns_domain", "instance_fqdn_prefix", "dns_zone_name",
+    "fs_admin_password",
+}
+
+
+async def _push_settings_to_remote(remote_url: str, project_id: str, log) -> None:
+    """Push per-project settings snapshot to the newly upgraded remote backend."""
+    import httpx
+    from services.id_token import get_id_token
+
+    pc = cfg.get_project_config(cfg.settings, project_id)
+    sched = cfg.get_project_scheduling(cfg.settings, project_id)
+
+    payload: dict = {k: v for k, v in pc.items() if k in _REMOTE_PREFERENCE_FIELDS and v}
+    payload["active_project_id"] = project_id
+    if sched.get("firestore_project_id"):
+        payload["firestore_project_id"] = sched["firestore_project_id"]
+
+    try:
+        token = await get_id_token(remote_url)
+    except Exception as exc:
+        await log(f"⚠  Could not obtain auth token for settings push: {exc}")
+        return
+
+    base = remote_url.rstrip("/")
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+    await log("Waiting for new backend to be ready…")
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        for _ in range(24):  # up to 2 minutes
+            try:
+                r = await client.get(f"{base}/api/health", headers=headers)
+                if r.is_success:
+                    break
+            except Exception:
+                pass
+            await asyncio.sleep(5)
+        else:
+            await log("⚠  Remote backend did not become ready in time — settings not pushed")
+            return
+
+        try:
+            r = await client.put(f"{base}/api/settings", json=payload, headers=headers)
+            if r.is_success:
+                await log("✓ Settings pushed to remote backend")
+            else:
+                await log(f"⚠  Settings push returned HTTP {r.status_code} — check remote backend logs")
+        except Exception as exc:
+            await log(f"⚠  Settings push failed: {exc}")
+
+
 async def _run_upgrade(upgrade_id: str, q: asyncio.Queue, project_id: str, region: str, version: str):
     loop = asyncio.get_event_loop()
 
@@ -310,6 +363,14 @@ async def _run_upgrade(upgrade_id: str, q: asyncio.Queue, project_id: str, regio
         # Invalidate remote version cache
         _remote_version_cache["version"] = None
         _remote_version_cache["expires"] = 0.0
+
+        # Step 4 — Push settings snapshot to the newly upgraded backend
+        sched = cfg.get_project_scheduling(cfg.settings, project_id)
+        remote_url = sched.get("remote_backend_url", "")
+        if remote_url:
+            await _push_settings_to_remote(remote_url, project_id, log)
+        else:
+            await log("⚠  Remote backend URL not set — skipping settings push")
 
         await _upgrade_manager.mark_done(upgrade_id)
 
