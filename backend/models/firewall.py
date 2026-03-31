@@ -6,6 +6,7 @@ class FirewallRule(BaseModel):
     direction: str
     priority: int
     source_ranges: list[str]
+    source_tags: list[str]
     target_tags: list[str]
     allowed: list[dict]
     disabled: bool = False

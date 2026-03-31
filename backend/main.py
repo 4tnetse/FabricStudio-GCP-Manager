@@ -128,8 +128,8 @@ _VERSION_FILE = Path(__file__).parent.parent / "VERSION"
 
 # Cache remote version to avoid hitting the Cloud Run API on every request
 _remote_version_cache: dict = {"version": None, "expires": 0.0}
-# Cache latest GitHub release version (60 seconds — short enough to detect new releases promptly)
-_github_version_cache: dict = {"version": None, "expires": 0.0}
+# Cache ghcr.io image availability check (per version, 60 seconds)
+_image_available_cache: dict = {"available": None, "version": None, "expires": 0.0}
 
 _upgrade_manager = _JobManager()
 
@@ -175,37 +175,61 @@ async def _fetch_remote_version() -> str | None:
         return None
 
 
-async def _fetch_latest_version() -> str | None:
-    """Fetch the latest release tag from GitHub, cached for 60 seconds."""
+async def _check_image_available(version: str) -> bool:
+    """Check if the Docker image for this version exists on ghcr.io, cached for 60 seconds."""
     import time
-    import asyncio
 
     now = time.monotonic()
-    if _github_version_cache["version"] is not None and now < _github_version_cache["expires"]:
-        return _github_version_cache["version"]
+    if (
+        _image_available_cache["version"] == version
+        and _image_available_cache["available"] is not None
+        and now < _image_available_cache["expires"]
+    ):
+        return _image_available_cache["available"]
 
-    def _run() -> str | None:
+    def _run() -> bool:
         try:
             import urllib.request
-            req = urllib.request.Request(
-                "https://api.github.com/repos/4tnetse/FabricStudio-GCP-Manager/releases/latest",
+            import urllib.error
+            import json
+
+            owner = "4tnetse"
+            image = "fabricstudio-gcp-manager"
+            tag = f"v{version}"
+
+            # Get anonymous pull token from ghcr.io
+            token_req = urllib.request.Request(
+                f"https://ghcr.io/token?service=ghcr.io&scope=repository:{owner}/{image}:pull",
                 headers={"User-Agent": "fabricstudio-gcp-manager"},
             )
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                import json
-                data = json.loads(resp.read().decode())
-                tag = data.get("tag_name", "")
-                return tag.lstrip("v") if tag else None
+            with urllib.request.urlopen(token_req, timeout=5) as resp:
+                token = json.loads(resp.read().decode()).get("token", "")
+
+            # HEAD request for the manifest
+            manifest_req = urllib.request.Request(
+                f"https://ghcr.io/v2/{owner}/{image}/manifests/{tag}",
+                headers={
+                    "User-Agent": "fabricstudio-gcp-manager",
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/vnd.oci.image.manifest.v1+json",
+                },
+            )
+            manifest_req.get_method = lambda: "HEAD"
+            with urllib.request.urlopen(manifest_req, timeout=5):
+                return True
+        except urllib.error.HTTPError:
+            return False
         except Exception:
-            return None
+            return False
 
     try:
-        version = await asyncio.get_event_loop().run_in_executor(None, _run)
-        _github_version_cache["version"] = version
-        _github_version_cache["expires"] = now + 60  # cache for 60 seconds
-        return version
+        available = await asyncio.get_event_loop().run_in_executor(None, _run)
+        _image_available_cache["available"] = available
+        _image_available_cache["version"] = version
+        _image_available_cache["expires"] = now + 60
+        return available
     except Exception:
-        return None
+        return False
 
 
 @app.get("/api/health")
@@ -219,22 +243,15 @@ async def version_info():
     local = _read_local_version()
     _sched = cfg.get_project_scheduling(cfg.settings, cfg.settings.active_project_id)
     remote_configured = bool(_sched.get("cloud_run_region") and cfg.settings.active_project_id)
-    remote, latest = await asyncio.gather(
+    remote, image_available = await asyncio.gather(
         _fetch_remote_version() if remote_configured else asyncio.sleep(0, result=None),
-        _fetch_latest_version(),
+        _check_image_available(local),
     )
-    def _ver(v: str) -> tuple:
-        try:
-            return tuple(int(x) for x in v.split("."))
-        except Exception:
-            return (0,)
-    update_available = bool(latest and _ver(latest) > _ver(local))
     return {
         "local_version": local,
         "remote_version": remote,
         "remote_configured": remote_configured,
-        "latest_version": latest,
-        "update_available": update_available,
+        "image_available": image_available,
     }
 
 

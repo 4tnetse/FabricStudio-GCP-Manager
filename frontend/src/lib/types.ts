@@ -60,6 +60,7 @@ export interface FirewallRule {
   direction: string
   priority: number
   source_ranges: string[]
+  source_tags: string[]
   target_tags: string[]
   allowed: Array<{ IPProtocol: string; ports?: string[] }>
   disabled: boolean

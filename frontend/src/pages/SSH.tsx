@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
-import { AlertTriangle, CalendarClock, Loader2, Download, Wifi, Search, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { AlertCircle, AlertTriangle, CalendarClock, CheckCircle2, Loader2, Download, Wifi, Search, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { useExecuteSsh, useTestSsh } from '@/api/ssh'
 import { useInstances } from '@/api/instances'
 import { useConfigs, useConfig } from '@/api/configs'
@@ -122,7 +122,7 @@ export default function SSH() {
   const [scheduleOpen, setScheduleOpen] = useState(false)
 
   const { theme } = useTheme()
-  const { ssh: sshOps, setSshStreamUrl } = useOps()
+  const { ssh: sshOps, setSshStreamUrl, sshJob, startSshJob, dismissSshJob } = useOps()
   const executeSsh = useExecuteSsh()
   const testSsh = useTestSsh()
   const { data: instances = [], isLoading: instancesLoading } = useInstances()
@@ -229,6 +229,7 @@ export default function SSH() {
       const result = await testSsh.mutateAsync(allAddresses)
       if (result.job_id) {
         setSshStreamUrl(`/api/ssh/${result.job_id}/stream`)
+        startSshJob(`Testing connection to ${allAddresses.length} host${allAddresses.length !== 1 ? 's' : ''}…`)
         toast.success(`Testing connection to ${allAddresses.length} host${allAddresses.length !== 1 ? 's' : ''}…`)
       }
     } catch (err) {
@@ -248,6 +249,7 @@ export default function SSH() {
       })
       if (result.job_id) {
         setSshStreamUrl(`/api/ssh/${result.job_id}/stream`)
+        startSshJob(`Running SSH command on ${allAddresses.length} host${allAddresses.length !== 1 ? 's' : ''}…`)
         toast.success(`SSH execution started on ${allAddresses.length} host${allAddresses.length !== 1 ? 's' : ''}`)
       }
     } catch (err) {
@@ -282,6 +284,28 @@ export default function SSH() {
           <DocLink path="screens/ssh/" />
         </div>
       </div>
+
+      {sshJob && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-sm">
+          {sshJob.phase === 'running' ? (
+            <Loader2 className="w-4 h-4 animate-spin text-blue-400 shrink-0" />
+          ) : sshJob.phase === 'done' ? (
+            <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
+          ) : (
+            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+          )}
+          <span className="text-slate-300 truncate">
+            {sshJob.phase === 'running' && sshJob.label}
+            {sshJob.phase === 'done' && 'SSH command completed successfully.'}
+            {sshJob.phase === 'failed' && 'SSH command failed — check output for details.'}
+          </span>
+          {sshJob.phase !== 'running' && (
+            <button onClick={dismissSshJob} className="text-slate-500 hover:text-slate-300 shrink-0 ml-auto">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Form */}

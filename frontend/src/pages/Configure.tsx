@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
-import { CalendarClock, ChevronDown, ChevronUp, Info, Loader2, Plus, Search, X } from 'lucide-react'
+import { AlertCircle, CalendarClock, CheckCircle2, ChevronDown, ChevronUp, Info, Loader2, Plus, Search, X } from 'lucide-react'
 import { apiGet, apiPost } from '@/api/client'
 import { useSettings } from '@/api/settings'
 import { useTheme } from '@/context/ThemeContext'
@@ -159,7 +159,7 @@ export default function Configure() {
   const [configuring, setConfiguring] = useState(false)
   const [scheduleOpen, setScheduleOpen] = useState(false)
 
-  const { configure: configureOps, setConfigureStreamUrl } = useOps()
+  const { configure: configureOps, setConfigureStreamUrl, configureJob, startConfigureJob, dismissConfigureJob } = useOps()
 
   useEffect(() => {
     if (!workspaceSource) {
@@ -274,6 +274,7 @@ export default function Configure() {
       }
       const result = await apiPost<{ job_id: string }>('/ops/bulk-configure', payload)
       setConfigureStreamUrl(`/api/ops/${result.job_id}/stream`)
+      startConfigureJob(`Configuring ${items.length} instance${items.length !== 1 ? 's' : ''}…`)
       toast.success('Configure started')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Configure failed')
@@ -295,6 +296,28 @@ export default function Configure() {
           <DocLink path="screens/configure/" />
         </div>
       </div>
+
+      {configureJob && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-sm">
+          {configureJob.phase === 'running' ? (
+            <Loader2 className="w-4 h-4 animate-spin text-blue-400 shrink-0" />
+          ) : configureJob.phase === 'done' ? (
+            <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
+          ) : (
+            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+          )}
+          <span className="text-slate-300 truncate">
+            {configureJob.phase === 'running' && configureJob.label}
+            {configureJob.phase === 'done' && 'Configure completed successfully.'}
+            {configureJob.phase === 'failed' && 'Configure failed — check output for details.'}
+          </span>
+          {configureJob.phase !== 'running' && (
+            <button onClick={dismissConfigureJob} className="text-slate-500 hover:text-slate-300 shrink-0 ml-auto">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: one widget with two sections */}
@@ -561,9 +584,6 @@ export default function Configure() {
                 ]}
                 searchable
               />
-              {licenseServerIp && licenseServerInstance !== '__new_license_server__' && (
-                <p className="text-xs text-slate-500 mt-1">Internal IP: <span className="font-mono text-slate-400">{licenseServerIp}</span></p>
-              )}
             </div>
 
             <div>

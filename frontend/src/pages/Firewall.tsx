@@ -32,6 +32,7 @@ function FirewallRuleDetail({ rule, onClose }: { rule: FirewallRule; onClose: ()
             ['Priority', rule.priority],
             ['Status', <span className={rule.disabled ? 'text-slate-400' : 'text-green-400'}>{rule.disabled ? 'Disabled' : 'Active'}</span>],
             ['Source Ranges', rule.source_ranges?.length ? rule.source_ranges.join(', ') : '—'],
+            ['Source Tags', rule.source_tags?.length ? rule.source_tags.join(', ') : '—'],
             ['Target Tags', rule.target_tags?.length ? rule.target_tags.join(', ') : '—'],
             ['Allowed', rule.allowed?.length
               ? rule.allowed.map(a => a.ports?.length ? `${a.IPProtocol}:${a.ports.join(',')}` : a.IPProtocol).join(', ')
@@ -227,17 +228,7 @@ export default function Firewall() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-sm font-semibold text-slate-200">All Firewall Rules</h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              All rules in the current project —{' '}
-              <a
-                href="https://console.cloud.google.com/net-security/firewall-manager/firewall-policies/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300"
-              >
-                Open in GCP Console
-              </a>
-            </p>
+            <p className="text-xs text-slate-400 mt-0.5">All rules in the current project</p>
           </div>
           {rulesLoading && <Loader2 className="w-4 h-4 animate-spin text-slate-400" />}
         </div>
@@ -251,6 +242,7 @@ export default function Firewall() {
                   <th className="text-left px-3 py-2.5 font-medium text-slate-300">Direction</th>
                   <th className="text-left px-3 py-2.5 font-medium text-slate-300">Priority</th>
                   <th className="text-left px-3 py-2.5 font-medium text-slate-300">Source Ranges</th>
+                  <th className="text-left px-3 py-2.5 font-medium text-slate-300">Source Tags</th>
                   <th className="text-left px-3 py-2.5 font-medium text-slate-300">Target Tags</th>
                   <th className="text-left px-3 py-2.5 font-medium text-slate-300">Status</th>
                 </tr>
@@ -258,19 +250,19 @@ export default function Firewall() {
               <tbody>
                 {rulesLoading ? (
                   <tr>
-                    <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
+                    <td colSpan={7} className="px-3 py-6 text-center text-slate-500">
                       <Loader2 className="w-4 h-4 animate-spin mx-auto" />
                     </td>
                   </tr>
                 ) : rulesError ? (
                   <tr>
-                    <td colSpan={6} className="px-3 py-6 text-center text-red-400 text-xs">
+                    <td colSpan={7} className="px-3 py-6 text-center text-red-400 text-xs">
                       {rulesError instanceof Error ? rulesError.message : 'Failed to load firewall rules'}
                     </td>
                   </tr>
                 ) : !rules?.length ? (
                   <tr>
-                    <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
+                    <td colSpan={7} className="px-3 py-6 text-center text-slate-500">
                       No firewall rules found
                     </td>
                   </tr>
@@ -284,6 +276,9 @@ export default function Firewall() {
                       <td className="px-3 py-2.5 text-slate-400">{rule.priority}</td>
                       <td className="px-3 py-2.5 text-slate-400">
                         {rule.source_ranges?.join(', ') || '—'}
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-400">
+                        {rule.source_tags?.join(', ') || '—'}
                       </td>
                       <td className="px-3 py-2.5 text-slate-400">
                         {rule.target_tags?.join(', ') || '—'}

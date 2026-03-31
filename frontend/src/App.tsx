@@ -21,6 +21,7 @@ import {
   BookOpen,
   CalendarClock,
   Loader2,
+  Github,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ProjectSelector } from '@/components/ProjectSelector'
@@ -145,7 +146,7 @@ export default function App() {
 
   const { data: versionInfo } = useQuery({
     queryKey: ['version'],
-    queryFn: () => apiGet<{ local_version: string; remote_version: string | null; remote_configured: boolean; latest_version: string | null; update_available: boolean }>('/version'),
+    queryFn: () => apiGet<{ local_version: string; remote_version: string | null; remote_configured: boolean; image_available: boolean }>('/version'),
     staleTime: 5 * 60 * 1000,
     refetchInterval: 5 * 60 * 1000,
   })
@@ -220,14 +221,12 @@ export default function App() {
 
   const isUpgrading = upgradeRemote.isPending || upgradeStreaming
 
-  type LocalStatus = 'UNINITIALIZED' | 'UP_TO_DATE' | 'OUTDATED'
+  type LocalStatus = 'UNINITIALIZED' | 'UP_TO_DATE'
   type RemoteStatus = 'UNINITIALIZED' | 'NO_REMOTE' | 'IN_SYNC' | 'LOCAL_AHEAD' | 'REMOTE_AHEAD'
 
   const localStatus: LocalStatus = !versionInfo
     ? 'UNINITIALIZED'
-    : versionInfo.update_available
-      ? 'OUTDATED'
-      : 'UP_TO_DATE'
+    : 'UP_TO_DATE'
 
   const remoteStatus: RemoteStatus = !versionInfo
     ? 'UNINITIALIZED'
@@ -241,7 +240,7 @@ export default function App() {
             ? 'LOCAL_AHEAD'
             : 'REMOTE_AHEAD'
 
-  const githubHasVersion = !!(versionInfo?.latest_version && !versionGt(versionInfo.local_version, versionInfo.latest_version))
+  const githubHasVersion = versionInfo?.image_available ?? false
 
   useEffect(() => {
     if (!aboutOpen || isUpgrading || remoteStatus !== 'LOCAL_AHEAD') return
@@ -325,14 +324,11 @@ export default function App() {
             remoteStatus !== 'NO_REMOTE' && remoteStatus !== 'UNINITIALIZED' && versionInfo?.remote_version
               ? `Remote: v${versionInfo.remote_version} — ${remoteStatus === 'IN_SYNC' ? 'in sync' : remoteStatus === 'LOCAL_AHEAD' ? 'out of sync' : 'remote ahead'}`
               : null,
-            localStatus === 'OUTDATED' && versionInfo?.latest_version
-              ? `v${versionInfo.latest_version} available`
-              : null,
+            null,
           ].filter(Boolean).join(' · ') || undefined}
           className="px-4 py-2.5 text-xs text-left select-none flex items-center gap-1.5 transition-colors hover:text-slate-400"
-          style={{ color: localStatus === 'OUTDATED' ? 'white' : undefined }}
         >
-          <span className={localStatus === 'OUTDATED' ? '' : 'text-slate-600'}>
+          <span className="text-slate-600">
             v{health?.version ?? '…'}
           </span>
           {upgradeRemote.isPending && (
@@ -376,29 +372,6 @@ export default function App() {
                 <div className="space-y-0.5 mt-0.5">
                   <p className="text-sm text-slate-400 flex items-center gap-1.5">
                     <span>Local&nbsp;&nbsp;&nbsp;v{versionInfo?.local_version ?? health?.version ?? '…'}</span>
-                    {localStatus === 'OUTDATED' && (
-                      <>
-                        <span className="text-orange-400 text-xs">⚠ update available{versionInfo?.latest_version ? ` (v${versionInfo.latest_version})` : ''}</span>
-                        <a
-                          href="/manual/changelog/"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-slate-400 hover:text-slate-200 hover:underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          release notes →
-                        </a>
-                        <a
-                          href="/manual/upgrade/"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-slate-400 hover:text-slate-200 hover:underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          how to upgrade →
-                        </a>
-                      </>
-                    )}
                     {localStatus === 'UP_TO_DATE' && (
                       <>
                         <span className="text-green-400 text-xs">✓ up to date</span>
@@ -464,15 +437,16 @@ export default function App() {
             <hr className="border-slate-700" />
 
             <div className="space-y-1 text-sm text-slate-300">
-              <p>Created by <span className="font-medium text-slate-100">Tijl Vermant</span></p>
-              <p>
+              <p className="flex items-center gap-2">
+                <span>Created by <span className="font-medium text-slate-100">Tijl Vermant</span></span>
                 <a
                   href="https://github.com/4tnetse/FabricStudio-GCP-Manager/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 hover:underline break-all"
+                  title="github.com/4tnetse/FabricStudio-GCP-Manager"
+                  className="text-slate-400 hover:text-slate-200 transition-colors"
                 >
-                  github.com/4tnetse/FabricStudio-GCP-Manager
+                  <Github className="w-3.5 h-3.5" />
                 </a>
               </p>
             </div>
@@ -480,16 +454,16 @@ export default function App() {
             <hr className="border-slate-700" />
 
             <div className="space-y-1 text-sm text-slate-400">
-              <p>Inspired by <span className="italic">FabricStudio-Toolkit-for-GCP</span></p>
-              <p>by <span className="text-slate-300">Ferry Kemps</span></p>
-              <p>
+              <p className="flex items-center gap-2">
+                <span>Inspired by <span className="italic text-slate-300">FabricStudio-Toolkit-for-GCP</span> by <span className="text-slate-300">Ferry Kemps</span></span>
                 <a
                   href="https://github.com/fkemps/FabricStudio-Toolkit-for-GCP"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 hover:underline break-all"
+                  title="github.com/fkemps/FabricStudio-Toolkit-for-GCP"
+                  className="text-slate-400 hover:text-slate-200 transition-colors shrink-0"
                 >
-                  github.com/fkemps/FabricStudio-Toolkit-for-GCP
+                  <Github className="w-3.5 h-3.5" />
                 </a>
               </p>
             </div>

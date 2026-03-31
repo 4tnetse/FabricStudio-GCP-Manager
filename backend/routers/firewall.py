@@ -33,16 +33,18 @@ async def _detect_caller_ip() -> str:
         return resp.text.strip()
 
 
+_ACL_TCP_PORTS = ["22", "80", "443", "8000", "8080", "8888", "10000-20000", "20808", "20909", "22222"]
+_ACL_UDP_PORTS = ["53", "514", "1812", "1813"]
+
+
 @router.get("/acl")
 async def get_acl():
     svc = _get_service()
     try:
         rule = await svc.get_firewall_rule(ACL_RULE_NAME)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=404, detail=f"Firewall rule '{ACL_RULE_NAME}' not found: {exc}"
-        )
-    return {"ips": rule.source_ranges}
+        return {"ips": rule.source_ranges}
+    except Exception:
+        return {"ips": []}
 
 
 @router.post("/acl/add")
@@ -60,15 +62,28 @@ async def add_acl_entry(body: IpAclRequest):
     async with _firewall_lock:
         try:
             rule = await svc.get_firewall_rule(ACL_RULE_NAME)
-        except Exception as exc:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Firewall rule '{ACL_RULE_NAME}' not found: {exc}",
+            # Rule exists — add IP to source ranges
+            current = list(rule.source_ranges)
+            if ip not in current:
+                current.append(ip)
+                await svc.update_firewall_source_ranges(ACL_RULE_NAME, current)
+        except Exception:
+            # Rule doesn't exist — create it with this first IP
+            try:
+                global_rule = await svc.get_firewall_rule(GLOBAL_RULE_NAME)
+                priority = global_rule.priority + 1
+            except Exception:
+                priority = 1001
+            await svc.create_firewall_rule(
+                name=ACL_RULE_NAME,
+                network="default",
+                priority=priority,
+                allowed_tcp=_ACL_TCP_PORTS,
+                allowed_udp=_ACL_UDP_PORTS,
+                source_ranges=[ip],
+                target_tags=[ACL_RULE_NAME],
             )
-        current = list(rule.source_ranges)
-        if ip not in current:
-            current.append(ip)
-            await svc.update_firewall_source_ranges(ACL_RULE_NAME, current)
+            current = [ip]
 
     return {"detail": f"IP {ip} added to ACL", "source_ranges": current}
 
@@ -86,13 +101,15 @@ async def remove_acl_entry(body: dict):
     async with _firewall_lock:
         try:
             rule = await svc.get_firewall_rule(ACL_RULE_NAME)
-        except Exception as exc:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Firewall rule '{ACL_RULE_NAME}' not found: {exc}",
-            )
+        except Exception:
+            return {"detail": f"IP {ip_address} not found", "source_ranges": []}
+
         current = [r for r in rule.source_ranges if r != ip_address]
-        await svc.update_firewall_source_ranges(ACL_RULE_NAME, current)
+        if not current:
+            # Last IP removed — delete the rule
+            await svc.delete_firewall_rule(ACL_RULE_NAME)
+        else:
+            await svc.update_firewall_source_ranges(ACL_RULE_NAME, current)
 
     return {"detail": f"IP {ip_address} removed from ACL", "source_ranges": current}
 
@@ -101,9 +118,8 @@ async def remove_acl_entry(body: dict):
 async def get_global_access():
     svc = _get_service()
     try:
-        rule = await svc.get_firewall_rule(GLOBAL_RULE_NAME)
-        # Rule active (not disabled) = global access enabled
-        enabled = not rule.disabled
+        await svc.get_firewall_rule(GLOBAL_RULE_NAME)
+        enabled = True
     except Exception:
         enabled = False
     return {"enabled": enabled}
@@ -113,13 +129,38 @@ async def get_global_access():
 async def set_global_access(body: GlobalAccessRequest):
     svc = _get_service()
     async with _firewall_lock:
-        try:
-            await svc.set_firewall_disabled(GLOBAL_RULE_NAME, disabled=not body.enabled)
-        except Exception as exc:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Firewall rule '{GLOBAL_RULE_NAME}' not found: {exc}",
-            )
+        if body.enabled:
+            # Always delete first to ensure rule matches spec exactly
+            try:
+                await svc.delete_firewall_rule(GLOBAL_RULE_NAME)
+            except Exception:
+                pass
+
+            # Priority: one lower number than workshop-source-networks (lower number = higher priority)
+            try:
+                networks_rule = await svc.get_firewall_rule(ACL_RULE_NAME)
+                priority = networks_rule.priority - 1
+            except Exception:
+                priority = 1000
+
+            try:
+                await svc.create_firewall_rule(
+                    name=GLOBAL_RULE_NAME,
+                    network="default",
+                    priority=priority,
+                    allowed_tcp=["22", "80", "443", "8000", "8080", "8888", "10000-20000", "20808", "20909", "22222"],
+                    allowed_udp=["53", "514", "1812", "1813"],
+                    source_ranges=["0.0.0.0/0"],
+                    target_tags=[GLOBAL_RULE_NAME],
+                )
+            except Exception as exc:
+                raise HTTPException(status_code=500, detail=f"Failed to create firewall rule: {exc}")
+        else:
+            try:
+                await svc.delete_firewall_rule(GLOBAL_RULE_NAME)
+            except Exception:
+                pass
+
     return {"detail": f"Global access {'enabled' if body.enabled else 'disabled'}", "enabled": body.enabled}
 
 
@@ -130,4 +171,4 @@ async def list_firewall_rules():
         rules = await svc.list_firewall_rules()
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to list firewall rules: {exc}")
-    return [r.model_dump() for r in rules]
+    return [r.model_dump() for r in sorted(rules, key=lambda r: r.priority)]

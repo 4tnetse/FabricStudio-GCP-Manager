@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Info, CalendarClock } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Loader2, Info, CalendarClock, X } from 'lucide-react'
 import { apiPost } from '@/api/client'
 import { useSettings } from '@/api/settings'
 import { useInstances, useZones, useZoneLocations } from '@/api/instances'
@@ -122,7 +122,7 @@ export default function Clone() {
   const [cloning, setCloning] = useState(false)
   const [dnsWarning, setDnsWarning] = useState<string[] | null>(null)
 
-  const { clone: cloneOps, setCloneStreamUrl } = useOps()
+  const { clone: cloneOps, setCloneStreamUrl, cloneJob, startCloneJob, dismissCloneJob } = useOps()
   const [scheduleOpen, setScheduleOpen] = useState(false)
 
   const count = rangeTo >= rangeFrom ? rangeTo - rangeFrom + 1 : 0
@@ -149,6 +149,7 @@ export default function Clone() {
         overwrite,
       })
       setCloneStreamUrl(`/api/ops/${result.job_id}/stream`)
+      startCloneJob(`Cloning ${count} instance${count !== 1 ? 's' : ''} from '${source}'…`)
       toast.success('Clone operation started')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Clone failed')
@@ -193,6 +194,28 @@ export default function Clone() {
           <DocLink path="screens/clone/" />
         </div>
       </div>
+
+      {cloneJob && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-800 border border-slate-700 text-sm">
+          {cloneJob.phase === 'running' ? (
+            <Loader2 className="w-4 h-4 animate-spin text-blue-400 shrink-0" />
+          ) : cloneJob.phase === 'done' ? (
+            <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
+          ) : (
+            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+          )}
+          <span className="text-slate-300 truncate">
+            {cloneJob.phase === 'running' && cloneJob.label}
+            {cloneJob.phase === 'done' && 'Clone completed successfully.'}
+            {cloneJob.phase === 'failed' && 'Clone failed — check output for details.'}
+          </span>
+          {cloneJob.phase !== 'running' && (
+            <button onClick={dismissCloneJob} className="text-slate-500 hover:text-slate-300 shrink-0 ml-auto">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Form */}
