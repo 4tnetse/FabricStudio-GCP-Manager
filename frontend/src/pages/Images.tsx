@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { useImages, useUpdateImageDescription } from '@/api/images'
+import { useImages, useUpdateImageDescription, useUpdateImageFamily, useDeleteImage, useRenameImage } from '@/api/images'
 import { useImport } from '@/context/ImportContext'
 import {
-  AlertCircle, Check, CheckCircle2, HardDrive, Loader2, Pencil, RefreshCw, Upload, X,
+  AlertCircle, Check, CheckCircle2, HardDrive, Loader2, Pencil, RefreshCw, Trash2, Upload, X,
 } from 'lucide-react'
 import { DocLink } from '@/components/DocLink'
 
@@ -58,6 +58,118 @@ function DescriptionCell({ name, description }: { name: string; description: str
         <span className="truncate">{description || '—'}</span>
         <button
           onClick={() => { setValue(description); setEditing(true) }}
+          className="text-slate-500 hover:text-slate-300 shrink-0"
+        >
+          <Pencil className="w-3 h-3" />
+        </button>
+      </div>
+    </td>
+  )
+}
+
+function FamilyCell({ name, family }: { name: string; family: string }) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(family)
+  const update = useUpdateImageFamily()
+
+  async function handleSave() {
+    try {
+      await update.mutateAsync({ name, family: value })
+      toast.success('Family updated')
+      setEditing(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update family')
+    }
+  }
+
+  function handleCancel() {
+    setValue(family)
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <td className="px-3 py-2">
+        <div className="flex items-center gap-1">
+          <input
+            autoFocus
+            className="flex-1 px-2 py-1 rounded border border-slate-600 bg-slate-800 text-slate-200 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel() }}
+          />
+          <button onClick={handleSave} disabled={update.isPending} className="text-green-400 hover:text-green-300 disabled:opacity-50">
+            {update.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+          </button>
+          <button onClick={handleCancel} className="text-slate-500 hover:text-slate-300"><X className="w-3.5 h-3.5" /></button>
+        </div>
+      </td>
+    )
+  }
+
+  return (
+    <td className="px-3 py-2.5 text-slate-400">
+      <div className="flex items-center gap-1.5">
+        <span>{family || '—'}</span>
+        <button
+          onClick={() => { setValue(family); setEditing(true) }}
+          className="text-slate-500 hover:text-slate-300 shrink-0"
+        >
+          <Pencil className="w-3 h-3" />
+        </button>
+      </div>
+    </td>
+  )
+}
+
+function NameCell({ name }: { name: string }) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(name)
+  const rename = useRenameImage()
+
+  async function handleSave() {
+    const trimmed = value.trim()
+    if (!trimmed || trimmed === name) { setEditing(false); return }
+    try {
+      await rename.mutateAsync({ name, newName: trimmed })
+      toast.success(`Image renamed to '${trimmed}'`)
+      setEditing(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to rename image')
+    }
+  }
+
+  function handleCancel() {
+    setValue(name)
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <td className="px-3 py-2">
+        <div className="flex items-center gap-1">
+          <input
+            autoFocus
+            className="flex-1 px-2 py-1 rounded border border-slate-600 bg-slate-800 text-slate-200 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
+            value={value}
+            onChange={(e) => setValue(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel() }}
+          />
+          <button onClick={handleSave} disabled={rename.isPending} className="text-green-400 hover:text-green-300 disabled:opacity-50">
+            {rename.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+          </button>
+          <button onClick={handleCancel} disabled={rename.isPending} className="text-slate-500 hover:text-slate-300 disabled:opacity-50"><X className="w-3.5 h-3.5" /></button>
+        </div>
+      </td>
+    )
+  }
+
+  return (
+    <td className="px-3 py-2.5 font-mono text-slate-200">
+      <div className="flex items-center gap-1.5">
+        <span>{name}</span>
+        <button
+          onClick={() => { setValue(name); setEditing(true) }}
           className="text-slate-500 hover:text-slate-300 shrink-0"
         >
           <Pencil className="w-3 h-3" />
@@ -255,6 +367,7 @@ export default function Images() {
   const { data: images, isLoading, isFetching, refetch } = useImages()
   const [dialogOpen, setDialogOpen] = useState(false)
   const { importJob, setImportJob, lines, isStreaming, streamError, barColor, handleCancelImport } = useImport()
+  const deleteImage = useDeleteImage()
 
   const jobActive = importJob && (importJob.phase === 'uploading' || importJob.phase === 'importing')
   const showBanner = !!importJob && !dialogOpen
@@ -265,6 +378,16 @@ export default function Images() {
     if (prevPhase.current === 'importing' && importJob?.phase === 'done') refetch()
     prevPhase.current = importJob?.phase
   }, [importJob?.phase])
+
+  async function handleDelete(name: string) {
+    if (!window.confirm(`Delete image '${name}'? This cannot be undone.`)) return
+    try {
+      await deleteImage.mutateAsync(name)
+      toast.success(`Image '${name}' deleted`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete image')
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -359,22 +482,33 @@ export default function Images() {
                   <th className="text-left px-3 py-2.5 font-medium text-slate-300">Size (GB)</th>
                   <th className="text-left px-3 py-2.5 font-medium text-slate-300">Created</th>
                   <th className="text-left px-3 py-2.5 font-medium text-slate-300">Description</th>
+                  <th className="px-3 py-2.5" />
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={6} className="px-3 py-6 text-center text-slate-500"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></td></tr>
+                  <tr><td colSpan={7} className="px-3 py-6 text-center text-slate-500"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></td></tr>
                 ) : !images?.length ? (
-                  <tr><td colSpan={6} className="px-3 py-6 text-center text-slate-500">No images found</td></tr>
+                  <tr><td colSpan={7} className="px-3 py-6 text-center text-slate-500">No images found</td></tr>
                 ) : (
                   images.map((image) => (
                     <tr key={image.name} className="border-b border-slate-800 hover:bg-slate-800/30">
-                      <td className="px-3 py-2.5 font-mono text-slate-200">{image.name}</td>
-                      <td className="px-3 py-2.5 text-slate-400">{image.family ?? '—'}</td>
+                      <NameCell name={image.name} />
+                      <FamilyCell name={image.name} family={image.family ?? ''} />
                       <td className={`px-3 py-2.5 ${image.status === 'READY' ? 'text-green-400' : 'text-slate-400'}`}>{image.status}</td>
                       <td className="px-3 py-2.5 text-slate-400">{image.disk_size_gb ?? '—'}</td>
                       <td className="px-3 py-2.5 text-slate-400">{formatDate(image.creation_timestamp)}</td>
                       <DescriptionCell name={image.name} description={image.description ?? ''} />
+                      <td className="px-3 py-2.5">
+                        <button
+                          onClick={() => handleDelete(image.name)}
+                          disabled={deleteImage.isPending}
+                          className="p-1 text-slate-500 hover:text-red-400 disabled:opacity-50"
+                          title="Delete image"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
                     </tr>
                   ))
                 )}

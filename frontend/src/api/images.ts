@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { apiGet, apiPatch, apiPost } from './client'
+import { apiDelete, apiGet, apiPatch, apiPost } from './client'
 import type { ImageInfo } from '@/lib/types'
 
 export function useImages() {
@@ -14,6 +14,32 @@ export function useUpdateImageDescription() {
   return useMutation({
     mutationFn: ({ name, description }: { name: string; description: string }) =>
       apiPatch(`/images/${name}`, { description }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['images'] }),
+  })
+}
+
+export function useUpdateImageFamily() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ name, family }: { name: string; family: string }) =>
+      apiPatch(`/images/${name}`, { family }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['images'] }),
+  })
+}
+
+export function useDeleteImage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (name: string) => apiDelete(`/images/${name}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['images'] }),
+  })
+}
+
+export function useRenameImage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ name, newName }: { name: string; newName: string }) =>
+      apiPost(`/images/${name}/rename`, { new_name: newName }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['images'] }),
   })
 }

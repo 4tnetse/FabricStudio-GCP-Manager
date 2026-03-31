@@ -25,7 +25,12 @@ def _get_service() -> GCPComputeService:
 
 
 class ImagePatch(BaseModel):
-    description: str
+    description: str | None = None
+    family: str | None = None
+
+
+class ImageRenameRequest(BaseModel):
+    new_name: str
 
 
 class ImageImportRequest(BaseModel):
@@ -51,9 +56,32 @@ async def list_images():
 async def update_image(name: str, body: ImagePatch):
     svc = _get_service()
     try:
-        await svc.update_image_description(name, body.description)
+        if body.description is not None:
+            await svc.update_image_description(name, body.description)
+        if body.family is not None:
+            await svc.update_image_family(name, body.family)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to update image: {exc}")
+    return {"ok": True}
+
+
+@router.delete("/{name}")
+async def delete_image(name: str):
+    svc = _get_service()
+    try:
+        await svc.delete_image(name)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to delete image: {exc}")
+    return {"ok": True}
+
+
+@router.post("/{name}/rename")
+async def rename_image(name: str, body: ImageRenameRequest):
+    svc = _get_service()
+    try:
+        await svc.rename_image(name, body.new_name)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to rename image: {exc}")
     return {"ok": True}
 
 

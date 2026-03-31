@@ -493,6 +493,50 @@ class GCPComputeService:
 
         await self._run(_patch)
 
+    async def update_image_family(self, name: str, family: str) -> None:
+        client = compute_v1.ImagesClient(credentials=self._credentials)
+
+        def _patch():
+            op = client.patch(
+                project=self._project_id,
+                image=name,
+                image_resource=compute_v1.Image(family=family),
+            )
+            _wait_for_op(op)
+
+        await self._run(_patch)
+
+    async def delete_image(self, name: str) -> None:
+        client = compute_v1.ImagesClient(credentials=self._credentials)
+
+        def _delete():
+            op = client.delete(project=self._project_id, image=name)
+            _wait_for_op(op)
+
+        await self._run(_delete)
+
+    async def rename_image(self, name: str, new_name: str) -> None:
+        """Rename an image by creating a copy with the new name then deleting the original."""
+        client = compute_v1.ImagesClient(credentials=self._credentials)
+
+        def _copy():
+            source_url = f"projects/{self._project_id}/global/images/{name}"
+            op = client.insert(
+                project=self._project_id,
+                image_resource=compute_v1.Image(
+                    name=new_name,
+                    source_image=source_url,
+                ),
+            )
+            _wait_for_op(op)
+
+        def _delete():
+            op = client.delete(project=self._project_id, image=name)
+            _wait_for_op(op)
+
+        await self._run(_copy)
+        await self._run(_delete)
+
     async def import_image(self, name: str, gcs_uri: str, family: str = "", description: str = "") -> None:
         """Create a GCP image from a raw disk tar.gz in GCS (no OS adaptation)."""
         client = compute_v1.ImagesClient(credentials=self._credentials)
