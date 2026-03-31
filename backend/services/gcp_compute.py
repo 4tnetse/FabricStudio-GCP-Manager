@@ -555,8 +555,24 @@ class GCPComputeService:
                 instance_resource=compute_v1.Instance(name=name),
                 source_machine_image=machine_image_url,
             )
-            op = client.insert(request=req)
-            _wait_for_op(op)
+            last_exc: Exception | None = None
+            for attempt in range(5):
+                try:
+                    op = client.insert(request=req)
+                    _wait_for_op(op)
+                    return
+                except Exception as exc:
+                    from google.api_core.exceptions import Conflict
+                    if isinstance(exc, Conflict):
+                        return  # Prior attempt was accepted by GCP — instance exists
+                    msg = str(exc)
+                    if any(token in msg for token in _TRANSIENT_ERRORS):
+                        last_exc = exc
+                        if attempt < 4:
+                            time.sleep(10)
+                        continue
+                    raise
+            raise last_exc  # type: ignore[misc]
 
         await self._run(_create)
 
