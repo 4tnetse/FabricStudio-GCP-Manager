@@ -1181,19 +1181,19 @@
 </tr>
 <tr>
 <td><strong>New admin password</strong></td>
-<td>New admin password to set</td>
+<td>New admin password to set (must meet policy: at least 3 of uppercase, lowercase, digit, special character)</td>
 </tr>
 <tr>
 <td><strong>Fabric Studio Registration token:secret</strong></td>
-<td>Fabric Studio registration token (format: <code>token:secret</code>)</td>
+<td>Fabric Studio registration token. Format: <code>xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:xxxxxxxxxxxxxxx</code> (UUID + colon + 15-character secret, lowercase alphanumeric)</td>
 </tr>
 <tr>
 <td><strong>SSH public keys</strong></td>
-<td>Additional SSH public keys to install. The key from Settings is always installed. Check <strong>Delete existing keys before adding</strong> to replace all existing keys.</td>
+<td>Additional SSH public keys to install. The key from Settings is always installed. Check <strong>Delete existing keys before adding</strong> to replace all existing keys. Must be a valid public key starting with <code>ssh-rsa</code>, <code>ssh-ed25519</code>, <code>ecdsa-sha2-nistp256/384/521</code>, or <code>ssh-dss</code>.</td>
 </tr>
 <tr>
-<td><strong>License Server IP</strong></td>
-<td>Internal IP address of the Fabric Studio license server</td>
+<td><strong>Fabric Studio License Server</strong></td>
+<td>Select the instance acting as the license server. Its internal IP is automatically used to configure the destination instances.</td>
 </tr>
 <tr>
 <td><strong>Guest password</strong></td>

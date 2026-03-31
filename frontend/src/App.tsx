@@ -28,6 +28,7 @@ import { useTheme } from '@/context/ThemeContext'
 import { useSettings } from '@/api/settings'
 import { useBuild } from '@/context/BuildContext'
 import { useImport } from '@/context/ImportContext'
+import { useOps } from '@/context/OpsContext'
 
 import Dashboard from '@/pages/Dashboard'
 import Build from '@/pages/Build'
@@ -104,11 +105,15 @@ function SidebarLink({
 function NavActivityWrapper({ to, children }: { to: string; children: React.ReactNode }) {
   const { buildJob } = useBuild()
   const { importJob } = useImport()
+  const { configure, clone, ssh } = useOps()
   const location = useLocation()
   const onThisPage = location.pathname === to || (to !== '/' && location.pathname.startsWith(to))
   const buildActive = to === '/build' && buildJob?.phase === 'building'
   const importActive = to === '/images' && importJob && (importJob.phase === 'uploading' || importJob.phase === 'importing')
-  const showSpinner = (buildActive || importActive) && !onThisPage
+  const configureActive = to === '/configure' && configure.isStreaming
+  const cloneActive = to === '/clone' && clone.isStreaming
+  const sshActive = to === '/ssh' && ssh.isStreaming
+  const showSpinner = (buildActive || importActive || configureActive || cloneActive || sshActive) && !onThisPage
   if (!showSpinner) return <>{children}</>
   return (
     <div className="relative">

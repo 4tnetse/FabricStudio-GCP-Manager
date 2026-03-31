@@ -547,7 +547,7 @@ async def _bulk_configure_job(job_id: str, req: BulkConfigureRequest) -> None:
                     hostname = req.hostname_template.replace("{count}", str(parsed.number))
                     await q.put(f"{tag} Setting hostname to '{hostname}'…")
                     await fs.set_hostname(hostname)
-                valid_fabrics = [f for f in req.workspace_fabrics if f.get("name") and f.get("template_id")]
+                valid_fabrics = [f for f in req.workspace_fabrics if f.get("name") and f.get("template_name")]
                 if req.delete_all_workspaces or valid_fabrics:
                     await q.put(f"{tag} Uninstalling fabric runtime…")
                     await fs.uninstall_fabric()
@@ -555,9 +555,16 @@ async def _bulk_configure_job(job_id: str, req: BulkConfigureRequest) -> None:
                     await fs.wait_for_tasks()
                     await q.put(f"{tag} Deleting all existing fabrics…")
                     await fs.delete_all_fabrics()
+                    if valid_fabrics:
+                        available = await fs.list_templates()
+                        template_map_by_name = {t["name"]: t["id"] for t in available}
                     for fabric in valid_fabrics:
-                        await q.put(f"{tag} Creating fabric '{fabric['name']}' from template {fabric['template_id']}…")
-                        await fs.create_fabric(fabric["name"], fabric["template_id"])
+                        tpl_name = fabric["template_name"]
+                        local_id = template_map_by_name.get(tpl_name)
+                        if local_id is None:
+                            raise ValueError(f"Template '{tpl_name}' not found on this instance")
+                        await q.put(f"{tag} Creating fabric '{fabric['name']}' from template '{tpl_name}'…")
+                        await fs.create_fabric(fabric["name"], local_id)
                         await fs.wait_for_tasks()
                         await q.put(f"{tag} Fabric '{fabric['name']}' created.")
                     fabric_to_install = next((f for f in valid_fabrics if f.get("install")), None)

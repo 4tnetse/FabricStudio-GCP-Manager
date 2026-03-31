@@ -8,6 +8,7 @@ import { useInstances } from '@/api/instances'
 import { LogStream } from '@/components/LogStream'
 import { CustomSelect } from '@/components/CustomSelect'
 import { ScheduleDialog } from '@/components/ScheduleDialog'
+import { useOps } from '@/context/OpsContext'
 
 function RangeFromCombobox({ value, onChange, instances }: { value: string; onChange: (v: string) => void; instances: { name: string }[] }) {
   const [open, setOpen] = useState(false)
@@ -133,8 +134,21 @@ export default function Configure() {
   const [sshKeys, setSshKeys] = useState<string[]>([])
   const [deleteExistingKeys, setDeleteExistingKeys] = useState(false)
   const [trialKey, setTrialKey] = useState('')
-  const [licenseServer, setLicenseServer] = useState('')
-  const licenseServerError = licenseServer !== '' && !/^(\d{1,3}\.){3}\d{1,3}$/.test(licenseServer)
+  const trialKeyError = trialKey !== '' && !/^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}:[a-z0-9]{15}$/.test(trialKey)
+
+  const passwordComplexity = (pw: string) =>
+    [/[A-Z]/, /[a-z]/, /[0-9]/, /[^A-Za-z0-9]/].filter(re => re.test(pw)).length >= 3
+
+  const adminPasswordError = adminPassword !== '' && !passwordComplexity(adminPassword)
+  const guestPasswordError = guestPassword !== '' && !passwordComplexity(guestPassword)
+
+  const SSH_KEY_RE = /^(ssh-rsa|ssh-ed25519|ecdsa-sha2-nistp256|ecdsa-sha2-nistp384|ecdsa-sha2-nistp521|ssh-dss) [A-Za-z0-9+/]+=*/
+  const sshKeyErrors = sshKeys.map(key => key !== '' && !SSH_KEY_RE.test(key))
+  const hasSshKeyError = sshKeyErrors.some(Boolean)
+  const [licenseServerInstance, setLicenseServerInstance] = useState('')
+  const licenseServerIp = licenseServerInstance
+    ? (instances.find((i) => i.name === licenseServerInstance)?.internal_ip ?? '')
+    : ''
   const [workspaceSource, setWorkspaceSource] = useState('')
   const [workspaceTemplates, setWorkspaceTemplates] = useState<{ id: number; name: string; description: string }[]>([])
   const [workspaceTemplatesLoading, setWorkspaceTemplatesLoading] = useState(false)
@@ -142,9 +156,9 @@ export default function Configure() {
   const [workspaceInstallIndex, setWorkspaceInstallIndex] = useState<number>(-1) // -1 = None
   const [deleteAllWorkspaces, setDeleteAllWorkspaces] = useState(false)
   const [configuring, setConfiguring] = useState(false)
-  const [streaming, setStreaming] = useState(false)
-  const [streamUrl, setStreamUrl] = useState<string | null>(null)
   const [scheduleOpen, setScheduleOpen] = useState(false)
+
+  const { configure: configureOps, setConfigureStreamUrl } = useOps()
 
   useEffect(() => {
     if (!workspaceSource) {
@@ -241,7 +255,6 @@ export default function Configure() {
       return { name, zone: inst?.zone ?? settings?.default_zone ?? '' }
     })
     setConfiguring(true)
-    setStreamUrl(null)
     try {
       const payload = {
         instances: items,
@@ -249,15 +262,15 @@ export default function Configure() {
         admin_password: adminPassword || undefined,
         guest_password: guestPassword || undefined,
         trial_key: trialKey || undefined,
-        license_server: licenseServer || undefined,
+        license_server: licenseServerIp || undefined,
         hostname_template: hostnameTemplate || undefined,
         delete_all_workspaces: hasValidFabrics || deleteAllWorkspaces,
-        workspace_fabrics: workspaceFabrics.filter(f => f.name && f.templateId).map((f, i) => ({ name: f.name, template_id: parseInt(f.templateId), install: i === workspaceInstallIndex })),
+        workspace_fabrics: workspaceFabrics.filter(f => f.name && f.templateId).map((f, i) => ({ name: f.name, template_name: workspaceTemplates.find(t => String(t.id) === f.templateId)?.name ?? '', install: i === workspaceInstallIndex })),
         ssh_keys: sshKeys.filter(Boolean),
         delete_existing_keys: deleteExistingKeys,
       }
       const result = await apiPost<{ job_id: string }>('/ops/bulk-configure', payload)
-      setStreamUrl(`/api/ops/${result.job_id}/stream`)
+      setConfigureStreamUrl(`/api/ops/${result.job_id}/stream`)
       toast.success('Configure started')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Configure failed')
@@ -446,12 +459,15 @@ export default function Configure() {
               <div>
                 <label className={labelClass}>New admin password</label>
                 <input
-                  className={inputClass}
+                  className={`${inputClass}${adminPasswordError ? ' border-red-500 focus:ring-red-500' : ''}`}
                   type="password"
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
                   placeholder="Optional"
                 />
+                {adminPasswordError && (
+                  <p className="text-red-400 text-xs mt-1">Must contain at least 3 of: uppercase, lowercase, digit, special character.</p>
+                )}
               </div>
             </div>
 
@@ -463,11 +479,14 @@ export default function Configure() {
                 </a>
               </div>
               <input
-                className={inputClass}
+                className={`${inputClass}${trialKeyError ? ' border-red-500 focus:ring-red-500' : ''}`}
                 value={trialKey}
                 onChange={(e) => setTrialKey(e.target.value)}
                 placeholder="Optional"
               />
+              {trialKeyError && (
+                <p className="text-red-400 text-xs mt-1">Format: <span className="font-mono">xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:xxxxxxxxxxxxxxx</span></p>
+              )}
             </div>
 
             <div>
@@ -499,48 +518,60 @@ export default function Configure() {
               )}
               <div className="space-y-2">
                 {sshKeys.map((key, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <input
-                      className={inputClass + ' font-mono text-xs'}
-                      value={key}
-                      onChange={(e) => updateSshKey(i, e.target.value)}
-                      placeholder="ssh-rsa AAAA…"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeSshKey(i)}
-                      className="shrink-0 text-slate-500 hover:text-slate-300"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                  <div key={i}>
+                    <div className="flex items-center gap-2">
+                      <input
+                        className={`${inputClass} font-mono text-xs${sshKeyErrors[i] ? ' border-red-500 focus:ring-red-500' : ''}`}
+                        value={key}
+                        onChange={(e) => updateSshKey(i, e.target.value)}
+                        placeholder="ssh-rsa AAAA…"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeSshKey(i)}
+                        className="shrink-0 text-slate-500 hover:text-slate-300"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {sshKeyErrors[i] && (
+                      <p className="text-red-400 text-xs mt-1">Must start with ssh-rsa, ssh-ed25519, or ecdsa-sha2-nistp…</p>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
 
             <div>
-              <label className={labelClass}>Fabric Studio License Server IP address</label>
-              <input
+              <label className={labelClass}>Fabric Studio License Server</label>
+              <CustomSelect
                 className={inputClass}
-                value={licenseServer}
-                onChange={(e) => setLicenseServer(e.target.value)}
-                placeholder="e.g. 10.20.30.2"
+                value={licenseServerInstance}
+                onChange={setLicenseServerInstance}
+                options={[
+                  { value: '', label: 'None' },
+                  ...instances.map((i) => ({ value: i.name, label: i.name })),
+                ]}
+                searchable
               />
-              {licenseServerError && (
-                <p className="text-red-400 text-xs mt-1">Must be an IP address (e.g. 10.20.30.2)</p>
+              {licenseServerIp && (
+                <p className="text-xs text-slate-500 mt-1">Internal IP: <span className="font-mono text-slate-400">{licenseServerIp}</span></p>
               )}
             </div>
 
             <div>
               <label className={labelClass}>Set guest password</label>
               <input
-                className={inputClass}
+                className={`${inputClass}${guestPasswordError ? ' border-red-500 focus:ring-red-500' : ''}`}
                 type="password"
                 value={guestPassword}
                 onChange={(e) => setGuestPassword(e.target.value)}
                 placeholder="Optional"
               />
-              <p className="text-xs text-slate-500 mt-1">Must meet policy: at least 3 of uppercase, lowercase, digit, special character.</p>
+              {guestPasswordError
+                ? <p className="text-red-400 text-xs mt-1">Must contain at least 3 of: uppercase, lowercase, digit, special character.</p>
+                : <p className="text-xs text-slate-500 mt-1">Must meet policy: at least 3 of uppercase, lowercase, digit, special character.</p>
+              }
             </div>
 
             <div>
@@ -675,10 +706,10 @@ export default function Configure() {
             <div className="flex gap-2">
             <button
               onClick={handleConfigure}
-              disabled={configuring || streaming || selectedNames.size === 0 || licenseServerError}
+              disabled={configuring || configureOps.isStreaming || selectedNames.size === 0 || trialKeyError || adminPasswordError || guestPasswordError || hasSshKeyError}
               className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors"
             >
-              {configuring || streaming ? (
+              {configuring || configureOps.isStreaming ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Configuring...
@@ -689,7 +720,7 @@ export default function Configure() {
             </button>
             <button
               onClick={() => setScheduleOpen(true)}
-              disabled={selectedNames.size === 0 || licenseServerError}
+              disabled={selectedNames.size === 0 || trialKeyError || adminPasswordError || guestPasswordError || hasSshKeyError}
               title="Schedule this configure job"
               className="px-3 py-2.5 rounded-lg border border-slate-600 hover:border-slate-400 disabled:opacity-50 text-slate-300 hover:text-slate-100 flex items-center gap-1.5 text-sm transition-colors"
             >
@@ -705,7 +736,7 @@ export default function Configure() {
         <div className="relative">
           <div className="absolute inset-0 rounded-xl border border-slate-700 bg-slate-800/30 p-5 flex flex-col gap-3 overflow-hidden">
             <h2 className="text-sm font-medium text-slate-300 shrink-0">Output</h2>
-            <LogStream url={streamUrl} className="flex-1 min-h-0" onStreamingChange={setStreaming} />
+            <LogStream lines={configureOps.lines} isStreaming={configureOps.isStreaming} className="flex-1 min-h-0" />
           </div>
         </div>
       </div>
@@ -723,10 +754,10 @@ export default function Configure() {
             admin_password: adminPassword || undefined,
             guest_password: guestPassword || undefined,
             trial_key: trialKey || undefined,
-            license_server: licenseServer || undefined,
+            license_server: licenseServerIp || undefined,
             hostname_template: hostnameTemplate || undefined,
             delete_all_workspaces: hasValidFabrics || deleteAllWorkspaces,
-            workspace_fabrics: workspaceFabrics.filter(f => f.name && f.templateId).map((f, i) => ({ name: f.name, template_id: parseInt(f.templateId), install: i === workspaceInstallIndex })),
+            workspace_fabrics: workspaceFabrics.filter(f => f.name && f.templateId).map((f, i) => ({ name: f.name, template_name: workspaceTemplates.find(t => String(t.id) === f.templateId)?.name ?? '', install: i === workspaceInstallIndex })),
             ssh_keys: sshKeys.filter(Boolean),
             delete_existing_keys: deleteExistingKeys,
           }}

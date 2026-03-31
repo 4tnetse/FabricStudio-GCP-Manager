@@ -679,6 +679,24 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Images
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -695,6 +713,75 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#import-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Import Image
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Import Image">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#import-dialog-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Import dialog fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#import-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Import flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#background-operation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background operation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -927,6 +1014,64 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#import-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Import Image
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Import Image">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#import-dialog-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Import dialog fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#import-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Import flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#background-operation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background operation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -946,7 +1091,7 @@
 
 
 <h1 id="images">Images</h1>
-<p>Browse available VM machine images in the active GCP project.</p>
+<p>Browse and manage VM machine images in the active GCP project.</p>
 <p>The Images page lists all available images with the following columns:</p>
 <table>
 <thead>
@@ -978,11 +1123,49 @@
 </tr>
 <tr>
 <td><strong>Description</strong></td>
-<td>Image description</td>
+<td>Editable image description — click the pencil icon to edit inline</td>
 </tr>
 </tbody>
 </table>
-<p>Images are loaded from the GCP Compute Engine API. Use the <strong>Refresh</strong> button to reload the list. The selected image can be used when building a new instance on the <a href="../build/">Build</a> page.</p>
+<p>Use the <strong>Refresh</strong> button to reload the list. The selected image can be used when building a new instance on the <a href="../build/">Build</a> page.</p>
+<h2 id="import-image">Import Image</h2>
+<p>Click <strong>Import Image</strong> to upload a <code>disk-image.tar.gz</code> file from your local device and register it as a GCP custom image.</p>
+<h3 id="import-dialog-fields">Import dialog fields</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Image name</strong></td>
+<td>GCP image name — lowercase letters, digits and hyphens, must start with a letter</td>
+</tr>
+<tr>
+<td><strong>Family</strong></td>
+<td>(Optional) Image family to assign (e.g. <code>fortigate</code>)</td>
+</tr>
+<tr>
+<td><strong>Description</strong></td>
+<td>(Optional) Free-text description</td>
+</tr>
+<tr>
+<td><strong>Disk image file</strong></td>
+<td>A <code>.tar.gz</code> archive containing a <code>disk.raw</code> file</td>
+</tr>
+</tbody>
+</table>
+<h3 id="import-flow">Import flow</h3>
+<ol>
+<li>The app auto-creates a staging GCS bucket (<code>{project-id}-fs-image-import</code>) if it does not exist, with CORS configured for direct browser uploads.</li>
+<li>The file is uploaded directly from your browser to GCS — a progress bar shows the upload percentage.</li>
+<li>Once uploaded, the GCP Images API creates the image from the raw disk source (OS adaptation is skipped — equivalent to "Skip OS inspection and adaptation" in the GCP Console).</li>
+<li>The staging file is deleted from GCS automatically after the image is created, whether the import succeeds or fails.</li>
+</ol>
+<h3 id="background-operation">Background operation</h3>
+<p>The dialog can be closed at any time during upload or import — the operation continues in the background. A status banner appears on the Images page showing the current progress. Click <strong>View</strong> on the banner to reopen the dialog and see the live log. Click <strong>Cancel</strong> to abort; any staging file already uploaded is deleted immediately.</p>
 
 
 

@@ -8,6 +8,7 @@ import { LogStream } from '@/components/LogStream'
 import { CustomSelect } from '@/components/CustomSelect'
 import { ScheduleDialog } from '@/components/ScheduleDialog'
 import { zoneLabel } from '@/lib/zones'
+import { useOps } from '@/context/OpsContext'
 
 
 function InstanceCombobox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -118,9 +119,9 @@ export default function Clone() {
   const [rangeTo, setRangeTo] = useState(5)
   const [overwrite, setOverwrite] = useState(false)
   const [cloning, setCloning] = useState(false)
-  const [streaming, setStreaming] = useState(false)
-  const [streamUrl, setStreamUrl] = useState<string | null>(null)
   const [dnsWarning, setDnsWarning] = useState<string[] | null>(null)
+
+  const { clone: cloneOps, setCloneStreamUrl } = useOps()
   const [scheduleOpen, setScheduleOpen] = useState(false)
 
   const count = rangeTo >= rangeFrom ? rangeTo - rangeFrom + 1 : 0
@@ -135,7 +136,6 @@ export default function Clone() {
   async function startClone() {
     setDnsWarning(null)
     setCloning(true)
-    setStreamUrl(null)
     try {
       const result = await apiPost<{ job_id: string }>('/ops/clone', {
         source_name: source,
@@ -147,7 +147,7 @@ export default function Clone() {
         count_end: rangeTo,
         overwrite,
       })
-      setStreamUrl(`/api/ops/${result.job_id}/stream`)
+      setCloneStreamUrl(`/api/ops/${result.job_id}/stream`)
       toast.success('Clone operation started')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Clone failed')
@@ -313,7 +313,7 @@ export default function Clone() {
           <div className="flex gap-2">
           <button
             onClick={handleClone}
-            disabled={cloning || streaming || count === 0 || !cloneName || !!nameError || !!purposeError}
+            disabled={cloning || cloneOps.isStreaming || count === 0 || !cloneName || !!nameError || !!purposeError}
             className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors"
           >
             {cloning ? (
@@ -321,7 +321,7 @@ export default function Clone() {
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Starting clone...
               </>
-            ) : streaming ? (
+            ) : cloneOps.isStreaming ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Cloning...
@@ -346,7 +346,7 @@ export default function Clone() {
         <div className="relative">
           <div className="absolute inset-0 rounded-xl border border-slate-700 bg-slate-800/30 p-5 flex flex-col gap-3 overflow-hidden">
             <h2 className="text-sm font-medium text-slate-300 shrink-0">Output</h2>
-            <LogStream url={streamUrl} className="flex-1 min-h-0" onStreamingChange={setStreaming} />
+            <LogStream lines={cloneOps.lines} isStreaming={cloneOps.isStreaming} className="flex-1 min-h-0" />
           </div>
         </div>
       </div>

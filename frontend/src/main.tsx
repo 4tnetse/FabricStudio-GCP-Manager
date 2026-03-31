@@ -7,6 +7,7 @@ import App from './App'
 import { ThemeProvider } from './context/ThemeContext'
 import { ImportProvider } from './context/ImportContext'
 import { BuildProvider } from './context/BuildContext'
+import { OpsProvider } from './context/OpsContext'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -25,8 +26,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <ThemeProvider>
           <ImportProvider>
             <BuildProvider>
-              <App />
-              <Toaster position="bottom-right" richColors expand />
+              <OpsProvider>
+                <App />
+                <Toaster position="bottom-right" richColors expand />
+              </OpsProvider>
             </BuildProvider>
           </ImportProvider>
         </ThemeProvider>

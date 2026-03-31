@@ -132,6 +132,76 @@ function formatDuration(start: string | null, end: string | null): string {
   return `${Math.floor(s / 60)}m ${s % 60}s`
 }
 
+function PayloadPreview({ jobType, payload }: { jobType: string; payload: Record<string, unknown> }) {
+  type Row = { label: string; value: string }
+  const rows: Row[] = []
+
+  function add(label: string, value: unknown, opts?: { mask?: boolean; skip_if_false?: boolean }) {
+    if (value === undefined || value === null || value === '') return
+    if (opts?.skip_if_false && value === false) return
+    if (Array.isArray(value) && value.length === 0) return
+    let str: string
+    if (opts?.mask) {
+      str = '••••••••'
+    } else if (Array.isArray(value)) {
+      str = value.join(', ')
+    } else if (typeof value === 'boolean') {
+      str = value ? 'Yes' : 'No'
+    } else {
+      str = String(value)
+    }
+    rows.push({ label, value: str })
+  }
+
+  if (jobType === 'clone') {
+    add('Source instance', payload.source_name)
+    add('Source zone', payload.zone)
+    add('Destination zone', payload.target_zone)
+    add('Workshop name', payload.clone_base_name)
+    add('Purpose', payload.purpose)
+    add('From', payload.count_start)
+    add('To', payload.count_end)
+    add('Delete existing', payload.overwrite, { skip_if_false: true })
+  } else if (jobType === 'configure') {
+    const instances = payload.instances as { name: string }[] | undefined
+    if (instances?.length) add('Instances', instances.map(i => i.name))
+    add('Admin password', payload.old_admin_password, { mask: true })
+    add('New admin password', payload.admin_password, { mask: true })
+    add('Guest password', payload.guest_password, { mask: true })
+    add('Registration token', payload.trial_key ? '(set)' : undefined)
+    add('License server', payload.license_server)
+    add('Hostname template', payload.hostname_template)
+    add('Delete all workspaces', payload.delete_all_workspaces, { skip_if_false: true })
+    const fabrics = payload.workspace_fabrics as { name: string; template_name?: string }[] | undefined
+    if (fabrics?.length) add('Workspace fabrics', fabrics.map(f => f.name))
+    const keys = payload.ssh_keys as string[] | undefined
+    if (keys?.length) add('SSH keys', `${keys.length} key${keys.length !== 1 ? 's' : ''}`)
+    add('Delete existing keys', payload.delete_existing_keys, { skip_if_false: true })
+  } else if (jobType === 'ssh') {
+    const addresses = payload.addresses as string[] | undefined
+    if (addresses?.length) add('Hosts', `${addresses.length} host${addresses.length !== 1 ? 's' : ''}: ${addresses.join(', ')}`)
+    add('Config file', payload.config_name)
+    const commands = payload.commands as string[] | undefined
+    if (commands?.length) add('Commands', commands.join('\n'))
+    add('Mode', payload.parallel === false ? 'Sequential' : payload.parallel === true ? 'Parallel' : undefined)
+  }
+
+  if (rows.length === 0) {
+    return <p className="text-xs text-slate-500">No parameters.</p>
+  }
+
+  return (
+    <div className="space-y-1.5">
+      {rows.map(({ label, value }) => (
+        <div key={label} className="grid gap-x-3 text-xs" style={{ gridTemplateColumns: '10rem 1fr' }}>
+          <span className="text-slate-500 shrink-0">{label}</span>
+          <span className="text-slate-300 break-all whitespace-pre-wrap font-mono">{value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function RunLogsPanel({ run }: { run: JobRun }) {
   return (
     <div className="mt-3 rounded-lg border border-slate-700 bg-slate-900 p-3">
@@ -336,11 +406,9 @@ function ScheduleRow({ schedule, selected, onSelect }: {
                 </div>
               )}
             </div>
-            <div className="rounded-lg border border-slate-700 bg-slate-800/40 p-3">
-              <p className="text-xs font-medium text-slate-400 mb-1.5">Job parameters</p>
-              <pre className="text-xs text-slate-300 whitespace-pre-wrap break-all font-mono leading-relaxed max-h-64 overflow-y-auto">
-                {JSON.stringify(schedule.payload, null, 2)}
-              </pre>
+            <div className="rounded-lg bg-slate-800/40 p-3">
+              <p className="text-xs font-medium text-slate-400 mb-2">Job parameters</p>
+              <PayloadPreview jobType={schedule.job_type} payload={schedule.payload} />
             </div>
             <div className="flex justify-end">
               <button

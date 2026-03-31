@@ -371,6 +371,105 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#217" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.17
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#216" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.16
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#215" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.15
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#214" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.14
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#213" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.13
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#212" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.12
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#211" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.11
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#210" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.10
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.9
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#28" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1211,6 +1310,105 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#217" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.17
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#216" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.16
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#215" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.15
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#214" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.14
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#213" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.13
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#212" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.12
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#211" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.11
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#210" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.10
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.9
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#28" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1473,6 +1671,24 @@
 
 
 <h1 id="changelog">Changelog</h1>
+<h2 id="217">2.17</h2>
+<p>Fix all per-project settings fields (DNS, admin password, SSH key, owner, default_type, Cloud Run region, backend URL) being read from empty top-level <code>cfg.settings</code> instead of <code>get_project_config()</code> — broken since the 2.15 settings migration; affected DNS record creation, build labels, configure/shutdown password, SSH key injection, Cloud Scheduler region and backend URL. Build page: disk size (GB) field added, defaulting to 200, validated between 10 and 65536.</p>
+<h2 id="216">2.16</h2>
+<p>Image import fixes: GCS resumable upload CORS fixed (origin now derived from Referer/Host header instead of defaulting to localhost:5173); raw disk source converted from <code>gs://</code> to <code>https://</code> for the Compute API; <code>RawDisk</code> type corrected to <code>compute_v1.RawDisk</code>; closing the import dialog after completion resets state so reopening shows a fresh form.</p>
+<h2 id="215">2.15</h2>
+<p>Settings overhaul: preferences are now always stored per-project (never top-level); Preferences and Scheduling widgets are hidden when no key is configured; uploading the first key auto-selects its project without a dialog; uploading a duplicate key is rejected with a toast; deleting a key clears all associated project configs and scheduling settings. Cloud Run deploy improvements: Firestore database mode is now checked as a pre-flight condition (blocks deploy if in Datastore mode); the Firestore step hard-fails instead of warning; GCP cooldown after a recent database delete is handled with a retry and progress message; the deploy log stays visible after completion; the API enable step no longer shows a warning when APIs are already enabled (403 handling); the Cloud Run region field is no longer pre-populated with a default; disabling the Scheduling toggle clears and saves all scheduling settings immediately.</p>
+<h2 id="214">2.14</h2>
+<p>Fix Cloud Run upgrade failing with "Permission denied for Cloud Build" when switching to a different project: the upgrade now enables the Cloud Build API before attempting the image copy (the initial deploy always did this, but the upgrade path skipped it). The 403 error message now also distinguishes between an API-not-enabled error and a true IAM permission error.</p>
+<h2 id="213">2.13</h2>
+<p>Image import: upload a <code>disk-image.tar.gz</code> from the browser directly to a GCS staging bucket (auto-created with CORS), then create a GCP image via the raw disk API (OS adaptation skipped). Staging file deleted automatically after import. Import runs in the background — dialog is closable at any time with a status banner on the Images page; cancelling cleans up the staging file. Configure page license server field now validates IPv4 format.</p>
+<h2 id="212">2.12</h2>
+<p>Fix SSH schedules failing with "unknown job_type 'ssh'"; fix scheduled Configure/Clone jobs failing with "No admin password available" (fs_admin_password now read from per-project config via get_project_config() instead of the legacy top-level settings field).</p>
+<h2 id="211">2.11</h2>
+<p>SSL retry on GCP operation polling (fixes clone failures on slow connections); SSH page overhaul: instance picker matches Configure page, load internal/external IPs separately, scheduling auto-uses internal IPs with deduplication; Configure range from-field is now a free-text combobox; SSH schedule job type label fixed to "SSH".</p>
+<h2 id="210">2.10</h2>
+<p>Use external IP for all Fabric Studio API calls so DNS is no longer required; SSH scheduling (schedule SSH commands via Cloud Scheduler); firewall rule detail popup with GCP Console link; editable image description; rename disabled on running instances.</p>
+<h2 id="29">2.9</h2>
+<p>Replace enable/disable schedule toggle with a reschedule button (Calendar icon) that opens a date/time picker popup pre-filled from the existing cron expression; enable/disable routes removed from backend.</p>
 <h2 id="28">2.8</h2>
 <p>Fix Cloud Run upgrade: image is now copied to the project registry via Cloud Build before updating the service (previously failed with a missing image tag). Live upgrade log streams in the About popup with green/red status lines.</p>
 <h2 id="27">2.7</h2>

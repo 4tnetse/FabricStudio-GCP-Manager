@@ -72,7 +72,7 @@ class BulkConfigureRequest(BaseModel):
     delete_existing_keys: bool = False
     hostname_template: str = ""
     delete_all_workspaces: bool = False
-    workspace_fabrics: list[dict] = []  # [{name: str, template_id: int, install: bool}]
+    workspace_fabrics: list[dict] = []  # [{name: str, template_name: str, install: bool}]
 
 
 class CloneRequest(BaseModel):

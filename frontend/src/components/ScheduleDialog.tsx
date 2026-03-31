@@ -19,8 +19,6 @@ function daysInMonth(month: number, year: number): number {
 
 function defaultParts() {
   const d = new Date()
-  d.setDate(d.getDate() + 1)
-  d.setHours(8, 0, 0, 0)
   return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate(), hour: d.getHours(), minute: d.getMinutes() }
 }
 

@@ -9,6 +9,7 @@ import { CustomSelect } from '@/components/CustomSelect'
 import { ScheduleDialog } from '@/components/ScheduleDialog'
 import { useSettings } from '@/api/settings'
 import { useTheme } from '@/context/ThemeContext'
+import { useOps } from '@/context/OpsContext'
 
 function formatSelection(names: Set<string>): string {
   if (names.size === 0) return ''
@@ -110,7 +111,6 @@ export default function SSH() {
   const [manualAddresses, setManualAddresses] = useState('')
   const [command, setCommand] = useState('')
   const [mode, setMode] = useState<'parallel' | 'sequential'>('parallel')
-  const [streamUrl, setStreamUrl] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedNames, setSelectedNames] = useState<Set<string>>(new Set())
@@ -121,6 +121,7 @@ export default function SSH() {
   const [scheduleOpen, setScheduleOpen] = useState(false)
 
   const { theme } = useTheme()
+  const { ssh: sshOps, setSshStreamUrl } = useOps()
   const executeSsh = useExecuteSsh()
   const testSsh = useTestSsh()
   const { data: instances = [], isLoading: instancesLoading } = useInstances()
@@ -222,11 +223,11 @@ export default function SSH() {
 
   async function handleTest() {
     if (allAddresses.length === 0) { toast.error('Select instances or enter at least one IP address'); return }
-    setStreamUrl(null)
+    setSshStreamUrl(null)
     try {
       const result = await testSsh.mutateAsync(allAddresses)
       if (result.job_id) {
-        setStreamUrl(`/api/ssh/${result.job_id}/stream`)
+        setSshStreamUrl(`/api/ssh/${result.job_id}/stream`)
         toast.success(`Testing connection to ${allAddresses.length} host${allAddresses.length !== 1 ? 's' : ''}…`)
       }
     } catch (err) {
@@ -237,7 +238,7 @@ export default function SSH() {
   async function handleExecute() {
     if (allAddresses.length === 0) { toast.error('Select instances or enter at least one IP address'); return }
     if (!selectedConfig && !command.trim()) { toast.error('Enter a command or select a configuration file'); return }
-    setStreamUrl(null)
+    setSshStreamUrl(null)
     try {
       const result = await executeSsh.mutateAsync({
         addresses: allAddresses,
@@ -245,7 +246,7 @@ export default function SSH() {
         ...(selectedConfig ? { configName: selectedConfig } : { command: command.trim() }),
       })
       if (result.job_id) {
-        setStreamUrl(`/api/ssh/${result.job_id}/stream`)
+        setSshStreamUrl(`/api/ssh/${result.job_id}/stream`)
         toast.success(`SSH execution started on ${allAddresses.length} host${allAddresses.length !== 1 ? 's' : ''}`)
       }
     } catch (err) {
@@ -553,7 +554,7 @@ export default function SSH() {
         <div className="relative">
           <div className="absolute inset-0 rounded-xl border border-slate-700 bg-slate-800/30 p-5 flex flex-col gap-3 overflow-hidden">
             <h2 className="text-sm font-medium text-slate-300 shrink-0">SSH output</h2>
-            <LogStream url={streamUrl} className="flex-1 min-h-0" />
+            <LogStream lines={sshOps.lines} isStreaming={sshOps.isStreaming} className="flex-1 min-h-0" />
           </div>
         </div>
       </div>

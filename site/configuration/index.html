@@ -432,10 +432,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#3-obtain-and-upload-fabric-studio-to-gcp" class="md-nav__link">
+  <a href="#3-import-the-fabric-studio-image" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Obtain and upload Fabric Studio to GCP
+        3. Import the Fabric Studio image
       
     </span>
   </a>
@@ -443,21 +443,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#4-resize-the-fabric-studio-image" class="md-nav__link">
+  <a href="#4-enable-gcp-dns" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. Resize the Fabric Studio image
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#5-enable-gcp-dns" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5. Enable GCP DNS
+        4. Enable GCP DNS
       
     </span>
   </a>
@@ -1352,10 +1341,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#3-obtain-and-upload-fabric-studio-to-gcp" class="md-nav__link">
+  <a href="#3-import-the-fabric-studio-image" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Obtain and upload Fabric Studio to GCP
+        3. Import the Fabric Studio image
       
     </span>
   </a>
@@ -1363,21 +1352,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#4-resize-the-fabric-studio-image" class="md-nav__link">
+  <a href="#4-enable-gcp-dns" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. Resize the Fabric Studio image
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#5-enable-gcp-dns" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5. Enable GCP DNS
+        4. Enable GCP DNS
       
     </span>
   </a>
@@ -1716,20 +1694,14 @@ Source IPv4 range: 0.0.0.0/0<br />
 TCP ports: 22, 80, 443, 8000, 8080, 8888, 10000-20000, 20808, 20909, 22222<br />
 UDP ports: 53, 514, 1812, 1813<br />
 Enforcement: disabled  </p>
-<h3 id="3-obtain-and-upload-fabric-studio-to-gcp">3. Obtain and upload Fabric Studio to GCP</h3>
-<p>Obtain the Fabric Studio image for GCP. This version has a raw disk compressed and zipped in a tar.gz.</p>
-<p>If you have the .vmdk or .qcow2 you first need to convert it to a raw disk e.g.<br />
-<code>qemu-img dd -f vmdk -O raw bs=4M count=1K if=fabricstudio.vmdk of=disk.raw tar -cvzf fabric-studio_2.0.6.tar.gz disk.raw</code></p>
-<p>Upload the tar.gz to <a href="https://console.cloud.google.com/compute/images">GCP Compute Images</a><br />
-Note: skip OS Adaptation</p>
-<h3 id="4-resize-the-fabric-studio-image">4. Resize the Fabric Studio image</h3>
-<p>Create a temporary instance from the newly uploaded image at <a href="https://console.cloud.google.com/compute/images">GCP Compute Images</a>.</p>
-<p>Set the disk size to 200GB and set the network tags workshop-source-networks and workshop-source-any in the instance creation wizard.</p>
-<p>SSH to the new instance and set a strong password. you need to enter this password later in the Settings page.</p>
-<p>Extend the disk by typing <code>system disk extend</code></p>
-<p>Shutdown the Fabric Studio instance: <code>system execute shutdown</code></p>
-<p>Create a new machine image, e.g. fabric-studio-200g,  from your temporary instance at <a href="https://console.cloud.google.com/compute/instances">GCP Compute Instances</a>.</p>
-<h3 id="5-enable-gcp-dns">5. Enable GCP DNS</h3>
+<h3 id="3-import-the-fabric-studio-image">3. Import the Fabric Studio image</h3>
+<p>Use the <strong>Images</strong> page in FS GCP Manager to import the Fabric Studio disk image.</p>
+<p>Obtain the Fabric Studio image for GCP — a raw disk compressed as a <code>.tar.gz</code>. If you have a <code>.vmdk</code> or <code>.qcow2</code>, convert it first:</p>
+<pre><code class="language-bash">qemu-img convert -f vmdk -O raw fabricstudio.vmdk disk.raw
+tar -czf fabric-studio.tar.gz disk.raw
+</code></pre>
+<p>Then go to <strong>Images → Import Image</strong>, upload the <code>.tar.gz</code>, and give it a name. The image will be created directly in GCP. Disk resizing and initial password setup happen automatically when you build an instance from it.</p>
+<h3 id="4-enable-gcp-dns">4. Enable GCP DNS</h3>
 <p>You will need GCP Cloud DNS to auto generate DNS A records for your Fabric Studio instances.</p>
 <p>Enable <a href="https://console.cloud.google.com/net-services/dns">GCP Cloud DNS API</a>.</p>
 <p>Create a public DNS zone. E.g. labs.yourdomain.com</p>
@@ -1963,7 +1935,7 @@ gcloud run deploy fabricstudio-scheduler \
 <h2 id="create-a-fabric-studio-license-server">Create a Fabric Studio License Server</h2>
 <p>All Fabric Studio instances will connect to this license server to obtain licenses needed in your labs.</p>
 <h3 id="1-build-the-instance">1. Build the instance</h3>
-<p>In the Build page, fill out the fields and choose the 200GB image. Set the group to production.</p>
+<p>In the Build page, fill out the fields, set <strong>Disk size</strong> to <code>200</code>, and set the group to <code>production</code>.</p>
 <p>Rename the instance to srv-<your initials>-license-001.</p>
 <p>Edit the Labels and set purpose to licenseserver.</p>
 <h3 id="2-configure-the-instance">2. Configure the instance</h3>
