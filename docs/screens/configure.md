@@ -40,10 +40,10 @@ Selecting **This will be a new license server** from the License Server dropdown
 2. Delete all Fabrics
 3. Clear the remote license server setting
 4. Enable the built-in license service
-5. Reserve a static internal IP address (promotes the current ephemeral IP to a named GCP static address so the license server always has the same IP)
-6. Update GCP labels (`group=production`, `purpose=licenseserver`, `delete=no`)
-7. Swap the firewall network tag from `fabric-studio` to `license-server`
-8. Create the `license-server` firewall rule if it does not exist
+5. Power down the instance and wait until stopped
+6. Rename the instance to `srv-{prepend}-{product}-001` (increments if already taken)
+7. In parallel: reserve a static internal IP, update GCP labels (`group=production`, `purpose=licenseserver`, `delete=no`), swap the firewall network tag from `fabric-studio` to `license-server`, and create the `license-server` firewall rule if it does not exist
+8. Power up the instance (conversion is complete — boot continues in the background)
 
 The reserved IP address is automatically released when the instance is deleted from the app.
 

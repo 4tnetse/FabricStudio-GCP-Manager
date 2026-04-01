@@ -281,6 +281,15 @@ class GCPComputeService:
             except Exception:
                 return  # Instance is gone
 
+    async def wait_until_stopped(self, zone: str, name: str, interval: float = 5.0, max_attempts: int = 60) -> None:
+        """Poll until the instance status is TERMINATED (stopped)."""
+        for _ in range(max_attempts):
+            inst = await self.get_instance(zone=zone, name=name)
+            if inst.status == InstanceStatus.TERMINATED:
+                return
+            await asyncio.sleep(interval)
+        raise TimeoutError(f"Instance '{name}' did not stop within the expected time")
+
     async def set_machine_type(self, zone: str, name: str, machine_type: str) -> None:
         client = compute_v1.InstancesClient(credentials=self._credentials)
         machine_type_url = (

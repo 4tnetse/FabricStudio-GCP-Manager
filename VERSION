@@ -1,7 +1,8 @@
-2.40
+2.41
 
 # Version history
 # ---------------
+# 2.41   License server conversion: auto-rename to srv-{prepend}-{product}-001 (increment if taken); power down before rename, power up after; step 7 runs in parallel (static IP, labels, firewall tag, firewall rule)
 # 2.40   License server conversion: reserve static internal IP (step 5/8, promotes ephemeral IP to named GCP static address); auto-release reserved IP when instance is deleted
 # 2.39   Teams notification: FactSet layout with start time, duration, instance count, error log snippet; add speak property to Adaptive Card for toast preview
 # 2.38   Fix Teams toast notification showing "geen inhoud": add top-level text field alongside summary for notification preview

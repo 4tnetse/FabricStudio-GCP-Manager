@@ -481,6 +481,18 @@ async def bulk_shutdown(body: BulkShutdownRequest):
 #  Bulk configure                                                      #
 # ------------------------------------------------------------------ #
 
+async def _next_license_server_name(svc: GCPComputeService, parsed: InstanceName) -> str:
+    """Return the next available srv-{prepend}-{product}-NNN name, starting at 001."""
+    base = f"srv-{parsed.prepend}-{parsed.product}"
+    existing = await svc.list_instances()
+    existing_names = {inst.name for inst in existing}
+    for n in range(1, 1000):
+        candidate = f"{base}-{n:03d}"
+        if candidate not in existing_names:
+            return candidate
+    raise ValueError("Could not find an available license server name")
+
+
 async def _convert_to_license_server(
     fs,
     svc: GCPComputeService,
@@ -505,39 +517,54 @@ async def _convert_to_license_server(
     await log("Step 4/8: Enabling built-in license service…")
     await fs.enable_license_service()
 
-    await log("Step 5/8: Reserving static internal IP…")
-    reserved_ip = await svc.reserve_static_internal_ip(zone=zone, name=name)
-    await log(f"Static internal IP reserved: {reserved_ip}")
+    await log("Step 5/8: Powering down instance…")
+    await svc.stop_instance(zone=zone, name=name)
+    await log("Waiting for instance to stop…")
+    await svc.wait_until_stopped(zone=zone, name=name)
 
-    await log("Step 6/8: Updating GCP labels…")
-    await svc.add_labels(zone=zone, name=name, labels={
-        "group": "production",
-        "purpose": "licenseserver",
-        "delete": "no",
-    })
+    await log("Step 6/8: Renaming instance…")
+    parsed = InstanceName.parse(name)
+    new_name = await _next_license_server_name(svc, parsed)
+    await svc.rename_instance(zone=zone, name=name, new_name=new_name)
+    await log(f"Instance renamed to '{new_name}'")
 
-    await log("Step 7/8: Updating GCP firewall tags (add 'license-server', remove 'fabric-studio')…")
-    await svc.add_tags(zone=zone, name=name, tags=["license-server"])
-    await svc.remove_tags(zone=zone, name=name, tags=["fabric-studio"])
+    await log("Step 7/8: Reserving static IP, updating labels and firewall tags…")
 
-    await log("Step 8/8: Checking for 'license-server' firewall rule…")
-    try:
-        await svc.get_firewall_rule("license-server")
-        await log("Firewall rule 'license-server' already exists — skipping.")
-    except Exception:
-        await log("Creating firewall rule 'license-server'…")
-        await svc.create_firewall_rule(
-            name="license-server",
-            network="default",
-            priority=900,
-            allowed_tcp=["443"],
-            allowed_udp=[],
-            source_ranges=[],
-            target_tags=["license-server"],
-            source_tags=["fabric-studio"],
-        )
-        await log("Firewall rule 'license-server' created.")
+    async def _reserve_ip():
+        ip = await svc.reserve_static_internal_ip(zone=zone, name=new_name)
+        await log(f"Static internal IP reserved: {ip}")
 
+    async def _update_labels():
+        await svc.add_labels(zone=zone, name=new_name, labels={
+            "group": "production",
+            "purpose": "licenseserver",
+            "delete": "no",
+        })
+        await log("GCP labels updated")
+
+    async def _update_firewall():
+        await svc.add_tags(zone=zone, name=new_name, tags=["license-server"])
+        await svc.remove_tags(zone=zone, name=new_name, tags=["fabric-studio"])
+        try:
+            await svc.get_firewall_rule("license-server")
+            await log("Firewall rule 'license-server' already exists — skipping.")
+        except Exception:
+            await svc.create_firewall_rule(
+                name="license-server",
+                network="default",
+                priority=900,
+                allowed_tcp=["443"],
+                allowed_udp=[],
+                source_ranges=[],
+                target_tags=["license-server"],
+                source_tags=["fabric-studio"],
+            )
+            await log("Firewall rule 'license-server' created.")
+
+    await asyncio.gather(_reserve_ip(), _update_labels(), _update_firewall())
+
+    await log("Step 8/8: Powering up instance…")
+    await svc.start_instance(zone=zone, name=new_name)
     await log("License server conversion complete.")
 
 

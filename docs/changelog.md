@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.41
+License server conversion now automatically renames the instance to `srv-{prepend}-{product}-001` (incrementing if already taken). The instance is powered down before the rename and restarted once the conversion is complete. Step 7 runs in parallel: static IP reservation, label update, firewall tag swap, and firewall rule creation all happen concurrently.
+
 ## 2.40
 License server conversion now reserves a static internal IP as step 5 of 8 — the instance's current IP is promoted to a named GCP static address so the license server always keeps the same IP. When any instance with a static internal IP reservation is deleted from the app, the reservation is automatically released.
 

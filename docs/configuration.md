@@ -221,7 +221,7 @@ Obtain a Fabric Studio GCP image and upload it via the [Images](screens/images.m
 To create a license server, build an instance using the [Build](screens/build.md) page and then configure it using the [Configure](screens/configure.md) page.
 
 - Enter the **registration token** `secret` to automatically register the Fabric Studio instance.
-- Select **This will be a new license server**. This will convert the instance into a license server as part of the configure operation, and configure a firewall rule allowing traffic from your instances to your license server.
+- Select **This will be a new license server**. This will convert the instance into a license server as part of the configure operation, and configure a firewall rule allowing traffic from your instances to your license server. It will also make its internal IP address static.
 - Set the **hostname** to `License Server`.
 
 Note that the conversion will also set the following labels:
@@ -230,4 +230,4 @@ Note that the conversion will also set the following labels:
 - `delete=no` (this will prevent accidental deletion)
 - `purpose=licenseserver`
 
-The license server does not need a public DNS name, so when the instance has been converted, stop it and rename it to `srv-...`. Instances with a name that starts with `srv` will not get a DNS A record. After renaming is done, start the instance again.
+The conversion automatically stops the instance, renames it to `srv-{prepend}-{product}-001` (incrementing if already taken), and restarts it. Instances with a name starting with `srv` do not get a DNS A record, so the license server will not be assigned a public DNS name.
