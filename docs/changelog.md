@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.38
+Fix Teams toast notification showing "geen inhoud": add top-level `text` field alongside `summary` so the notification preview is populated correctly. Requires remote backend update.
+
 ## 2.37
 Teams notification preview text (shown in the chat list and notification toast) now shows the schedule name and status instead of "dit bericht heeft geen voorbeeld". Requires remote backend update.
 

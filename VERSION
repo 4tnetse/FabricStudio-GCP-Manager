@@ -1,7 +1,8 @@
-2.37
+2.38
 
 # Version history
 # ---------------
+# 2.38   Fix Teams toast notification showing "geen inhoud": add top-level text field alongside summary for notification preview
 # 2.37   Teams notification preview text now shows schedule name and status instead of "dit bericht heeft geen voorbeeld"
 # 2.36   Fix Teams notifications not sent from scheduled jobs: teams_webhook_url was missing from settings snapshot so Cloud Run backend never had the webhook URL; existing schedules need re-saving to pick up the URL
 # 2.35   Teams notification cards: green/red accent bar based on job outcome; SSH job type displays as "SSH"; title updated to "Fabric Studio GCP Manager"

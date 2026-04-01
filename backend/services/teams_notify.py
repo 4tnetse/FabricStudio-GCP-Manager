@@ -55,9 +55,11 @@ async def notify_teams(
     if error_summary:
         body.append({"type": "TextBlock", "text": f"Error: {error_summary}", "color": "Attention", "wrap": True, "spacing": "Small"})
 
+    preview = f"Schedule '{schedule_name}' {status_text}"
     payload = {
         "type": "message",
-        "summary": f"Schedule '{schedule_name}' {status_text}",
+        "text": preview,
+        "summary": preview,
         "attachments": [{
             "contentType": "application/vnd.microsoft.card.adaptive",
             "content": {
