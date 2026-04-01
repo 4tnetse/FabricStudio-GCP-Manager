@@ -25,7 +25,7 @@ export default function Build() {
   const [zone, setZone] = useState(settings?.default_zone ?? '')
   const [machineType, setMachineType] = useState('')
   const [image, setImage] = useState('')
-  const [diskSizeGb, setDiskSizeGb] = useState('200')
+  const [diskSizeGb, setDiskSizeGb] = useState('')
   const [group, setGroup] = useState(settings?.group ?? '')
   const [labels, setLabels] = useState<LabelPair[]>([])
   const [submitting, setSubmitting] = useState(false)

@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.0
+Multi-VPC support (phase 1): a **Default network (GCP VPC)** dropdown is now shown in Preferences, listing all VPC networks in the active project. The `default` network is auto-selected on first load. A **Create new VPC** option is shown at the top of the list (no action behind it yet). Nav items are disabled when no network is configured, in addition to the existing no-key check. Build page disk size field now starts empty (shows `e.g. 200` as placeholder).
+
 ## 2.42
 Configure page scrolls to the top when a job starts and stays there — log output now auto-scrolls within the panel instead of dragging the whole page down. All configure and SSH jobs now fail immediately with a clear error if the selected instance is not running. Fixed InstanceStatus.TERMINATED reference (correct name is STOPPED) in the license server conversion flow.
 

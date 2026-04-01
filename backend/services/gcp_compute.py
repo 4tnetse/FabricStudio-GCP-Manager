@@ -447,6 +447,16 @@ class GCPComputeService:
     #  Firewall                                                            #
     # ------------------------------------------------------------------ #
 
+    async def list_networks(self) -> list[str]:
+        """Return a sorted list of VPC network names in the project."""
+        client = compute_v1.NetworksClient(credentials=self._credentials)
+
+        def _list():
+            return [n.name for n in client.list(project=self._project_id)]
+
+        names = await self._run(_list)
+        return sorted(names)
+
     async def list_firewall_rules(self) -> list[FirewallRule]:
         client = compute_v1.FirewallsClient(credentials=self._credentials)
 

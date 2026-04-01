@@ -20,7 +20,7 @@ _PER_PROJECT_FIELDS = {
     # Preferences
     "initials", "default_zone", "default_type", "owner", "group",
     "ssh_public_key", "dns_domain", "instance_fqdn_prefix", "dns_zone_name",
-    "fs_admin_password",
+    "fs_admin_password", "default_network",
     # Scheduling
     "remote_scheduling_enabled", "remote_backend_url", "cloud_run_region",
     "firestore_project_id",
@@ -43,6 +43,7 @@ _PROJECT_DEFAULTS: dict = {
     "instance_fqdn_prefix": "",
     "dns_zone_name": "",
     "fs_admin_password": "",
+    "default_network": "",
     "remote_scheduling_enabled": False,
     "remote_backend_url": "",
     "cloud_run_region": "",

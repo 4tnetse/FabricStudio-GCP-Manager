@@ -59,6 +59,16 @@ export function useTestTeamsWebhook() {
   })
 }
 
+export function useNetworks(enabled: boolean) {
+  return useQuery({
+    queryKey: ['settings', 'networks'],
+    queryFn: () => apiGet<{ networks: string[] }>('/settings/networks'),
+    enabled,
+    staleTime: 60_000,
+    retry: false,
+  })
+}
+
 export function useResetSettings() {
   const queryClient = useQueryClient()
   return useMutation({

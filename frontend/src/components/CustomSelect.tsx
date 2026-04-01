@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 interface Option {
   value: string
   label: string
+  disabled?: boolean
 }
 
 interface CustomSelectProps {
@@ -83,13 +84,16 @@ export function CustomSelect({ value, onChange, options, className, disabled, pl
               <button
                 key={opt.value}
                 type="button"
+                disabled={opt.disabled}
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => { onChange(opt.value); setOpen(false) }}
+                onClick={() => { if (!opt.disabled) { onChange(opt.value); setOpen(false) } }}
                 className={cn(
                   'flex w-full items-center px-3 py-2 text-sm text-left transition-colors',
-                  opt.value === value
-                    ? 'bg-blue-900/40 text-blue-300'
-                    : 'text-slate-300 hover:bg-slate-800',
+                  opt.disabled
+                    ? 'text-slate-600 cursor-not-allowed'
+                    : opt.value === value
+                      ? 'bg-blue-900/40 text-blue-300'
+                      : 'text-slate-300 hover:bg-slate-800',
                 )}
               >
                 {opt.label}

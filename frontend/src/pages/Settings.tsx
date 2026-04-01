@@ -6,7 +6,7 @@ import { DocLink } from '@/components/DocLink'
 import { useDetectCloudRunUrl } from '@/api/schedules'
 import { useCloudRunPermissions, useCloudRunSubnets, useStartDeploy, useStartUndeploy } from '@/api/cloudrun'
 import { useOps } from '@/context/OpsContext'
-import { useSettings, useUpdateSettings, useResetSettings, useTestTeamsWebhook } from '@/api/settings'
+import { useSettings, useUpdateSettings, useResetSettings, useTestTeamsWebhook, useNetworks } from '@/api/settings'
 import { useKeys, useUploadKey, useDeleteKey, useRenameKey } from '@/api/keys'
 import { useZones, useZoneLocations } from '@/api/instances'
 import { useSelectProject } from '@/api/projects'
@@ -79,6 +79,8 @@ export default function SettingsPage() {
   const { data: settings, isLoading } = useSettings()
   const { data: zones = [] } = useZones()
   const { data: zoneLocations = {} } = useZoneLocations()
+  const hasKey = !!settings?.has_keys
+  const { data: networksData } = useNetworks(hasKey)
   const updateSettings = useUpdateSettings()
   const resetSettings = useResetSettings()
   const { data: keys } = useKeys()
@@ -159,6 +161,7 @@ export default function SettingsPage() {
         instance_fqdn_prefix: settings.instance_fqdn_prefix ?? '',
         dns_zone_name: settings.dns_zone_name ?? '',
         fs_admin_password: settings.fs_admin_password ?? '',
+        default_network: settings.default_network ?? '',
         remote_scheduling_enabled: settings.remote_scheduling_enabled ?? false,
         remote_backend_url: settings.remote_backend_url ?? '',
         cloud_run_region: settings.cloud_run_region ?? '',
@@ -167,6 +170,17 @@ export default function SettingsPage() {
       })
     }
   }, [settings])
+
+  useEffect(() => {
+    if (networksData && !form.default_network) {
+      const networks = networksData.networks
+      if (networks.includes('default')) {
+        setField('default_network', 'default')
+      } else if (networks.length > 0) {
+        setField('default_network', networks[0])
+      }
+    }
+  }, [networksData])
 
   function setField<K extends keyof Settings>(key: K, value: Settings[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -191,6 +205,7 @@ export default function SettingsPage() {
         instance_fqdn_prefix: form.instance_fqdn_prefix,
         dns_zone_name: form.dns_zone_name,
         fs_admin_password: form.fs_admin_password,
+        default_network: form.default_network,
       })
       toast.success('Settings saved')
     } catch (err) {
@@ -426,6 +441,21 @@ export default function SettingsPage() {
               searchable
             />
           </div>
+          <div>
+            <label className={labelClass}>Default network (GCP VPC)</label>
+            <CustomSelect
+              className={inputClass}
+              value={(form.default_network as string) ?? ''}
+              onChange={(v) => setField('default_network', v)}
+              options={[
+                { value: '__create_new__', label: 'Create new VPC', disabled: true },
+                ...(networksData?.networks ?? []).map((n) => ({ value: n, label: n })),
+              ]}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>Default instance prefix</label>
             <input

@@ -199,6 +199,7 @@ export default function App() {
 
   const { data: settings } = useSettings()
   const hasKey = !!settings?.has_keys
+  const hasNetwork = !!settings?.default_network
 
   const { data: projects } = useProjects()
   const currentProject = projects?.find((p) => p.is_selected) ?? projects?.[0]
@@ -296,7 +297,7 @@ export default function App() {
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
           {NAV_ITEMS.filter((item) => item.to !== '/schedules' || !!settings?.remote_scheduling_enabled).map((item) => (
             <NavActivityWrapper key={item.to} to={item.to}>
-              <SidebarLink {...item} disabled={!hasKey} />
+              <SidebarLink {...item} disabled={!hasKey || !hasNetwork} />
             </NavActivityWrapper>
           ))}
         </nav>

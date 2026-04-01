@@ -50,6 +50,23 @@ async def update_settings(update: SettingsUpdate):
     return {"detail": "Settings saved"}
 
 
+# ---- Networks ----
+
+@router.get("/networks")
+async def list_networks():
+    """Return the list of VPC network names in the active project."""
+    if not cfg.settings.active_project_id:
+        raise HTTPException(status_code=400, detail="No active project configured.")
+    from auth import get_credentials
+    from services.gcp_compute import GCPComputeService
+    svc = GCPComputeService(get_credentials(), cfg.settings.active_project_id)
+    try:
+        names = await svc.list_networks()
+        return {"networks": names}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 # ---- Notifications ----
 
 class TeamsTestRequest(BaseModel):

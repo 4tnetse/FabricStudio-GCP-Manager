@@ -47,6 +47,7 @@ export interface Settings {
   instance_fqdn_prefix: string | null
   dns_zone_name: string | null
   fs_admin_password?: string | null
+  default_network?: string | null
   selected_project: string | null
   has_keys?: boolean
   remote_scheduling_enabled?: boolean

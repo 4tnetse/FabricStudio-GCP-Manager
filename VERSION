@@ -1,7 +1,8 @@
-2.42
+3.0
 
 # Version history
 # ---------------
+# 3.0    Multi-VPC support (phase 1): Default network (GCP VPC) setting per project; VPC dropdown in Preferences with "Create new VPC" placeholder; nav items disabled when no network configured; Build page disk size field starts empty
 # 2.42   Configure: scroll to top on job start; log panel auto-scrolls internally (no more page jumping); instance running check added to all configure/SSH jobs; InstanceStatus.TERMINATED bug fixed
 # 2.41   License server conversion: auto-rename to srv-{prepend}-{product}-001 (increment if taken); power down before rename, power up after; step 7 runs in parallel (static IP, labels, firewall tag, firewall rule)
 # 2.40   License server conversion: reserve static internal IP (step 5/8, promotes ephemeral IP to named GCP static address); auto-release reserved IP when instance is deleted
