@@ -49,6 +49,7 @@ async def run_triggered_job(schedule: dict, run_id: str, triggered_by: str = "sc
 
     log_lines: list[str] = []
     failed = False
+    start_time = datetime.now(timezone.utc)
 
     try:
         job_type = schedule.get("job_type")
@@ -143,15 +144,33 @@ async def run_triggered_job(schedule: dict, run_id: str, triggered_by: str = "sc
     # Teams notification (best-effort) — prefer snapshot value (set by local backend)
     webhook_url = snapshot.get("teams_webhook_url") or original_settings.teams_webhook_url
     if webhook_url:
+        duration_seconds = (datetime.now(timezone.utc) - start_time).total_seconds()
+
+        job_type = schedule.get("job_type", "unknown")
+        payload = schedule.get("payload", {})
+        if job_type == "clone":
+            instance_count = payload.get("count_end", 1) - payload.get("count_start", 1) + 1
+        elif job_type == "configure":
+            instance_count = len(payload.get("instances", []))
+        elif job_type == "ssh":
+            instance_count = len(payload.get("addresses", []))
+        else:
+            instance_count = None
+
+        error_lines = log_lines[-5:] if failed and log_lines else []
+
         from services.teams_notify import notify_teams
         await notify_teams(
             webhook_url=webhook_url,
             schedule_name=schedule.get("name", "Unknown schedule"),
-            job_type=schedule.get("job_type", "unknown"),
+            job_type=job_type,
             status="failed" if failed else "completed",
             project_id=active_project_id or "",
             triggered_by=triggered_by,
-            error_summary=error_summary if failed else None,
+            started_at=start_time,
+            duration_seconds=duration_seconds,
+            instance_count=instance_count,
+            error_lines=error_lines,
         )
 
 

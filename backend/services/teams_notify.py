@@ -1,5 +1,18 @@
 """Send schedule run notifications to a Microsoft Teams Workflow webhook."""
+from datetime import datetime, timezone
+
 import httpx
+
+
+def _format_duration(seconds: float) -> str:
+    s = int(seconds)
+    if s < 60:
+        return f"{s}s"
+    m, s = divmod(s, 60)
+    if m < 60:
+        return f"{m}m {s}s"
+    h, m = divmod(m, 60)
+    return f"{h}h {m}m"
 
 
 async def notify_teams(
@@ -9,7 +22,10 @@ async def notify_teams(
     status: str,
     project_id: str,
     triggered_by: str,
-    error_summary: str | None = None,
+    started_at: datetime | None = None,
+    duration_seconds: float | None = None,
+    instance_count: int | None = None,
+    error_lines: list[str] | None = None,
 ) -> None:
     """POST a message to the given Teams Workflow webhook URL. Best-effort — never raises."""
     if not webhook_url:
@@ -18,8 +34,46 @@ async def notify_teams(
     success = status == "completed"
     status_text = "✅ Completed" if success else "❌ Failed"
     job_type_label = {"clone": "Clone", "configure": "Configure", "ssh": "SSH"}.get(job_type, job_type.capitalize())
-
     accent_color = "Good" if success else "Attention"
+
+    facts = [
+        {"title": "Schedule", "value": schedule_name},
+        {"title": "Status", "value": status_text},
+        {"title": "Job type", "value": job_type_label},
+        {"title": "Project", "value": project_id or "—"},
+        {"title": "Triggered by", "value": triggered_by.capitalize()},
+    ]
+    if started_at is not None:
+        facts.append({"title": "Started", "value": started_at.strftime("%Y-%m-%d %H:%M UTC")})
+    if duration_seconds is not None:
+        facts.append({"title": "Duration", "value": _format_duration(duration_seconds)})
+    if instance_count is not None:
+        facts.append({"title": "Instances", "value": str(instance_count)})
+
+    column_items: list[dict] = [
+        {
+            "type": "TextBlock",
+            "text": f"Fabric Studio GCP Manager {status_text}",
+            "weight": "Bolder",
+            "wrap": True,
+        },
+        {
+            "type": "FactSet",
+            "facts": facts,
+            "spacing": "Small",
+        },
+    ]
+
+    if not success and error_lines:
+        snippet = "\n".join(error_lines)
+        column_items.append({
+            "type": "TextBlock",
+            "text": snippet,
+            "wrap": True,
+            "color": "Attention",
+            "fontType": "Monospace",
+            "spacing": "Small",
+        })
 
     body = [
         {
@@ -34,26 +88,11 @@ async def notify_teams(
                 {
                     "type": "Column",
                     "width": "stretch",
-                    "items": [
-                        {
-                            "type": "TextBlock",
-                            "text": f"Fabric Studio GCP Manager — Schedule '{schedule_name}' {status_text}",
-                            "weight": "Bolder",
-                            "wrap": True,
-                        },
-                        {
-                            "type": "TextBlock",
-                            "text": f"Job type: {job_type_label} | Project: {project_id or '—'} | Triggered by: {triggered_by}",
-                            "wrap": True,
-                            "spacing": "Small",
-                        },
-                    ],
+                    "items": column_items,
                 },
             ],
         }
     ]
-    if error_summary:
-        body.append({"type": "TextBlock", "text": f"Error: {error_summary}", "color": "Attention", "wrap": True, "spacing": "Small"})
 
     preview = f"Schedule '{schedule_name}' {status_text}"
     payload = {
@@ -66,6 +105,7 @@ async def notify_teams(
                 "type": "AdaptiveCard",
                 "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
                 "version": "1.2",
+                "speak": preview,
                 "body": body,
             },
         }],

@@ -1,7 +1,8 @@
-2.38
+2.39
 
 # Version history
 # ---------------
+# 2.39   Teams notification: FactSet layout with start time, duration, instance count, error log snippet; add speak property to Adaptive Card for toast preview
 # 2.38   Fix Teams toast notification showing "geen inhoud": add top-level text field alongside summary for notification preview
 # 2.37   Teams notification preview text now shows schedule name and status instead of "dit bericht heeft geen voorbeeld"
 # 2.36   Fix Teams notifications not sent from scheduled jobs: teams_webhook_url was missing from settings snapshot so Cloud Run backend never had the webhook URL; existing schedules need re-saving to pick up the URL

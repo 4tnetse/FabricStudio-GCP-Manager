@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.39
+Teams notification cards now use a FactSet layout showing schedule name, status, job type, project, triggered by, start time, duration, and instance count. On failure, the last 5 log lines are shown as an error snippet. Added `speak` property to the Adaptive Card as an additional attempt to populate the Teams toast preview. Requires remote backend update.
+
 ## 2.38
 Fix Teams toast notification showing "geen inhoud": add top-level `text` field alongside `summary` so the notification preview is populated correctly. Requires remote backend update.
 
