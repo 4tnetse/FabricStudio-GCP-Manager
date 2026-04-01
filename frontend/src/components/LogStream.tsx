@@ -20,11 +20,12 @@ export function LogStream({ url, lines: linesProp, isStreaming: isStreamingProp,
   useEffect(() => {
     onStreamingChange?.(isStreaming)
   }, [isStreaming, onStreamingChange])
+  const preRef = useRef<HTMLPreElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (lines.length > 0) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (lines.length > 0 && preRef.current) {
+      preRef.current.scrollTop = preRef.current.scrollHeight
     }
   }, [lines])
 
@@ -65,6 +66,7 @@ export function LogStream({ url, lines: linesProp, isStreaming: isStreamingProp,
         <span className="ml-auto text-xs text-slate-600">{lines.length} lines</span>
       </div>
       <pre
+        ref={preRef}
         className="p-3 text-xs font-mono text-slate-300 overflow-y-auto flex-1 min-h-0"
       >
         {lines.length === 0 && !isStreaming ? (

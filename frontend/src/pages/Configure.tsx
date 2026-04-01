@@ -295,6 +295,7 @@ export default function Configure() {
       const result = await apiPost<{ job_id: string }>('/ops/bulk-configure', payload)
       setConfigureStreamUrl(`/api/ops/${result.job_id}/stream`)
       startConfigureJob(`Configuring ${items.length} instance${items.length !== 1 ? 's' : ''}…`)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
       toast.success('Configure started')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Configure failed')

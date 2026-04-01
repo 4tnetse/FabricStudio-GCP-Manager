@@ -285,7 +285,7 @@ class GCPComputeService:
         """Poll until the instance status is TERMINATED (stopped)."""
         for _ in range(max_attempts):
             inst = await self.get_instance(zone=zone, name=name)
-            if inst.status == InstanceStatus.TERMINATED:
+            if inst.status == InstanceStatus.STOPPED:
                 return
             await asyncio.sleep(interval)
         raise TimeoutError(f"Instance '{name}' did not stop within the expected time")

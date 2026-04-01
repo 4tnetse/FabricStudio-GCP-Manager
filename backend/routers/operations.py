@@ -32,12 +32,16 @@ async def _resolve_host(zone: str, instance_name: str) -> str:
         project_id = cfg.settings.active_project_id
         svc = GCPComputeService(creds, project_id)
         instance = await svc.get_instance(zone=zone, name=instance_name)
+        if instance.status != "RUNNING":
+            raise RuntimeError(f"Instance {instance_name} is not running (status: {instance.status})")
         if _APP_MODE == "backend":
             if instance.internal_ip:
                 return instance.internal_ip
         else:
             if instance.public_ip:
                 return instance.public_ip
+    except RuntimeError:
+        raise
     except Exception as exc:
         raise RuntimeError(f"Could not look up IP for {instance_name}: {exc}")
     raise RuntimeError(f"Instance {instance_name} has no {'internal' if _APP_MODE == 'backend' else 'external'} IP address")

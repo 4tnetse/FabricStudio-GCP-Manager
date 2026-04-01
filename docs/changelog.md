@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.42
+Configure page scrolls to the top when a job starts and stays there — log output now auto-scrolls within the panel instead of dragging the whole page down. All configure and SSH jobs now fail immediately with a clear error if the selected instance is not running. Fixed InstanceStatus.TERMINATED reference (correct name is STOPPED) in the license server conversion flow.
+
 ## 2.41
 License server conversion now automatically renames the instance to `srv-{prepend}-{product}-001` (incrementing if already taken). The instance is powered down before the rename and restarted once the conversion is complete. Step 7 runs in parallel: static IP reservation, label update, firewall tag swap, and firewall rule creation all happen concurrently.
 
