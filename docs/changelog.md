@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.36
+Fix Teams notifications not being sent from scheduled jobs: `teams_webhook_url` was missing from the settings snapshot, so the Cloud Run backend never had access to the webhook URL. The URL is now included in the snapshot at schedule creation and update time. Existing schedules must be re-saved (edit and save, or reschedule) to pick up the URL. Requires remote backend update.
+
 ## 2.35
 Teams notification cards now show a green or red accent bar on the left based on job outcome. SSH job type now displays as "SSH" instead of "Ssh". Title updated to "Fabric Studio GCP Manager". Requires remote backend update.
 

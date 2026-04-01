@@ -1,7 +1,8 @@
-2.35
+2.36
 
 # Version history
 # ---------------
+# 2.36   Fix Teams notifications not sent from scheduled jobs: teams_webhook_url was missing from settings snapshot so Cloud Run backend never had the webhook URL; existing schedules need re-saving to pick up the URL
 # 2.35   Teams notification cards: green/red accent bar based on job outcome; SSH job type displays as "SSH"; title updated to "Fabric Studio GCP Manager"
 # 2.34   Fix Teams notification not sent after scheduled job: error_summary was defined inside the Firestore try block, so a Firestore exception silently blocked the notification
 # 2.33   Teams webhook notification payload switched to Adaptive Card format (fixes Power Automate Workflow webhook errors); schedule dialog overlay rendered via React portal to fix gap at top of page

@@ -379,4 +379,5 @@ def _build_settings_snapshot() -> dict:
         "fs_admin_password": p.get("fs_admin_password") or "",
         "default_zone": p.get("default_zone") or "",
         "owner": p.get("owner") or "",
+        "teams_webhook_url": p.get("teams_webhook_url") or cfg.settings.teams_webhook_url or "",
     }

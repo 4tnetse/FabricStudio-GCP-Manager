@@ -140,8 +140,8 @@ async def run_triggered_job(schedule: dict, run_id: str, triggered_by: str = "sc
     except Exception:
         pass  # If Firestore is unavailable, there is not much we can do
 
-    # Teams notification (best-effort)
-    webhook_url = original_settings.teams_webhook_url
+    # Teams notification (best-effort) — prefer snapshot value (set by local backend)
+    webhook_url = snapshot.get("teams_webhook_url") or original_settings.teams_webhook_url
     if webhook_url:
         from services.teams_notify import notify_teams
         await notify_teams(
