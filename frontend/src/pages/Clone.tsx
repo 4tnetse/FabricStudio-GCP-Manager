@@ -134,6 +134,19 @@ export default function Clone() {
     ? `${fullBaseName}-${pad(rangeFrom)}${count > 1 ? ` to ${fullBaseName}-${pad(rangeTo)}` : ''}`
     : null
 
+  function resetForm() {
+    setSource('')
+    setSourceZone('')
+    setDestZone('')
+    setCloneName('')
+    setSourcePrefix('')
+    setPurpose('')
+    setRangeFrom(1)
+    setRangeTo(5)
+    setOverwrite(false)
+    setDnsWarning(null)
+  }
+
   async function startClone() {
     setDnsWarning(null)
     setCloning(true)
@@ -210,7 +223,7 @@ export default function Clone() {
             {cloneJob.phase === 'failed' && 'Clone failed — check output for details.'}
           </span>
           {cloneJob.phase !== 'running' && (
-            <button onClick={dismissCloneJob} className="text-slate-500 hover:text-slate-300 shrink-0 ml-auto">
+            <button onClick={() => { dismissCloneJob(); setCloneStreamUrl(null); resetForm() }} className="text-slate-500 hover:text-slate-300 shrink-0 ml-auto">
               <X className="w-3.5 h-3.5" />
             </button>
           )}

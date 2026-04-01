@@ -1,4 +1,4 @@
-# Workflow
+# Workshop Workflow
 
 This page describes the recommended end-to-end workflow for setting up and delivering a Fabric Studio workshop on GCP.
 
@@ -6,9 +6,11 @@ This page describes the recommended end-to-end workflow for setting up and deliv
 
 Complete the [first-time configuration](configuration.md) in Settings before doing anything else:
 
-- Upload your GCP service account key  
-- Set your SSH public key, default zone, and admin password  
+- Upload your GCP service account key
+- Set your SSH public key, default zone, and admin password
 - Configure DNS settings if you want automatic DNS records
+
+To continue you should already have a Fabric Studio GCP image uploaded and a running Fabric Studio license server.
 
 ## 2. Build a workshop golden image
 
@@ -19,20 +21,23 @@ You can reuse it fo several workshops or create a new golden image for each work
 - Select a **zone**, **machine type**, and **image**.  
 - Click **Build** and watch the live output.
 
-## 3. Configure the golden image
+The build process will automatically add these labels: `delete=no` and `purpose=golden_image`.
+
+## 3. Configure the workshop golden image
 
 Go to **Configure** and select the `000` instance.
 
 - Set the admin password (if different from the default in Settings).  
 - Enter a **registration token** to register Fabric Studio.  
 - Add additional SSH public keys if needed.  
-- Set the **license server internal IP address**.  
-- Set a guest password, and Fabric Workspace templates.  
-- Click **Configure** and wait for the output to complete.
+- Select the **license server**.
+- Set a **guest password**.
+- Set a **Hostname**. Note: if you want to use `{count}`, you need to set the hostname after cloning.
+- Configure the **Fabric Workspace(s)**.
 
 ## 4. Clone to workshop attendee instances
 
-Once the golden image is configured, go to **Clone**:
+Once the workshop golden image is configured, go to **Clone**:
 
 - Select the `000` instance as source.  
 - Set the **Workshop name**.  
@@ -45,7 +50,7 @@ Once the golden image is configured, go to **Clone**:
 
 Go to **Instances** to verify all cloned instances are running. Use the status summary cards at the top to see totals at a glance.
 
-## 6. Configure workshop instances
+## 6. Set the hostnames (optional)
 
 Go to **Configure** and select all workshop instances:
 
@@ -56,11 +61,18 @@ Go to **Configure** and select all workshop instances:
 
 Use the **SSH** page to execute commands across all instances simultaneously:
 
-- Select instances by name, range, or load all public IPs.  
+- Select instances by name or range.
 - Enter a command manually or select a saved **configuration file**.  
 - Choose **parallel** (all at once) or **sequential** (one at a time) execution mode.
 
 ## 8. Clean up after the workshop
+
+When you want to reuse the instances (e.g. same workshop day, different labs):
+
+Use **Configure** to:
+
+- Reset the **guest password**.
+- Reconfigure the **Fabric Workspace(s)**.
 
 When the workshop is done:
 

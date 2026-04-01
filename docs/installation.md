@@ -9,6 +9,7 @@ Two installation methods are available: **Docker** (recommended, no dependencies
 ### Requirements
 
 - [Docker](https://docs.docker.com/get-docker/) with Docker Compose
+- One or more GCP service account JSON keys with sufficient permissions (Compute Engine, Cloud DNS, Resource Manager, Cloud Storage). Billing Account Viewer is optional — required for the Costs page.
 
 ### Setup
 
@@ -18,6 +19,7 @@ Download the `docker-compose.yml` file from the repository, or create one with t
 services:
   app:
     image: ghcr.io/4tnetse/fabricstudio-gcp-manager:latest
+    platform: linux/amd64
     ports:
       - "8080:8080"
     volumes:
@@ -61,9 +63,7 @@ docker compose pull && docker compose up -d
 
 - Python 3.11 or higher
 - Node.js 18 or higher
-- One or more GCP service account JSON keys with sufficient permissions (Compute Engine, Cloud DNS, Resource Manager)
-
-**Scheduling (optional):** Remote scheduling requires additional GCP services. See [Scheduling setup](configuration.md#scheduling-setup-optional) in the Configuration guide.
+- One or more GCP service account JSON keys with sufficient permissions (Compute Engine, Cloud DNS, Resource Manager, Cloud Storage). Billing Account Viewer is optional — required for the Costs page.
 
 ### Setup
 

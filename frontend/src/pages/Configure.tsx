@@ -232,6 +232,26 @@ export default function Configure() {
     toast.success(`Selected ${names.length} instance${names.length !== 1 ? 's' : ''} from range`)
   }
 
+  function resetForm() {
+    setSelectedNames(new Set())
+    setSearch('')
+    setPickerOpen(false)
+    setRangeOpen(false)
+    setRangeFrom('')
+    setRangeTo('')
+    setOldAdminPassword('')
+    setAdminPassword('')
+    setGuestPassword('')
+    setHostnameTemplate('')
+    setSshKeys([])
+    setDeleteExistingKeys(false)
+    setTrialKey('')
+    setLicenseServerInstance('')
+    setWorkspaceSource('')
+    setWorkspaceInstallIndex(-1)
+    setDeleteAllWorkspaces(false)
+  }
+
   function addSshKey() {
     setSshKeys((prev) => [...prev, ''])
   }
@@ -312,7 +332,7 @@ export default function Configure() {
             {configureJob.phase === 'failed' && 'Configure failed — check output for details.'}
           </span>
           {configureJob.phase !== 'running' && (
-            <button onClick={dismissConfigureJob} className="text-slate-500 hover:text-slate-300 shrink-0 ml-auto">
+            <button onClick={() => { dismissConfigureJob(); setConfigureStreamUrl(null); resetForm() }} className="text-slate-500 hover:text-slate-300 shrink-0 ml-auto">
               <X className="w-3.5 h-3.5" />
             </button>
           )}

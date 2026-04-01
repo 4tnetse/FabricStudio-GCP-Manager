@@ -49,6 +49,18 @@ export default function Build() {
     }
   }, []) // Only on mount — snapshot is stable while job is alive
 
+  function handleDismissAndReset() {
+    handleDismiss()
+    setPrepend(settings?.initials ?? '')
+    setProduct('')
+    setZone(settings?.default_zone ?? '')
+    setMachineType('')
+    setImage('')
+    setDiskSizeGb('200')
+    setGroup(settings?.group ?? '')
+    setLabels([])
+  }
+
   const instanceName = `${settings?.default_type || '<prefix>'}-${prepend || '<initials>'}-${product || '<workshop>'}-000`
   const isActive = buildJob?.phase === 'building'
 
@@ -133,7 +145,7 @@ export default function Build() {
             {buildJob.phase === 'failed' && `Build of '${buildJob.instanceName}' failed.`}
           </span>
           {!isActive && (
-            <button onClick={handleDismiss} className="text-slate-500 hover:text-slate-300 shrink-0 ml-auto">
+            <button onClick={handleDismissAndReset} className="text-slate-500 hover:text-slate-300 shrink-0 ml-auto">
               <X className="w-3.5 h-3.5" />
             </button>
           )}

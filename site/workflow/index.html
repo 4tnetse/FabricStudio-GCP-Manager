@@ -25,7 +25,7 @@
     
     
       
-        <title>Workflow - FS GCP Manager Doc</title>
+        <title>Workshop Workflow - FS GCP Manager Doc</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#workflow" class="md-skip">
+        <a href="#workshop-workflow" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Workflow
+              Workshop Workflow
             
           </span>
         </div>
@@ -381,7 +381,7 @@
   <span class="md-ellipsis">
     
   
-    Workflow
+    Workshop Workflow
   
 
     
@@ -399,7 +399,7 @@
   <span class="md-ellipsis">
     
   
-    Workflow
+    Workshop Workflow
   
 
     
@@ -447,10 +447,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-configure-the-golden-image" class="md-nav__link">
+  <a href="#3-configure-the-workshop-golden-image" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Configure the golden image
+        3. Configure the workshop golden image
       
     </span>
   </a>
@@ -480,10 +480,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#6-configure-workshop-instances" class="md-nav__link">
+  <a href="#6-set-the-hostnames-optional" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6. Configure workshop instances
+        6. Set the hostnames (optional)
       
     </span>
   </a>
@@ -1079,10 +1079,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-configure-the-golden-image" class="md-nav__link">
+  <a href="#3-configure-the-workshop-golden-image" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Configure the golden image
+        3. Configure the workshop golden image
       
     </span>
   </a>
@@ -1112,10 +1112,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#6-configure-workshop-instances" class="md-nav__link">
+  <a href="#6-set-the-hostnames-optional" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6. Configure workshop instances
+        6. Set the hostnames (optional)
       
     </span>
   </a>
@@ -1164,15 +1164,16 @@
   
 
 
-<h1 id="workflow">Workflow</h1>
+<h1 id="workshop-workflow">Workshop Workflow</h1>
 <p>This page describes the recommended end-to-end workflow for setting up and delivering a Fabric Studio workshop on GCP.</p>
 <h2 id="1-initial-setup">1. Initial setup</h2>
 <p>Complete the <a href="../configuration/">first-time configuration</a> in Settings before doing anything else:</p>
 <ul>
-<li>Upload your GCP service account key  </li>
-<li>Set your SSH public key, default zone, and admin password  </li>
+<li>Upload your GCP service account key</li>
+<li>Set your SSH public key, default zone, and admin password</li>
 <li>Configure DNS settings if you want automatic DNS records</li>
 </ul>
+<p>To continue you should already have a Fabric Studio GCP image uploaded and a running Fabric Studio license server.</p>
 <h2 id="2-build-a-workshop-golden-image">2. Build a workshop golden image</h2>
 <p>Go to <strong>Build</strong> and create the <code>000</code> instance — this is your golden workshop image.<br />
 You can reuse it fo several workshops or create a new golden image for each workshop.</p>
@@ -1181,18 +1182,20 @@ You can reuse it fo several workshops or create a new golden image for each work
 <li>Select a <strong>zone</strong>, <strong>machine type</strong>, and <strong>image</strong>.  </li>
 <li>Click <strong>Build</strong> and watch the live output.</li>
 </ul>
-<h2 id="3-configure-the-golden-image">3. Configure the golden image</h2>
+<p>The build process will automatically add these labels: <code>delete=no</code> and <code>purpose=golden_image</code>.</p>
+<h2 id="3-configure-the-workshop-golden-image">3. Configure the workshop golden image</h2>
 <p>Go to <strong>Configure</strong> and select the <code>000</code> instance.</p>
 <ul>
 <li>Set the admin password (if different from the default in Settings).  </li>
 <li>Enter a <strong>registration token</strong> to register Fabric Studio.  </li>
 <li>Add additional SSH public keys if needed.  </li>
-<li>Set the <strong>license server internal IP address</strong>.  </li>
-<li>Set a guest password, and Fabric Workspace templates.  </li>
-<li>Click <strong>Configure</strong> and wait for the output to complete.</li>
+<li>Select the <strong>license server</strong>.</li>
+<li>Set a <strong>guest password</strong>.</li>
+<li>Set a <strong>Hostname</strong>. Note: if you want to use <code>{count}</code>, you need to set the hostname after cloning.</li>
+<li>Configure the <strong>Fabric Workspace(s)</strong>.</li>
 </ul>
 <h2 id="4-clone-to-workshop-attendee-instances">4. Clone to workshop attendee instances</h2>
-<p>Once the golden image is configured, go to <strong>Clone</strong>:</p>
+<p>Once the workshop golden image is configured, go to <strong>Clone</strong>:</p>
 <ul>
 <li>Select the <code>000</code> instance as source.  </li>
 <li>Set the <strong>Workshop name</strong>.  </li>
@@ -1203,7 +1206,7 @@ You can reuse it fo several workshops or create a new golden image for each work
 </ul>
 <h2 id="5-verify-instances">5. Verify instances</h2>
 <p>Go to <strong>Instances</strong> to verify all cloned instances are running. Use the status summary cards at the top to see totals at a glance.</p>
-<h2 id="6-configure-workshop-instances">6. Configure workshop instances</h2>
+<h2 id="6-set-the-hostnames-optional">6. Set the hostnames (optional)</h2>
 <p>Go to <strong>Configure</strong> and select all workshop instances:</p>
 <ul>
 <li>Set the <strong>Hostname</strong>. e.g. <code>Attendee - {count}</code>  </li>
@@ -1212,11 +1215,17 @@ You can reuse it fo several workshops or create a new golden image for each work
 <h2 id="7-run-commands-via-ssh-optional">7. Run commands via SSH (optional)</h2>
 <p>Use the <strong>SSH</strong> page to execute commands across all instances simultaneously:</p>
 <ul>
-<li>Select instances by name, range, or load all public IPs.  </li>
+<li>Select instances by name or range.</li>
 <li>Enter a command manually or select a saved <strong>configuration file</strong>.  </li>
 <li>Choose <strong>parallel</strong> (all at once) or <strong>sequential</strong> (one at a time) execution mode.</li>
 </ul>
 <h2 id="8-clean-up-after-the-workshop">8. Clean up after the workshop</h2>
+<p>When you want to reuse the instances (e.g. same workshop day, different labs):</p>
+<p>Use <strong>Configure</strong> to:</p>
+<ul>
+<li>Reset the <strong>guest password</strong>.</li>
+<li>Reconfigure the <strong>Fabric Workspace(s)</strong>.</li>
+</ul>
 <p>When the workshop is done:</p>
 <ul>
 <li>Use <strong>Instances → Bulk Stop</strong> to stop all instances and avoid unnecessary costs.  </li>

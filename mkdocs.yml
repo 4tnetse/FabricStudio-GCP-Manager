@@ -29,7 +29,7 @@ nav:
   - Upgrade: upgrade.md
   - Changelog: changelog.md
   - Configuration: configuration.md
-  - Workflow: workflow.md
+  - Workshop Workflow: workflow.md
   - Screens:
       - Instances: screens/instances.md
       - Build: screens/build.md

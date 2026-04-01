@@ -32,8 +32,19 @@ start.bat
 
 ---
 
-## Cloud Run (remote scheduling backend)
+## Version indicator
 
-When your local app is upgraded, the Cloud Run backend should be updated to match. The version sync status is visible in the sidebar (green dot = in sync, orange dot = out of sync) and in the **About** popup (click the version number at the bottom of the sidebar).
+The version number at the bottom of the sidebar is followed by two coloured dots:
 
-To upgrade Cloud Run, click the version number to open the About popup. If the remote version is out of sync, an **↑ Upgrade** button appears next to the remote version. Click it — the app updates the Cloud Run service to the current local version automatically, no manual steps needed.
+- **Local dot (left)** — indicates whether a newer version of Fabric Studio GCP Manager is available. Green means you are up to date; blue means the version is still being checked; orange means a newer version is available.
+- **Remote dot (right)** — only shown when remote scheduling is configured. Green means the scheduling backend is running the same version as the local app; orange means they are out of sync.
+
+Click the version number to open the **About** popup for details.
+
+---
+
+## Scheduling backend
+
+When your local app is upgraded, the remote scheduling backend should be updated to match. The version sync status is visible in the sidebar (green dot = in sync, orange dot = out of sync) and in the **About** popup (click the version number at the bottom of the sidebar).
+
+To upgrade the remote backend, click the version number to open the About popup. If the remote version is out of sync, an **↑ Upgrade** button appears next to the remote version. Click it — the app updates the remote scheduling backend to the current local version automatically, no manual steps needed.

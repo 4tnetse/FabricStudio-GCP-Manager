@@ -552,7 +552,7 @@
   <span class="md-ellipsis">
     
   
-    Workflow
+    Workshop Workflow
   
 
     
@@ -1261,12 +1261,14 @@
 <h3 id="requirements">Requirements</h3>
 <ul>
 <li><a href="https://docs.docker.com/get-docker/">Docker</a> with Docker Compose</li>
+<li>One or more GCP service account JSON keys with sufficient permissions (Compute Engine, Cloud DNS, Resource Manager, Cloud Storage). Billing Account Viewer is optional — required for the Costs page.</li>
 </ul>
 <h3 id="setup">Setup</h3>
 <p>Download the <code>docker-compose.yml</code> file from the repository, or create one with the following content:</p>
 <pre><code class="language-yaml">services:
   app:
     image: ghcr.io/4tnetse/fabricstudio-gcp-manager:latest
+    platform: linux/amd64
     ports:
       - &quot;8080:8080&quot;
     volumes:
@@ -1296,9 +1298,8 @@ volumes:
 <ul>
 <li>Python 3.11 or higher</li>
 <li>Node.js 18 or higher</li>
-<li>One or more GCP service account JSON keys with sufficient permissions (Compute Engine, Cloud DNS, Resource Manager)</li>
+<li>One or more GCP service account JSON keys with sufficient permissions (Compute Engine, Cloud DNS, Resource Manager, Cloud Storage). Billing Account Viewer is optional — required for the Costs page.</li>
 </ul>
-<p><strong>Scheduling (optional):</strong> Remote scheduling requires additional GCP services. See <a href="../configuration/#scheduling-setup-optional">Scheduling setup</a> in the Configuration guide.</p>
 <h3 id="setup_1">Setup</h3>
 <p>Clone the repository and run the setup script once:</p>
 <pre><code class="language-bash">git clone https://github.com/4tnetse/FabricStudio-GCP-Manager.git

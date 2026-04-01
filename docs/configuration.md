@@ -5,51 +5,9 @@
 ### 1. Create a new VPC
 
 Create a new project in GCP and create a new default VPC network at [GCP VPC networks](https://console.cloud.google.com/networking/networks).  
-The new VPC network should be named default, Subnet creation mode set to automatic and the Dynamic routing mode set to global.
+The new VPC network should be named `default`, Subnet creation mode set to automatic and the Dynamic routing mode set to global.
 
-### 2. Configure the VPC firewall
-
-Create two new firewall rules at [GCP Network Security Firewall Policies](https://console.cloud.google.com/net-security/firewall-manager/firewall-policies).  
-These two rules will be used to control access to you Fabric Studio instances.
-
-**Rule 1**
-Name: workshop-source-networks  
-Network: default  
-Priority: 1001   
-Direction: Ingress  
-Action: Allow  
-Taget tag: workshop-source-networks  
-Source IPv4 range: your current public IP address  
-TCP ports: 22, 80, 443, 8000, 8080, 8888, 10000-20000, 20808, 20909, 22222  
-UDP ports: 53, 514, 1812, 1813  
-Enforcement: enabled  
-
-**Rule 2**
-Name: workshop-source-any  
-Network: default  
-Priority: 1000  
-Direction: Ingress  
-Action: Allow  
-Taget tag: workshop-source-any  
-Source IPv4 range: 0.0.0.0/0  
-TCP ports: 22, 80, 443, 8000, 8080, 8888, 10000-20000, 20808, 20909, 22222  
-UDP ports: 53, 514, 1812, 1813  
-Enforcement: disabled  
-
-### 3. Import the Fabric Studio image
-
-Use the **Images** page in FS GCP Manager to import the Fabric Studio disk image.
-
-Obtain the Fabric Studio image for GCP — a raw disk compressed as a `.tar.gz`. If you have a `.vmdk` or `.qcow2`, convert it first:
-
-```bash
-qemu-img convert -f vmdk -O raw fabricstudio.vmdk disk.raw
-tar -czf fabric-studio.tar.gz disk.raw
-```
-
-Then go to **Images → Import Image**, upload the `.tar.gz`, and give it a name. The image will be created directly in GCP. Disk resizing and initial password setup happen automatically when you build an instance from it.
-
-### 4. Enable GCP DNS
+### 2. Enable GCP DNS (optional)
 
 You will need GCP Cloud DNS to auto generate DNS A records for your Fabric Studio instances.
 
@@ -68,7 +26,7 @@ On first launch, go to **Settings** and configure at least the following:
 
 Upload one or more GCP service account JSON key files. At least one key is required before any GCP operations will work.
 
-To generate a key: **GCP Console → IAM & Admin → Service Accounts → select account → Keys tab → Add Key → JSON**
+To generate a key: **[GCP Console → IAM & Admin → Service Accounts](https://console.cloud.google.com/iam-admin/serviceaccounts) → select account → Keys tab → Add Key → JSON**
 
 Keys can be renamed and deleted from Settings. The active project is selected per-key in the sidebar.
 
@@ -78,18 +36,18 @@ After uploading a key, select the active project from the sidebar project select
 
 ### 3. SSH public key
 
-Paste your SSH public key to enable SSH command execution on instances.
+Paste your SSH public key to enable SSH command execution on instances via the [SSH](screens/ssh.md) page.
 
 ### 4. Default admin password
 
 Enter the strong admin password you configured in the GCP image.  
-This pre-fills the current admin password field on the Configure page and is used for Fabric Studio API access.
+This pre-fills the current admin password field on the Configure page and is used for Fabric Studio API access. The workshop students will try to login with admin so it is highly recommended to choose a strong password.
 
 ### 5. Default zone
 
-Set your preferred GCP zone (e.g. `europe-west4-a`). Used as default when building or cloning instances.
+Set your preferred GCP zone (e.g. `europe-west4-a`). Used as default when building or cloning instances. Note that a different zone can always be set when creating instances.
 
-### 6. DNS settings
+### 6. DNS settings (optional)
 
 Required for automatic DNS record creation during cloning:
 
@@ -102,7 +60,7 @@ Required for automatic DNS record creation during cloning:
 
 ## Scheduling setup (optional)
 
-Scheduling allows Clone and Configure jobs to run automatically on a cron schedule. It uses GCP Cloud Scheduler to trigger jobs and a Cloud Run service (`fabricstudio-scheduler`) to execute them.
+Scheduling allows Clone, Configure and SSH jobs to run automatically on a cron schedule. It uses GCP Cloud Scheduler to trigger jobs and a Cloud Run service (`fabricstudio-scheduler`) to execute them. The Cloud Run service will spin up a Fabric Studio GCP Manager instance in remote backend mode. This instance executes your configured job and will immediately be shut down when finished. This will keep your GCP costs to a minimum.
 
 ### 1. Grant IAM roles to the service account
 
@@ -110,19 +68,21 @@ The service account needs the following roles to deploy and use scheduling. Gran
 
 | Role | Purpose |
 |---|---|
-| `roles/datastore.user` | Read/write Firestore schedules and run logs |
+| `roles/datastore.owner` | Create and read/write the Firestore database for schedules and run logs |
 | `roles/cloudscheduler.admin` | Create and manage Cloud Scheduler jobs |
 | `roles/run.admin` | Deploy and manage the Cloud Run scheduler service |
 | `roles/run.invoker` | Invoke the Cloud Run scheduling backend |
 | `roles/run.viewer` | Auto-detect the Cloud Run service URL and region |
-| `roles/iam.serviceAccountTokenCreator` | Generate OIDC tokens so Cloud Scheduler can authenticate to Cloud Run |
+| `roles/iam.serviceAccountUser` | Deploy Cloud Run with the default compute service account (`actAs` permission) |
 | `roles/cloudbuild.builds.editor` | Run Cloud Build to copy the container image to your project |
+| `roles/serviceusage.serviceUsageAdmin` | Enable required GCP APIs (Cloud Run, Firestore, Cloud Scheduler, Cloud Build) |
+| `roles/compute.securityAdmin` | Create the `fs-gcpbackend-to-instances` firewall rule |
 
 ```bash
 SA="<your-service-account>@<project>.iam.gserviceaccount.com"
 PROJECT="<your-project-id>"
 
-for ROLE in roles/datastore.user roles/cloudscheduler.admin roles/run.admin roles/run.invoker roles/run.viewer roles/iam.serviceAccountTokenCreator roles/cloudbuild.builds.editor; do
+for ROLE in roles/datastore.owner roles/cloudscheduler.admin roles/run.admin roles/run.invoker roles/run.viewer roles/iam.serviceAccountUser roles/cloudbuild.builds.editor roles/serviceusage.serviceUsageAdmin roles/compute.securityAdmin; do
   gcloud projects add-iam-policy-binding $PROJECT \
     --member="serviceAccount:$SA" \
     --role="$ROLE"
@@ -133,7 +93,7 @@ done
 
 Open **Settings → Scheduling** and click **Deploy to GCP**. The deploy panel will:
 
-1. Check that all required GCP permissions are in place and show which are missing.
+1. Check that all required GCP permissions are in place and show which are missing. Also checks that the Firestore database (if it already exists) is in Native mode — Datastore mode is not supported.
 2. Let you select the target **region** (defaulting to your default zone's region) and **VPC subnet**.
 3. On clicking **Start Deploy**, the app will automatically:
    - Enable required GCP APIs (Cloud Run, Firestore, Cloud Scheduler, Cloud Build)
@@ -145,7 +105,7 @@ Open **Settings → Scheduling** and click **Deploy to GCP**. The deploy panel w
 
 The deploy log streams live in the panel. Keep it open to see progress and any warnings.
 
-Once deployed, use the **Schedule** button on the Clone or Configure pages to create scheduled jobs, and monitor them from the [Schedules](screens/schedules.md) page.
+Once deployed, use the **Schedule** button on the Clone, Configure, or SSH pages to create scheduled jobs, and monitor them from the [Schedules](screens/schedules.md) page.
 
 To remove Cloud Run and all associated resources, click **Undeploy** in the same widget. This deletes the Cloud Run service, Cloud Scheduler jobs, firewall rule, container images, and all Firestore data for the project.
 
@@ -248,59 +208,26 @@ In **Settings → Scheduling**:
 1. Toggle **Enable remote scheduling** on.
 2. Click **Detect Cloud Run** to auto-fill the region and backend URL, or enter them manually.
 3. Verify **GCP Firestore Project ID** (defaults to the active project).
-4. Click **Save Scheduling**.
+4. Click **Save settings**.
 
 ---
 
+## Import the Fabric Studio GCP image
+
+Obtain a Fabric Studio GCP image and upload it via the [Images](screens/images.md) page. The GCP image must be a `disk.raw` file packaged inside a `.tar.gz` archive — other formats will not work.
+
 ## Create a Fabric Studio License Server
 
-All Fabric Studio instances will connect to this license server to obtain licenses needed in your labs.
+To create a license server, build an instance using the [Build](screens/build.md) page and then configure it using the [Configure](screens/configure.md) page.
 
-### 1. Build the instance
+- Enter the **registration token** `secret` to automatically register the Fabric Studio instance.
+- Select **This will be a new license server**. This will convert the instance into a license server as part of the configure operation, and configure a firewall rule allowing traffic from your instances to your license server.
+- Set the **hostname** to `License Server`.
 
-In the Build page, fill out the fields, set **Disk size** to `200`, and set the group to `production`.
+Note that the conversion will also set the following labels:
 
-Rename the instance to srv-<your initials>-license-001.
+- `group=production`
+- `delete=no` (this will prevent accidental deletion)
+- `purpose=licenseserver`
 
-Edit the Labels and set purpose to licenseserver.
-
-### 2. Configure the instance
-
-In the Configure page, select the License server.
-
-Enter the Fabric Studio Registration token:secret.
-
-Set the hostame to License Server.
-
-### 3. Enable the License Service
-
-Login to your license server.
-
-Go to System - Settings - Licensing
-
-Enable the License Service.
-
-### 4. Set a static internal IP address in GCP
-
-Goto [GCP VPC network IP addresses](https://console.cloud.google.com/networking/addresses) and choose Reserve internal static IP address.
-
-Give it a name, e.g. license-server-static-ip
-
-Set the network to default and the subnetwork to the same range your current license server internal IP address belongs to.
-
-Set Static IP address to Let me choose and enter the IP of the license server in the ustom IP address field.
-
-### 5. Add a firewall rule in GCP
-
-Add a new firewall rule in [GCP Network Security Firewall policies](https://console.cloud.google.com/net-security/firewall-manager/firewall-policies).
-
-Name: fabric-studio-license-server  
-Network: default  
-Priority: 900  
-Direction: Ingress  
-Action: Allow  
-Taget tag: workshop-source-networks  
-Source IPv4 range: 10.0.0.0/8  
-Destination IPv4 range: <License Server internal IP>/32  
-Protocols and ports: All  
-Enforcement: enabled
+The license server does not need a public DNS name, so when the instance has been converted, stop it and rename it to `srv-...`. Instances with a name that starts with `srv` will not get a DNS A record. After renaming is done, start the instance again.

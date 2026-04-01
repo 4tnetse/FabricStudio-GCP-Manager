@@ -1,7 +1,8 @@
-2.30
+2.31
 
 # Version history
 # ---------------
+# 2.31   Cloud Run deploy/undeploy as background jobs with nav spinner and persistent log; dismiss on Build/Clone/Configure/SSH clears output and resets form fields; SSH returns 400 immediately if no key configured; documentation updates (Workshop Workflow, Configuration, Upgrade)
 # 2.30   Documentation updates: Schedules (date/time picker, SSH job type, Preview/Reschedule actions, run history details), Images (inline rename with background job, inline family edit, delete confirmation), Costs (warning vs error wording), Settings (first-key auto-select behaviour, Scheduling field corrections)
 # 2.29   Teams notifications via Microsoft Teams Workflow webhook (send message on schedule complete/fail); Settings layout: Preferences + Scheduling left, Service Account Keys + Notifications + Appearance right
 # 2.28   Images: delete confirm dialog (in-app modal replaces browser confirm); rename runs as background job — returns job_id immediately, streams progress in banner; multiple concurrent renames supported with independent banners; rename state in ImportContext persists across navigation

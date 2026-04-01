@@ -167,6 +167,19 @@ export default function SSH() {
     return dedup([...selectedInternalIps, ...manualInternal])
   }, [selectedInternalIps, manualAddresses])
 
+  function resetForm() {
+    setManualAddresses('')
+    setCommand('')
+    setMode('parallel')
+    setPickerOpen(false)
+    setSearch('')
+    setSelectedNames(new Set())
+    setRangeOpen(false)
+    setRangeFrom('')
+    setRangeTo('')
+    setSelectedConfig('')
+  }
+
   function toggleInstance(name: string) {
     setSelectedNames((prev) => {
       const next = new Set(prev)
@@ -300,7 +313,7 @@ export default function SSH() {
             {sshJob.phase === 'failed' && 'SSH command failed — check output for details.'}
           </span>
           {sshJob.phase !== 'running' && (
-            <button onClick={dismissSshJob} className="text-slate-500 hover:text-slate-300 shrink-0 ml-auto">
+            <button onClick={() => { dismissSshJob(); setSshStreamUrl(null); resetForm() }} className="text-slate-500 hover:text-slate-300 shrink-0 ml-auto">
               <X className="w-3.5 h-3.5" />
             </button>
           )}

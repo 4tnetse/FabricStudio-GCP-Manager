@@ -1,5 +1,47 @@
 # Changelog
 
+## 2.31
+Cloud Run deploy and undeploy run as background jobs — navigating away during deploy/undeploy keeps the stream alive with a spinner on the Settings nav link; returning to Settings shows the live log. Dismissing a completed job on Build, Clone, Configure, and SSH pages now clears the log output and resets all form fields. SSH execute and test return an immediate error if no SSH key is configured in Settings. Documentation updates: Workshop Workflow rewrite, Configuration page (Import image section, License Server setup steps, Manual deploy corrections), Upgrade page (version indicator dots explained).
+
+## 2.30
+Documentation updates: Schedules (date/time picker, SSH job type, Preview/Reschedule actions, run history details), Images (inline rename with background job, inline family edit, delete confirmation), Costs, Settings (first-key auto-select behaviour, Scheduling field corrections).
+
+## 2.29
+Teams notifications via Microsoft Teams Workflow webhook — a notification is sent to a Teams channel when a scheduled job completes or fails. Settings layout reorganised: Preferences and Scheduling on the left, Service Account Keys, Notifications, and Appearance on the right.
+
+## 2.28
+Images: delete now uses an in-app confirmation dialog; rename runs as a background job with a live status banner; multiple concurrent renames supported with independent banners; rename state persists across navigation.
+
+## 2.27
+Configure, Clone, and SSH pages now show a status banner (running / done / failed) matching the Build page. Firewall: Source IP Allowlist creates the `workshop-source-networks` rule on first add and deletes it on last remove; Global Access creates/deletes the `workshop-source-any` rule; source tags column added to the All Rules table; rules sorted by priority ascending. Version check: uses ghcr.io image availability instead of the GitHub releases API.
+
+## 2.26
+Configure: added "This will be a new license server" option that converts an existing instance into a license server in 7 steps (uninstall Fabric runtime, delete fabrics, clear remote license server, enable built-in license service, update GCP labels, swap firewall tags, create license-server firewall rule). Fix hostname template `NameError` in bulk configure.
+
+## 2.25
+Version indicator redesign: two independent sidebar dots (local and remote), each coloured blue/green/orange based on sync and update status. Upgrade button now gated on GitHub release confirmation with polling. Docker build updated to Node.js 22; CI updated to Node.js 24. Doc links added to all page headers.
+
+## 2.24
+Upgrade button gated on GitHub release availability; polls every 5 seconds while waiting and shows "No new version available" until confirmed. GitHub version cache reduced from 1 hour to 60 seconds.
+
+## 2.23
+Version check: semantic comparison so that local > remote correctly suppresses the upgrade button. About popup polls `/version` every 10 seconds and stops polling during an active upgrade.
+
+## 2.22
+Near real-time schedule run log streaming: backend flushes log lines to Firestore every 2 seconds; frontend polls active runs every 2 seconds, auto-expands the running run, and auto-scrolls log output.
+
+## 2.21
+Retry with backoff on transient SSL/connection errors when creating instances from machine images — fixes parallel clone failures on cold-started Cloud Run.
+
+## 2.20
+Settings snapshot (admin password, DNS, SSH key, etc.) is pushed to the remote backend automatically after a Cloud Run upgrade.
+
+## 2.19
+Configure, Clone, and SSH jobs now stream output in the background with a nav spinner. Configure license server field is now an instance dropdown. Input validation added for registration tokens, passwords, and SSH keys. Schedules: human-readable cron preview added; legacy `template_id` field removed; date picker defaults to the current date and time.
+
+## 2.18
+Build form persists its values when navigating away during an active build and restores them on return. Disk extend API call removed — the OS now auto-expands LVM at first boot.
+
 ## 2.17
 Fix all per-project settings fields (DNS, admin password, SSH key, owner, default_type, Cloud Run region, backend URL) being read from empty top-level `cfg.settings` instead of `get_project_config()` — broken since the 2.15 settings migration; affected DNS record creation, build labels, configure/shutdown password, SSH key injection, Cloud Scheduler region and backend URL. Build page: disk size (GB) field added, defaulting to 200, validated between 10 and 65536.
 

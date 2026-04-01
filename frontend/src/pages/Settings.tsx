@@ -4,7 +4,8 @@ import { toast } from 'sonner'
 import { Upload, Loader2, Trash2, Key, Settings2, Palette, Pencil, CalendarClock, Search, CheckCircle2, XCircle, AlertTriangle, Rocket, ChevronDown, ChevronUp, Bell } from 'lucide-react'
 import { DocLink } from '@/components/DocLink'
 import { useDetectCloudRunUrl } from '@/api/schedules'
-import { useCloudRunPermissions, useCloudRunSubnets, useStartDeploy, useStartUndeploy, useDeployStream } from '@/api/cloudrun'
+import { useCloudRunPermissions, useCloudRunSubnets, useStartDeploy, useStartUndeploy } from '@/api/cloudrun'
+import { useOps } from '@/context/OpsContext'
 import { useSettings, useUpdateSettings, useResetSettings, useTestTeamsWebhook } from '@/api/settings'
 import { useKeys, useUploadKey, useDeleteKey, useRenameKey } from '@/api/keys'
 import { useZones, useZoneLocations } from '@/api/instances'
@@ -90,6 +91,7 @@ export default function SettingsPage() {
   const startDeploy = useStartDeploy()
   const startUndeploy = useStartUndeploy()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const undeployHandledRef = useRef<string | null>(null)
 
   const [form, setForm] = useState<Partial<Settings>>({})
   const [confirmReset, setConfirmReset] = useState(false)
@@ -103,11 +105,15 @@ export default function SettingsPage() {
   const [showDeployPanel, setShowDeployPanel] = useState(false)
   const [showManualUrl, setShowManualUrl] = useState(false)
   const [selectedSubnet, setSelectedSubnet] = useState('')
-  const [deployStreamUrl, setDeployStreamUrl] = useState<string | null>(null)
 
   // Undeploy state
   const [showUndeployConfirm, setShowUndeployConfirm] = useState(false)
-  const [undeployStreamUrl, setUndeployStreamUrl] = useState<string | null>(null)
+
+  const {
+    deploy, deployStreamUrl, setDeployStreamUrl, startDeployJob,
+    undeploy, undeployStreamUrl, setUndeployStreamUrl, startUndeployJob,
+    deployedUrl, clearDeployedUrl,
+  } = useOps()
 
   const region = (form.cloud_run_region as string) ?? ''
   const isConfigured = !!(form.remote_backend_url as string)
@@ -116,20 +122,24 @@ export default function SettingsPage() {
   const { data: subnets, isLoading: subnetsLoading, isError: subnetsError, error: subnetsErrorObj } = useCloudRunSubnets(region, showDeployPanel)
   const allPermsOk = permsData?.groups.every((g) => g.passed) ?? false
 
-  const { lines: deployLines, isStreaming: deployStreaming, failed: deployFailed, error: deployError } =
-    useDeployStream(deployStreamUrl, (url) => {
-      setField('remote_backend_url', url as Settings['remote_backend_url'])
-      setDetectState('found')
-      toast.success('Cloud Run deployed successfully')
-      queryClient.invalidateQueries({ queryKey: ['settings'] })
-    })
+  const { lines: deployLines, isStreaming: deployStreaming, failed: deployFailed, error: deployError } = deploy
+  const { lines: undeployLines, isStreaming: undeployStreaming, failed: undeployFailed, error: undeployError } = undeploy
 
-  const { lines: undeployLines, isStreaming: undeployStreaming, failed: undeployFailed, error: undeployError } =
-    useDeployStream(undeployStreamUrl, () => {})
+  // When deploy provides a Cloud Run URL, update form and settings
+  useEffect(() => {
+    if (!deployedUrl) return
+    setField('remote_backend_url', deployedUrl as Settings['remote_backend_url'])
+    setDetectState('found')
+    toast.success('Cloud Run deployed successfully')
+    queryClient.invalidateQueries({ queryKey: ['settings'] })
+    clearDeployedUrl()
+  }, [deployedUrl])
 
   // When undeploy finishes successfully, refresh settings + version
   useEffect(() => {
     if (undeployStreamUrl && !undeployStreaming && !undeployFailed && undeployLines.length > 0) {
+      if (undeployHandledRef.current === undeployStreamUrl) return
+      undeployHandledRef.current = undeployStreamUrl
       queryClient.invalidateQueries({ queryKey: ['settings'] })
       queryClient.invalidateQueries({ queryKey: ['version'] })
       toast.success('Cloud Run undeployed successfully')
@@ -232,8 +242,10 @@ export default function SettingsPage() {
       return
     }
     try {
+      clearDeployedUrl()
       const { deploy_id } = await startDeploy.mutateAsync({ region, subnet: selectedSubnet })
       setDeployStreamUrl(`/api/cloud-run/deploy/${deploy_id}/stream`)
+      startDeployJob('Deploying Cloud Run...')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to start deploy')
     }
@@ -244,6 +256,7 @@ export default function SettingsPage() {
     try {
       const { undeploy_id } = await startUndeploy.mutateAsync()
       setUndeployStreamUrl(`/api/cloud-run/undeploy/${undeploy_id}/stream`)
+      startUndeployJob('Undeploying Cloud Run...')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to start undeploy')
     }

@@ -91,6 +91,9 @@ async def execute_ssh(body: SshExecuteRequest, background_tasks: BackgroundTasks
     if not body.addresses:
         raise HTTPException(status_code=400, detail="No addresses provided")
 
+    if not _resolve_private_key_path():
+        raise HTTPException(status_code=400, detail="No SSH key configured — set an SSH public key in Settings first")
+
     if body.config_name:
         commands = _load_commands_from_config(body.config_name)
     else:
@@ -130,6 +133,9 @@ async def test_ssh_connection(body: SshTestRequest, background_tasks: Background
     """Test SSH connectivity — streams banner to the log output."""
     if not body.addresses:
         raise HTTPException(status_code=400, detail="No addresses provided")
+
+    if not _resolve_private_key_path():
+        raise HTTPException(status_code=400, detail="No SSH key configured — set an SSH public key in Settings first")
     job_id = str(uuid.uuid4())
     job_manager.create_job(job_id)
     background_tasks.add_task(_test_job, job_id, body.addresses)

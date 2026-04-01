@@ -1,6 +1,7 @@
 services:
   app:
     image: ghcr.io/4tnetse/fabricstudio-gcp-manager:latest
+    platform: linux/amd64
     ports:
       - "8080:8080"
     volumes:

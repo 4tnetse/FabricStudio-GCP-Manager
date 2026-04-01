@@ -366,10 +366,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#cloud-run-remote-scheduling-backend" class="md-nav__link">
+  <a href="#version-indicator" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Cloud Run (remote scheduling backend)
+        Version indicator
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scheduling-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scheduling backend
       
     </span>
   </a>
@@ -452,7 +463,7 @@
   <span class="md-ellipsis">
     
   
-    Workflow
+    Workshop Workflow
   
 
     
@@ -1024,10 +1035,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#cloud-run-remote-scheduling-backend" class="md-nav__link">
+  <a href="#version-indicator" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Cloud Run (remote scheduling backend)
+        Version indicator
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scheduling-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scheduling backend
       
     </span>
   </a>
@@ -1075,9 +1097,17 @@ setup.bat
 start.bat
 </code></pre>
 <hr />
-<h2 id="cloud-run-remote-scheduling-backend">Cloud Run (remote scheduling backend)</h2>
-<p>When your local app is upgraded, the Cloud Run backend should be updated to match. The version sync status is visible in the sidebar (green dot = in sync, orange dot = out of sync) and in the <strong>About</strong> popup (click the version number at the bottom of the sidebar).</p>
-<p>To upgrade Cloud Run, click the version number to open the About popup. If the remote version is out of sync, an <strong>↑ Upgrade</strong> button appears next to the remote version. Click it — the app updates the Cloud Run service to the current local version automatically, no manual steps needed.</p>
+<h2 id="version-indicator">Version indicator</h2>
+<p>The version number at the bottom of the sidebar is followed by two coloured dots:</p>
+<ul>
+<li><strong>Local dot (left)</strong> — indicates whether a newer version of Fabric Studio GCP Manager is available. Green means you are up to date; blue means the version is still being checked; orange means a newer version is available.</li>
+<li><strong>Remote dot (right)</strong> — only shown when remote scheduling is configured. Green means the scheduling backend is running the same version as the local app; orange means they are out of sync.</li>
+</ul>
+<p>Click the version number to open the <strong>About</strong> popup for details.</p>
+<hr />
+<h2 id="scheduling-backend">Scheduling backend</h2>
+<p>When your local app is upgraded, the remote scheduling backend should be updated to match. The version sync status is visible in the sidebar (green dot = in sync, orange dot = out of sync) and in the <strong>About</strong> popup (click the version number at the bottom of the sidebar).</p>
+<p>To upgrade the remote backend, click the version number to open the About popup. If the remote version is out of sync, an <strong>↑ Upgrade</strong> button appears next to the remote version. Click it — the app updates the remote scheduling backend to the current local version automatically, no manual steps needed.</p>
 
 
 

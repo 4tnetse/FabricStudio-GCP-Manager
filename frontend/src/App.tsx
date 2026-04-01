@@ -106,7 +106,7 @@ function SidebarLink({
 function NavActivityWrapper({ to, children }: { to: string; children: React.ReactNode }) {
   const { buildJob } = useBuild()
   const { importJob } = useImport()
-  const { configure, clone, ssh } = useOps()
+  const { configure, clone, ssh, deploy, undeploy } = useOps()
   const location = useLocation()
   const onThisPage = location.pathname === to || (to !== '/' && location.pathname.startsWith(to))
   const buildActive = to === '/build' && buildJob?.phase === 'building'
@@ -114,7 +114,8 @@ function NavActivityWrapper({ to, children }: { to: string; children: React.Reac
   const configureActive = to === '/configure' && configure.isStreaming
   const cloneActive = to === '/clone' && clone.isStreaming
   const sshActive = to === '/ssh' && ssh.isStreaming
-  const showSpinner = (buildActive || importActive || configureActive || cloneActive || sshActive) && !onThisPage
+  const deployActive = to === '/settings' && (deploy.isStreaming || undeploy.isStreaming)
+  const showSpinner = (buildActive || importActive || configureActive || cloneActive || sshActive || deployActive) && !onThisPage
   if (!showSpinner) return <>{children}</>
   return (
     <div className="relative">
@@ -302,7 +303,9 @@ export default function App() {
 
         {/* Settings + Documentation at bottom */}
         <div className="px-3 py-3 border-b border-slate-800 space-y-0.5" style={isSF ? { borderColor: '#3d3d3d' } : undefined}>
-          <SidebarLink to="/settings" label="Settings" icon={Settings} />
+          <NavActivityWrapper to="/settings">
+            <SidebarLink to="/settings" label="Settings" icon={Settings} />
+          </NavActivityWrapper>
           <a
             href="/manual"
             target="_blank"
