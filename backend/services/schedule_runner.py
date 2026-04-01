@@ -127,11 +127,11 @@ async def run_triggered_job(schedule: dict, run_id: str, triggered_by: str = "sc
         cfg.settings = original_settings
 
     # Final Firestore write — only unflushed lines
+    error_summary = next(
+        (l for l in reversed(log_lines) if l.startswith("ERROR")), None
+    )
     try:
         await fs.append_log_lines(run_id, log_lines[flushed:])
-        error_summary = next(
-            (l for l in reversed(log_lines) if l.startswith("ERROR")), None
-        )
         await fs.mark_run_status(
             run_id,
             status="failed" if failed else "completed",

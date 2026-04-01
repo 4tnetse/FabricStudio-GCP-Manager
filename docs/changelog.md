@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.34
+Fix Teams notification not being sent after a scheduled job completes: `error_summary` was defined inside the Firestore `try` block, so any Firestore exception would silently prevent the notification from being sent. Requires remote backend update.
+
 ## 2.33
 Teams webhook notifications now use the Adaptive Card format required by Power Automate Workflow webhooks (fixes "Property 'type' must be 'AdaptiveCard'" error). Schedule dialog overlay is now rendered via a React portal to fix a gap at the top of the page caused by the dialog being inside a scrollable container.
 

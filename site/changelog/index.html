@@ -371,6 +371,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#234" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.34
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#233" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1486,6 +1497,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#234" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.34
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#233" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2023,6 +2045,8 @@
 
 
 <h1 id="changelog">Changelog</h1>
+<h2 id="234">2.34</h2>
+<p>Fix Teams notification not being sent after a scheduled job completes: <code>error_summary</code> was defined inside the Firestore <code>try</code> block, so any Firestore exception would silently prevent the notification from being sent. Requires remote backend update.</p>
 <h2 id="233">2.33</h2>
 <p>Teams webhook notifications now use the Adaptive Card format required by Power Automate Workflow webhooks (fixes "Property 'type' must be 'AdaptiveCard'" error). Schedule dialog overlay is now rendered via a React portal to fix a gap at the top of the page caused by the dialog being inside a scrollable container.</p>
 <h2 id="232">2.32</h2>
