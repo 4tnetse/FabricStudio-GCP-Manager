@@ -488,35 +488,39 @@ async def _convert_to_license_server(
     name: str,
     log,
 ) -> None:
-    """Run the 7-step conversion of an instance to a license server."""
+    """Run the 8-step conversion of an instance to a license server."""
     await log("Converting to license server…")
 
-    await log("Step 1/7: Uninstalling fabric runtime…")
+    await log("Step 1/8: Uninstalling fabric runtime…")
     await fs.uninstall_fabric()
     await log("Waiting for uninstall to complete…")
     await fs.wait_for_tasks()
 
-    await log("Step 2/7: Deleting all existing fabrics…")
+    await log("Step 2/8: Deleting all existing fabrics…")
     await fs.delete_all_fabrics()
 
-    await log("Step 3/7: Clearing remote license server URL…")
+    await log("Step 3/8: Clearing remote license server URL…")
     await fs.clear_license_server()
 
-    await log("Step 4/7: Enabling built-in license service…")
+    await log("Step 4/8: Enabling built-in license service…")
     await fs.enable_license_service()
 
-    await log("Step 5/7: Updating GCP labels…")
+    await log("Step 5/8: Reserving static internal IP…")
+    reserved_ip = await svc.reserve_static_internal_ip(zone=zone, name=name)
+    await log(f"Static internal IP reserved: {reserved_ip}")
+
+    await log("Step 6/8: Updating GCP labels…")
     await svc.add_labels(zone=zone, name=name, labels={
         "group": "production",
         "purpose": "licenseserver",
         "delete": "no",
     })
 
-    await log("Step 6/7: Updating GCP firewall tags (add 'license-server', remove 'fabric-studio')…")
+    await log("Step 7/8: Updating GCP firewall tags (add 'license-server', remove 'fabric-studio')…")
     await svc.add_tags(zone=zone, name=name, tags=["license-server"])
     await svc.remove_tags(zone=zone, name=name, tags=["fabric-studio"])
 
-    await log("Step 7/7: Checking for 'license-server' firewall rule…")
+    await log("Step 8/8: Checking for 'license-server' firewall rule…")
     try:
         await svc.get_firewall_rule("license-server")
         await log("Firewall rule 'license-server' already exists — skipping.")

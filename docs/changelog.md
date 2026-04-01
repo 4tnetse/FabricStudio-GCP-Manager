@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.40
+License server conversion now reserves a static internal IP as step 5 of 8 — the instance's current IP is promoted to a named GCP static address so the license server always keeps the same IP. When any instance with a static internal IP reservation is deleted from the app, the reservation is automatically released.
+
 ## 2.39
 Teams notification cards now use a FactSet layout showing schedule name, status, job type, project, triggered by, start time, duration, and instance count. On failure, the last 5 log lines are shown as an error snippet. Added `speak` property to the Adaptive Card as an additional attempt to populate the Teams toast preview. Requires remote backend update.
 

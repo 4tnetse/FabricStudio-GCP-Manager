@@ -196,6 +196,18 @@ class GCPComputeService:
                     f"Refusing to delete '{name}' — it has label delete=no."
                 )
 
+            # Check for a static internal IP reservation before deleting
+            static_ip_name: str | None = None
+            region = zone.rsplit("-", 1)[0]
+            if inst.network_interfaces:
+                internal_ip = inst.network_interfaces[0].network_i_p
+                if internal_ip:
+                    addr_client = compute_v1.AddressesClient(credentials=self._credentials)
+                    for addr in addr_client.list(project=self._project_id, region=region):
+                        if addr.address == internal_ip and addr.address_type == "INTERNAL":
+                            static_ip_name = addr.name
+                            break
+
             for disk in inst.disks or []:
                 if not disk.auto_delete:
                     op = client.set_disk_auto_delete(
@@ -209,7 +221,56 @@ class GCPComputeService:
             # Fire and don't wait — callers that need to wait use wait_until_deleted()
             client.delete(project=self._project_id, zone=zone, instance=name)
 
+            # Release static internal IP reservation if one was found (best-effort)
+            if static_ip_name:
+                try:
+                    addr_client = compute_v1.AddressesClient(credentials=self._credentials)
+                    op = addr_client.delete(project=self._project_id, region=region, address=static_ip_name)
+                    _wait_for_op(op)
+                except Exception:
+                    pass
+
         await self._run(_delete)
+
+    async def reserve_static_internal_ip(self, zone: str, name: str) -> str:
+        """Promote the instance's current internal IP to a named static reservation.
+
+        Returns the reserved IP address. If the IP is already a static reservation,
+        logs and returns the existing address — idempotent.
+        """
+        region = zone.rsplit("-", 1)[0]
+        addr_name = f"license-server-{name}"
+
+        def _reserve():
+            inst_client = compute_v1.InstancesClient(credentials=self._credentials)
+            inst = inst_client.get(project=self._project_id, zone=zone, instance=name)
+            if not inst.network_interfaces:
+                raise ValueError(f"Instance '{name}' has no network interfaces")
+            nic = inst.network_interfaces[0]
+            internal_ip = nic.network_i_p
+            if not internal_ip:
+                raise ValueError(f"Instance '{name}' has no internal IP")
+            subnetwork = nic.subnetwork or ""
+
+            addr_client = compute_v1.AddressesClient(credentials=self._credentials)
+
+            # Check if this IP is already a static reservation
+            for addr in addr_client.list(project=self._project_id, region=region):
+                if addr.address == internal_ip and addr.address_type == "INTERNAL":
+                    return internal_ip  # Already static — skip
+
+            body = compute_v1.Address(
+                name=addr_name,
+                address=internal_ip,
+                address_type="INTERNAL",
+                subnetwork=subnetwork,
+                region=region,
+            )
+            op = addr_client.insert(project=self._project_id, region=region, address_resource=body)
+            _wait_for_op(op)
+            return internal_ip
+
+        return await self._run(_reserve)
 
     async def wait_until_deleted(self, zone: str, name: str, interval: float = 3.0, max_attempts: int = 30) -> None:
         """Poll until the instance no longer exists."""
