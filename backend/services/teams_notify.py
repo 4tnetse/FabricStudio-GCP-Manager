@@ -18,14 +18,34 @@ async def notify_teams(
     success = status == "completed"
     status_text = "✅ Completed" if success else "❌ Failed"
 
-    lines = [
-        f"**Fabric Studio — Schedule '{schedule_name}' {status_text}**",
-        f"Job type: {job_type.capitalize()} | Project: {project_id or '—'} | Triggered by: {triggered_by}",
+    body = [
+        {
+            "type": "TextBlock",
+            "text": f"Fabric Studio — Schedule '{schedule_name}' {status_text}",
+            "weight": "Bolder",
+            "wrap": True,
+        },
+        {
+            "type": "TextBlock",
+            "text": f"Job type: {job_type.capitalize()} | Project: {project_id or '—'} | Triggered by: {triggered_by}",
+            "wrap": True,
+        },
     ]
     if error_summary:
-        lines.append(f"Error: {error_summary}")
+        body.append({"type": "TextBlock", "text": f"Error: {error_summary}", "color": "Attention", "wrap": True})
 
-    payload = {"text": "\n\n".join(lines)}
+    payload = {
+        "type": "message",
+        "attachments": [{
+            "contentType": "application/vnd.microsoft.card.adaptive",
+            "content": {
+                "type": "AdaptiveCard",
+                "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                "version": "1.2",
+                "body": body,
+            },
+        }],
+    }
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:

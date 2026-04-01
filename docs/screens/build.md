@@ -1,6 +1,6 @@
 # Build
 
-Create a new Fabric Studio golden image on GCP.
+Create a new Fabric Studio workshop golden image.
 
 ## Fields
 

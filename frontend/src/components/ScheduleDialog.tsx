@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Loader2, CalendarClock } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCreateSchedule, type ScheduleCreate } from '@/api/schedules'
@@ -158,7 +159,7 @@ export function ScheduleDialog({ jobType, payload, projectId, onClose }: Props) 
     : 'flex-1 px-2 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500'
   const labelClass = 'block text-xs font-medium text-slate-400 mb-1'
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
         className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-6 space-y-5"
@@ -242,6 +243,7 @@ export function ScheduleDialog({ jobType, payload, projectId, onClose }: Props) 
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

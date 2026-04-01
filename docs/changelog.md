@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.33
+Teams webhook notifications now use the Adaptive Card format required by Power Automate Workflow webhooks (fixes "Property 'type' must be 'AdaptiveCard'" error). Schedule dialog overlay is now rendered via a React portal to fix a gap at the top of the page caused by the dialog being inside a scrollable container.
+
 ## 2.32
 Developer documentation updates: Application Design doc updated with OpsContext, BuildContext, ImportContext, cloud_run router, version API endpoints, deploy stream hook, and teams_webhook_url setting. Scheduling Feature doc updated to reflect shipped status, SSH job type support, date/time picker dialog, reschedule replacing enable/disable, and corrected IAM permissions.
 

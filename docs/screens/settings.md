@@ -66,7 +66,7 @@ Choose between three UI themes:
 
 ## Scheduling
 
-Configure and deploy remote scheduling via GCP Cloud Run and Cloud Scheduler.
+Configure and deploy the remote scheduling Fabric Studio GCP Manager using GCP Cloud Run and Cloud Scheduler.
 
 | Setting | Description |
 |---|---|
@@ -90,7 +90,7 @@ Select a **VPC subnet** in the target region, then click **Start Deploy**. The a
 
 1. Enable required GCP APIs (Cloud Run, Firestore, Cloud Scheduler, Cloud Build)
 2. Create the `fabricstudio-gcp-manager` Firestore database in Native mode
-3. Create the `fs-gcpbackend-to-instances` firewall rule (allows Cloud Run to reach instances over internal IPs)
+3. Create the `fs-gcpbackend-to-instances` firewall rule (allows the remote Fabric Studio GCP Manager to reach instances over internal IPs)
 4. Copy the container image to your project via Cloud Build (this step takes a few minutes)
 5. Deploy the `fabricstudio-scheduler` Cloud Run service connected to your VPC
 6. Inject required environment variables into the running service

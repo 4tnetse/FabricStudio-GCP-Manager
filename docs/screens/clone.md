@@ -1,6 +1,6 @@
 # Clone
 
-Bulk-clone a golden image to create multiple instances.
+Bulk-clone a workshop golden image to create multiple instances.
 
 ## Fields
 
@@ -11,7 +11,7 @@ Bulk-clone a golden image to create multiple instances.
 | **Customer, Partner or Event** | No | Applied as a `purpose` label on all cloned instances (e.g. `fortinet-workshop`). Lowercase letters, digits, underscores and dashes only; max 63 characters. |
 | **Destination zone** | No | Target zone for the clones. Auto-filled from the source instance zone; can be changed for cross-zone cloning. |
 | **Clone range (From / To)** | Yes | Numeric range of instance suffixes to create (e.g. 1 to 20) |
-| **Delete existing instances** | No | If checked, existing instances in the range are deleted before cloning. Instances with `delete: no` label are always protected. |
+| **Delete existing instances** | No | If checked, existing instances in the range are deleted before cloning. Instances with `delete=no` label are always protected. |
 
 ## Instance name preview
 
@@ -31,7 +31,7 @@ If DNS settings are incomplete, a warning dialog appears before cloning starts. 
 
 ## Scheduling
 
-Click the **Schedule** button next to Clone to schedule this job via Cloud Scheduler. The current form values (source, zone, name, range, purpose, overwrite) are saved as the job payload. Requires Cloud Run scheduling to be configured in Settings.
+Click the **Schedule** button next to Clone to schedule this job. The current form values are saved as the job payload. Requires Scheduling to be enabled in Settings.
 
 ## Output panel
 

@@ -1,13 +1,13 @@
 # Images
 
-Browse and manage VM machine images in the active GCP project.
+Browse and manage Fabric Studio GCP images in the active GCP project.
 
 The Images page lists all available images with the following columns:
 
 | Column | Description |
 |---|---|
 | **Name** | Image name — click the pencil icon to rename inline |
-| **Family** | Image family (e.g. `fortigate-7-6-1`) — click the pencil icon to edit inline |
+| **Family** | Image family (e.g. `fabricstudio`) — click the pencil icon to edit inline |
 | **Status** | Image status (e.g. `READY`) |
 | **Size (GB)** | Boot disk size |
 | **Created** | Creation date |
@@ -40,9 +40,9 @@ Click **Import Image** to upload a `disk-image.tar.gz` file from your local devi
 
 ### Import flow
 
-1. The app auto-creates a staging GCS bucket (`{project-id}-fs-image-import`) if it does not exist, with CORS configured for direct browser uploads.
+1. The app auto-creates a staging GCS bucket (`{project-id}-fs-image-import`) if it does not exist.
 2. The file is uploaded directly from your browser to GCS — a progress bar shows the upload percentage.
-3. Once uploaded, the GCP Images API creates the image from the raw disk source (OS adaptation is skipped — equivalent to "Skip OS inspection and adaptation" in the GCP Console).
+3. Once uploaded, the GCP Images API creates the image from the raw disk source (OS adaptation is skipped).
 4. The staging file is deleted from GCS automatically after the image is created, whether the import succeeds or fails.
 
 ### Background operation

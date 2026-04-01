@@ -40,7 +40,7 @@ Selecting **This will be a new license server** from the License Server dropdown
 2. Delete all Fabrics
 3. Clear the remote license server setting
 4. Enable the built-in license service
-5. Update GCP labels (`group`, `purpose`, remove `delete`)
+5. Update GCP labels (`group=production`, `purpose=licenseserver`, `delete=no`)
 6. Swap the firewall network tag from `fabric-studio` to `license-server`
 7. Create the `license-server` firewall rule if it does not exist
 
@@ -52,10 +52,7 @@ Configure Fabric Workspace templates from a source instance.
 2. Templates are loaded automatically from the source instance.
 3. Add one or more **Fabrics** (name + template).
 4. Optionally select one fabric to **install** immediately (radio button).
-5. Check **Delete all workspaces** to remove existing workspaces before creating new ones (automatically checked and locked when any fabrics are defined).
-
-!!! warning
-    If template fetching fails with a DNS error, make sure the source instance is running and has a valid DNS record.
+5. Check **Delete all workspaces** to remove existing workspaces (automatically checked and locked when any fabrics are defined).
 
 ## Running a configure job
 

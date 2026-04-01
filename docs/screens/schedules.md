@@ -13,7 +13,7 @@ The left panel shows all defined schedules. Each schedule displays:
 - **Name** — user-defined label
 - **Job type** — `clone`, `configure`, or `ssh`
 - **Last run status** badge — `running`, `last run: ok`, or `last run: error`
-- **Cron expression** and timezone
+- **Scheduled date/time** and timezone
 
 ### Actions
 

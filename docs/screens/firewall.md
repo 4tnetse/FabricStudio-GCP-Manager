@@ -7,7 +7,9 @@ View and manage GCP firewall rules and access controls for the active project.
 Manages the `workshop-source-networks` GCP firewall rule — a list of allowed source IP addresses for workshop access.
 
 - Type an IP or CIDR range (e.g. `203.0.113.0/24`) and click **Add** (or press Enter), or click **Detect** to auto-detect your current public IP.
+- The firewall rule `workshop-source-networks` will be automatically created when the first IP address is added.
 - Click the trash icon next to an IP to remove it from the allowlist.
+- When the last IP address is removed, the firewall rule will be deleted.
 
 ## Global Access
 
@@ -15,8 +17,8 @@ Toggles the `workshop-source-any` GCP firewall rule — allows all source IPs.
 
 | State | Behaviour |
 |---|---|
-| **Disabled** | Only IPs in the Source IP Allowlist are allowed |
-| **Enabled** | The whole Internet is allowed (not advised) |
+| **Off** | The `workshop-source-any` rule does not exist — only IPs in the Source IP Allowlist are allowed |
+| **On** | The `workshop-source-any` rule is created — the whole Internet is allowed (not advised) |
 
 ## All Firewall Rules
 
