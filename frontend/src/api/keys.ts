@@ -27,6 +27,7 @@ export function useUploadKey() {
       queryClient.invalidateQueries({ queryKey: ['keys'] })
       queryClient.invalidateQueries({ queryKey: ['settings'] })
       queryClient.invalidateQueries({ queryKey: ['projects'] })
+      queryClient.removeQueries({ queryKey: ['settings', 'networks'] })
     },
   })
 }
@@ -40,6 +41,7 @@ export function useDeleteKey() {
       queryClient.invalidateQueries({ queryKey: ['settings'] })
       queryClient.invalidateQueries({ queryKey: ['projects'] })
       queryClient.invalidateQueries({ queryKey: ['instances'] })
+      queryClient.removeQueries({ queryKey: ['settings', 'networks'] })
     },
   })
 }

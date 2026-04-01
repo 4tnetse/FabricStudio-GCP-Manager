@@ -1,7 +1,8 @@
-3.0
+3.1
 
 # Version history
 # ---------------
+# 3.1    VPC network dropdown: refetches on key upload/delete/project switch; toast on permission error (compute.networks.list); query key includes project ID
 # 3.0    Multi-VPC support (phase 1): Default network (GCP VPC) setting per project; VPC dropdown in Preferences with "Create new VPC" placeholder; nav items disabled when no network configured; Build page disk size field starts empty
 # 2.42   Configure: scroll to top on job start; log panel auto-scrolls internally (no more page jumping); instance running check added to all configure/SSH jobs; InstanceStatus.TERMINATED bug fixed
 # 2.41   License server conversion: auto-rename to srv-{prepend}-{product}-001 (increment if taken); power down before rename, power up after; step 7 runs in parallel (static IP, labels, firewall tag, firewall rule)

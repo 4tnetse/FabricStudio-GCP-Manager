@@ -28,6 +28,7 @@ export function useSelectProject() {
       queryClient.removeQueries({ queryKey: ['firewall'] })
       queryClient.removeQueries({ queryKey: ['images'] })
       queryClient.removeQueries({ queryKey: ['cloud-run'] })
+      queryClient.removeQueries({ queryKey: ['settings', 'networks'] })
     },
   })
 }

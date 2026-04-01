@@ -36,6 +36,7 @@ export function useUploadKeyFile() {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
       queryClient.invalidateQueries({ queryKey: ['instances'] })
       queryClient.invalidateQueries({ queryKey: ['images'] })
+      queryClient.removeQueries({ queryKey: ['settings', 'networks'] })
     },
   })
 }
@@ -49,6 +50,7 @@ export function useDeleteKeyFile() {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
       queryClient.invalidateQueries({ queryKey: ['instances'] })
       queryClient.invalidateQueries({ queryKey: ['images'] })
+      queryClient.removeQueries({ queryKey: ['settings', 'networks'] })
     },
   })
 }
@@ -59,11 +61,11 @@ export function useTestTeamsWebhook() {
   })
 }
 
-export function useNetworks(enabled: boolean) {
+export function useNetworks(enabled: boolean, projectId?: string | null) {
   return useQuery({
-    queryKey: ['settings', 'networks'],
+    queryKey: ['settings', 'networks', projectId ?? ''],
     queryFn: () => apiGet<{ networks: string[] }>('/settings/networks'),
-    enabled,
+    enabled: enabled && !!projectId,
     staleTime: 60_000,
     retry: false,
   })

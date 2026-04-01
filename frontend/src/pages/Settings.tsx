@@ -79,7 +79,13 @@ export default function SettingsPage() {
   const { data: settings, isLoading } = useSettings()
   const { data: zones = [] } = useZones()
   const { data: zoneLocations = {} } = useZoneLocations()
-  const { data: networksData } = useNetworks(!!settings?.has_keys)
+  const { data: networksData, error: networksError } = useNetworks(!!settings?.has_keys, settings?.active_project_id)
+
+  useEffect(() => {
+    if (networksError) {
+      toast.error('Could not load VPC networks — check that the service account has the compute.networks.list permission.')
+    }
+  }, [networksError])
   const updateSettings = useUpdateSettings()
   const resetSettings = useResetSettings()
   const { data: keys } = useKeys()

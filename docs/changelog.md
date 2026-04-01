@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.1
+VPC network dropdown now refetches correctly after uploading or deleting a service account key, and after switching projects. A toast is shown when the service account does not have the `compute.networks.list` permission. Network query key includes the active project ID so switching projects always loads the correct VPC list.
+
 ## 3.0
 Multi-VPC support (phase 1): a **Default network (GCP VPC)** dropdown is now shown in Preferences, listing all VPC networks in the active project. The `default` network is auto-selected on first load. A **Create new VPC** option is shown at the top of the list (no action behind it yet). Nav items are disabled when no network is configured, in addition to the existing no-key check. Build page disk size field now starts empty (shows `e.g. 200` as placeholder).
 
