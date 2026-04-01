@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.37
+Teams notification preview text (shown in the chat list and notification toast) now shows the schedule name and status instead of "dit bericht heeft geen voorbeeld". Requires remote backend update.
+
 ## 2.36
 Fix Teams notifications not being sent from scheduled jobs: `teams_webhook_url` was missing from the settings snapshot, so the Cloud Run backend never had access to the webhook URL. The URL is now included in the snapshot at schedule creation and update time. Existing schedules must be re-saved (edit and save, or reschedule) to pick up the URL. Requires remote backend update.
 

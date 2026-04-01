@@ -57,6 +57,7 @@ async def notify_teams(
 
     payload = {
         "type": "message",
+        "summary": f"Schedule '{schedule_name}' {status_text}",
         "attachments": [{
             "contentType": "application/vnd.microsoft.card.adaptive",
             "content": {
