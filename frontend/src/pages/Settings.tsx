@@ -79,8 +79,7 @@ export default function SettingsPage() {
   const { data: settings, isLoading } = useSettings()
   const { data: zones = [] } = useZones()
   const { data: zoneLocations = {} } = useZoneLocations()
-  const hasKey = !!settings?.has_keys
-  const { data: networksData } = useNetworks(hasKey)
+  const { data: networksData } = useNetworks(!!settings?.has_keys)
   const updateSettings = useUpdateSettings()
   const resetSettings = useResetSettings()
   const { data: keys } = useKeys()
