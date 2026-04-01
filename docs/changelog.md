@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.32
+Developer documentation updates: Application Design doc updated with OpsContext, BuildContext, ImportContext, cloud_run router, version API endpoints, deploy stream hook, and teams_webhook_url setting. Scheduling Feature doc updated to reflect shipped status, SSH job type support, date/time picker dialog, reschedule replacing enable/disable, and corrected IAM permissions.
+
 ## 2.31
 Cloud Run deploy and undeploy run as background jobs — navigating away during deploy/undeploy keeps the stream alive with a spinner on the Settings nav link; returning to Settings shows the live log. Dismissing a completed job on Build, Clone, Configure, and SSH pages now clears the log output and resets all form fields. SSH execute and test return an immediate error if no SSH key is configured in Settings. Documentation updates: Workshop Workflow rewrite, Configuration page (Import image section, License Server setup steps, Manual deploy corrections), Upgrade page (version indicator dots explained).
 

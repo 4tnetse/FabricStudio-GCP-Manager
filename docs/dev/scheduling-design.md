@@ -1,13 +1,12 @@
 # Scheduling Feature — Technical Design
 
-**Branch:** `feature/scheduling`
-**Status:** Draft
+**Status:** Shipped
 
 ---
 
 ## Overview
 
-Add scheduling of Clone and Configure jobs via GCP Cloud Run + Cloud Scheduler + Firestore. The local backend proxies schedule operations to a Cloud Run backend; Cloud Scheduler triggers jobs on a cron schedule; Firestore stores schedule definitions and job history.
+Schedule Clone, Configure, and SSH jobs via GCP Cloud Run + Cloud Scheduler + Firestore. The local backend proxies schedule operations to a Cloud Run backend; Cloud Scheduler triggers jobs on a cron schedule; Firestore stores schedule definitions and job history.
 
 ---
 
@@ -61,7 +60,7 @@ Add scheduling of Clone and Configure jobs via GCP Cloud Run + Cloud Scheduler +
 |---|---|---|
 | `id` | string | Document ID |
 | `name` | string | Human label, e.g. "Nightly workshop clone" |
-| `job_type` | string | `"clone"` or `"configure"` |
+| `job_type` | string | `"clone"`, `"configure"`, or `"ssh"` |
 | `cron_expression` | string | 5-part cron, e.g. `"0 20 * * 1-5"` |
 | `timezone` | string | IANA timezone, e.g. `"Europe/Brussels"` |
 | `enabled` | bool | Whether Cloud Scheduler job is active |
@@ -90,7 +89,7 @@ Add scheduling of Clone and Configure jobs via GCP Cloud Run + Cloud Scheduler +
 | `id` | string | Document ID |
 | `schedule_id` | string | Reference to `schedules/{id}` |
 | `schedule_name` | string | Denormalized for display |
-| `job_type` | string | `"clone"` or `"configure"` |
+| `job_type` | string | `"clone"`, `"configure"`, or `"ssh"` |
 | `triggered_by` | string | `"scheduler"` or `"manual"` |
 | `status` | string | `"running"`, `"completed"`, `"failed"` |
 | `started_at` | timestamp | |
@@ -116,8 +115,6 @@ All endpoints live in `backend/routers/schedules.py` under `/api/schedules`.
 | `GET` | `/api/schedules/{id}` | Get single schedule |
 | `PUT` | `/api/schedules/{id}` | Update schedule |
 | `DELETE` | `/api/schedules/{id}` | Delete schedule + Cloud Scheduler job |
-| `POST` | `/api/schedules/{id}/enable` | Re-enable (resume Cloud Scheduler job) |
-| `POST` | `/api/schedules/{id}/disable` | Disable (pause Cloud Scheduler job) |
 
 ### Job Execution
 
@@ -238,16 +235,21 @@ A **Schedule** button appears next to the Clone button, enabled when the form is
 
 Same pattern — Schedule button next to Configure button, enabled when instances are selected.
 
+### Schedule button — SSH page
+
+Same pattern — Schedule button next to the SSH button. Only available when all selected instances have internal IPs (external IPs are not stable across restarts and cannot be scheduled reliably).
+
 ### ScheduleDialog component
 
 New `frontend/src/components/ScheduleDialog.tsx`:
 
 - **Name** field
-- **Cron expression** field with human-readable preview (using `cronstrue` npm package)
-- **Timezone** selector (pre-filled with browser timezone)
-- **Enabled** toggle
-- Read-only summary of job parameters
+- **Date/time picker** — month, day, year, hour, minute selectors (5-minute steps) with a human-readable preview
+- **Timezone** selector (pre-filled from browser timezone)
+- Read-only JSON summary of job parameters
 - **Save Schedule** → `POST /api/schedules`
+
+The dialog converts the selected date and time to a one-shot cron expression before saving (e.g. `30 14 5 3 *`).
 
 ### Schedules page
 
@@ -258,10 +260,10 @@ New `frontend/src/pages/Schedules.tsx` with two sections:
 | Column | Description |
 |---|---|
 | Name | Schedule name |
-| Type | Clone or Configure |
-| Schedule | Cron + human-readable form |
-| Status | Enabled / Disabled toggle |
-| Actions | Edit, Delete, Run now |
+| Type | Clone, Configure, or SSH |
+| Schedule | Scheduled date/time and timezone |
+| Status | Last run status badge |
+| Actions | Run now, Preview, Reschedule, Delete |
 
 **Bottom — Run history** (shown when a schedule is selected):
 
@@ -302,15 +304,18 @@ gcloud firestore databases create \
   --project={project_id}
 ```
 
-### 3. Required IAM roles for service account
+### 3. Required IAM permissions for service account
 
-| Role | Purpose |
+The app checks these permissions via `GET /api/cloud-run/permissions` before deploying:
+
+| Permission group | Permissions checked |
 |---|---|
-| `roles/compute.instanceAdmin.v1` | Compute Engine (existing) |
-| `roles/dns.admin` | Cloud DNS (existing) |
-| `roles/datastore.user` | Read/write Firestore |
-| `roles/cloudscheduler.admin` | Create/manage scheduler jobs |
-| `roles/run.invoker` | Invoke Cloud Run |
+| Cloud Run | `run.services.create`, `run.services.update` |
+| IAM | `iam.serviceAccounts.actAs` |
+| APIs | `serviceusage.services.enable` |
+| Firestore | `datastore.databases.create` |
+| Cloud Build | `cloudbuild.builds.create` |
+| Firewall | `compute.firewalls.create` |
 
 ### 4. Deploy Cloud Run service
 
@@ -374,21 +379,3 @@ google-cloud-firestore==2.19.0
 google-cloud-scheduler==2.13.0
 ```
 
-### New npm dependencies
-
-```
-cronstrue  # cron expression to human-readable text
-```
-
----
-
-## Implementation Phases
-
-| Phase | Goal | Key deliverables |
-|---|---|---|
-| **1** | Backend Firestore CRUD | `schedules.py` router, Firestore client, Pydantic models, no Cloud Scheduler yet |
-| **2** | Frontend Schedules page | Schedule list, ScheduleDialog, Schedule buttons on Clone/Configure, Settings fields |
-| **3** | Cloud Run backend mode | `APP_MODE` env var, settings-snapshot injection, key loading from Firestore, Firestore log writing |
-| **4** | Cloud Scheduler integration | Create/update/delete Cloud Scheduler jobs on schedule CRUD |
-| **5** | Local proxy + ID token auth | Proxy layer in `schedules.py`, ID token service, end-to-end local→Cloud Run test |
-| **6** | Job history UI | Run history panel, log viewer, Run now button |

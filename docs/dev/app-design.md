@@ -64,6 +64,7 @@ fabricstudio-ui/
 │   │   ├── images.py        # /api/images
 │   │   ├── configs.py       # /api/configs
 │   │   ├── costs.py         # /api/costs
+│   │   ├── cloud_run.py     # /api/cloud-run — deploy/undeploy Cloud Run scheduling backend
 │   │   └── schedules.py     # /api/schedules — CRUD, trigger, run history, proxy layer
 │   └── services/
 │       ├── gcp_compute.py   # GCPComputeService — all Compute Engine operations
@@ -85,8 +86,8 @@ fabricstudio-ui/
 │   │   ├── pages/           # One file per page
 │   │   ├── components/      # Reusable components
 │   │   ├── api/             # TanStack Query hooks
-│   │   ├── hooks/           # useSSEStream
-│   │   ├── context/         # ThemeContext
+│   │   ├── hooks/           # useSSEStream, useDeployStream
+│   │   ├── context/         # ThemeContext, BuildContext, ImportContext, OpsContext
 │   │   └── lib/             # types.ts, utils.ts, zones.ts
 │   └── dist/                # Built output (Docker / production)
 ├── conf/                    # SSH configuration files (*.conf)
@@ -118,6 +119,7 @@ Settings are stored in `~/.fabricstudio/settings.json`. The file is read at star
 | `instance_fqdn_prefix` | str | `""` | FQDN prefix before the instance number (e.g., `lab`) |
 | `dns_zone_name` | str | `""` | Cloud DNS managed zone name |
 | `fs_admin_password` | str | `""` | Default admin password for Fabric Studio API operations |
+| `teams_webhook_url` | str \| None | `None` | Microsoft Teams Power Automate webhook URL for job notifications |
 | `remote_scheduling_enabled` | bool | `False` | Enable remote scheduling via Cloud Run + Cloud Scheduler |
 | `remote_backend_url` | str | `""` | HTTPS URL of the `fabricstudio-scheduler` Cloud Run service |
 | `cloud_run_region` | str | `"europe-west1"` | GCP region of the scheduler Cloud Run service |
@@ -287,6 +289,25 @@ All operations return `{job_id}` and stream output as SSE.
 | GET | `/firewall/global-access` | Get global access rule status |
 | POST | `/firewall/global-access` | Enable/disable global access (`{enabled}`) |
 | GET | `/firewall/rules` | List all firewall rules |
+
+### Cloud Run — `/api/cloud-run`
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/cloud-run/permissions` | Check IAM permissions required for deploy |
+| GET | `/cloud-run/subnets?region=` | List VPC subnets in a region |
+| POST | `/cloud-run/deploy` | Start deploy job — returns `{deploy_id}` |
+| GET | `/cloud-run/deploy/{deploy_id}/stream` | SSE log stream for deploy job |
+| POST | `/cloud-run/undeploy` | Start undeploy job — returns `{undeploy_id}` |
+| GET | `/cloud-run/undeploy/{undeploy_id}/stream` | SSE log stream for undeploy job |
+
+### Version — `/api/version`
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/version` | Local version + remote Cloud Run version + upgrade availability |
+| POST | `/version/upgrade-remote` | Start remote upgrade job — returns `{upgrade_id}` |
+| GET | `/version/upgrade-remote/{upgrade_id}/stream` | SSE log stream for upgrade job |
 
 ### Other
 
@@ -575,9 +596,10 @@ The `LogStream` component handles this pattern on the frontend side.
 | `Labels.tsx` | `/labels` | Add/remove labels on instances |
 | `SSH.tsx` | `/ssh` | Execute SSH commands on instances |
 | `Configurations.tsx` | `/configurations` | Edit SSH command config files (`conf/*.conf`) |
+| `Schedules.tsx` | `/schedules` | Schedule list and run history |
 | `Images.tsx` | `/images` | List custom GCP images |
 | `Costs.tsx` | `/costs` | Billing account info and machine type pricing |
-| `Settings.tsx` | `/settings` | Keys, preferences, DNS, passwords |
+| `Settings.tsx` | `/settings` | Keys, preferences, DNS, scheduling, notifications |
 
 ### Key Components
 
@@ -613,7 +635,7 @@ apiPatch<T>(url, data?) -> Promise<T>
 apiDelete<T>(url, data?) -> Promise<T>
 ```
 
-### SSE Hook
+### SSE Hooks
 
 `useSSEStream(url: string | null)` in `src/hooks/`:
 
@@ -622,9 +644,24 @@ apiDelete<T>(url, data?) -> Promise<T>
 - Closes on `__DONE__` or `__FAILED__` sentinel
 - Returns `{ lines, isStreaming, error }`
 
+`useDeployStream(url: string | null, onUrl: (url: string) => void)` in `src/hooks/`:
+
+- Same as `useSSEStream` but also intercepts `__URL:<value>` sentinel lines and calls `onUrl` with the extracted URL (used to capture the deployed Cloud Run URL)
+- Tracks `failed` separately as a boolean
+- Returns `{ lines, isStreaming, failed, error }`
+
 ### Theme
 
-`ThemeContext` provides a `theme` value: `"default"` or `"security-fabric"`. The `isSF` boolean is derived from this and used in every component for conditional Tailwind classes.
+`ThemeContext` provides a `theme` value: `"dark"`, `"light"`, or `"security-fabric"`. The `isSF` boolean is derived from `theme === "security-fabric"` and used in components for Fortinet-style conditional Tailwind classes.
+
+### Context Providers
+
+| Context | Purpose |
+|---|---|
+| `ThemeContext` | App-wide theme (`dark`, `light`, `security-fabric`) |
+| `BuildContext` | State for the background build job (stream URL, phase) |
+| `ImportContext` | State for the background image import job |
+| `OpsContext` | State for background clone, configure, SSH, deploy, and undeploy jobs; exposes stream URLs, job phases, and `useDeployStream` results |
 
 ---
 

@@ -1298,7 +1298,7 @@
 </tbody>
 </table>
 <h2 id="scheduling">Scheduling</h2>
-<p>Configure and deploy remote scheduling via GCP Cloud Run and Cloud Scheduler.</p>
+<p>Configure and deploy the remote scheduling Fabric Studio GCP Manager using GCP Cloud Run and Cloud Scheduler.</p>
 <table>
 <thead>
 <tr>
@@ -1340,7 +1340,7 @@
 <ol>
 <li>Enable required GCP APIs (Cloud Run, Firestore, Cloud Scheduler, Cloud Build)</li>
 <li>Create the <code>fabricstudio-gcp-manager</code> Firestore database in Native mode</li>
-<li>Create the <code>fs-gcpbackend-to-instances</code> firewall rule (allows Cloud Run to reach instances over internal IPs)</li>
+<li>Create the <code>fs-gcpbackend-to-instances</code> firewall rule (allows the remote Fabric Studio GCP Manager to reach instances over internal IPs)</li>
 <li>Copy the container image to your project via Cloud Build (this step takes a few minutes)</li>
 <li>Deploy the <code>fabricstudio-scheduler</code> Cloud Run service connected to your VPC</li>
 <li>Inject required environment variables into the running service</li>

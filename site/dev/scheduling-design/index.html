@@ -1183,6 +1183,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#schedule-button-ssh-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedule button — SSH page
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#scheduledialog-component" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1255,10 +1266,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#3-required-iam-roles-for-service-account" class="md-nav__link">
+  <a href="#3-required-iam-permissions-for-service-account" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Required IAM roles for service account
+        3. Required IAM permissions for service account
       
     </span>
   </a>
@@ -1337,30 +1348,8 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#new-npm-dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        New npm dependencies
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#implementation-phases" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Implementation Phases
-      
-    </span>
-  </a>
   
 </li>
       
@@ -1663,6 +1652,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#schedule-button-ssh-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedule button — SSH page
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#scheduledialog-component" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1735,10 +1735,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#3-required-iam-roles-for-service-account" class="md-nav__link">
+  <a href="#3-required-iam-permissions-for-service-account" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Required IAM roles for service account
+        3. Required IAM permissions for service account
       
     </span>
   </a>
@@ -1817,30 +1817,8 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#new-npm-dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        New npm dependencies
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#implementation-phases" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Implementation Phases
-      
-    </span>
-  </a>
   
 </li>
       
@@ -1865,11 +1843,10 @@
 
 
 <h1 id="scheduling-feature-technical-design">Scheduling Feature — Technical Design</h1>
-<p><strong>Branch:</strong> <code>feature/scheduling</code>
-<strong>Status:</strong> Draft</p>
+<p><strong>Status:</strong> Shipped</p>
 <hr />
 <h2 id="overview">Overview</h2>
-<p>Add scheduling of Clone and Configure jobs via GCP Cloud Run + Cloud Scheduler + Firestore. The local backend proxies schedule operations to a Cloud Run backend; Cloud Scheduler triggers jobs on a cron schedule; Firestore stores schedule definitions and job history.</p>
+<p>Schedule Clone, Configure, and SSH jobs via GCP Cloud Run + Cloud Scheduler + Firestore. The local backend proxies schedule operations to a Cloud Run backend; Cloud Scheduler triggers jobs on a cron schedule; Firestore stores schedule definitions and job history.</p>
 <hr />
 <h2 id="architecture">Architecture</h2>
 <pre><code>┌──────────────────────────────────────────────────────────────────┐
@@ -1933,7 +1910,7 @@
 <tr>
 <td><code>job_type</code></td>
 <td>string</td>
-<td><code>"clone"</code> or <code>"configure"</code></td>
+<td><code>"clone"</code>, <code>"configure"</code>, or <code>"ssh"</code></td>
 </tr>
 <tr>
 <td><code>cron_expression</code></td>
@@ -2025,7 +2002,7 @@
 <tr>
 <td><code>job_type</code></td>
 <td>string</td>
-<td><code>"clone"</code> or <code>"configure"</code></td>
+<td><code>"clone"</code>, <code>"configure"</code>, or <code>"ssh"</code></td>
 </tr>
 <tr>
 <td><code>triggered_by</code></td>
@@ -2102,16 +2079,6 @@
 <td><code>DELETE</code></td>
 <td><code>/api/schedules/{id}</code></td>
 <td>Delete schedule + Cloud Scheduler job</td>
-</tr>
-<tr>
-<td><code>POST</code></td>
-<td><code>/api/schedules/{id}/enable</code></td>
-<td>Re-enable (resume Cloud Scheduler job)</td>
-</tr>
-<tr>
-<td><code>POST</code></td>
-<td><code>/api/schedules/{id}/disable</code></td>
-<td>Disable (pause Cloud Scheduler job)</td>
 </tr>
 </tbody>
 </table>
@@ -2290,16 +2257,18 @@ if MODE == &quot;full&quot; and _FRONTEND_DIST.exists():
 <p>A <strong>Schedule</strong> button appears next to the Clone button, enabled when the form is valid. Opens <code>ScheduleDialog</code> pre-populated with current form values.</p>
 <h3 id="schedule-button-configure-page">Schedule button — Configure page</h3>
 <p>Same pattern — Schedule button next to Configure button, enabled when instances are selected.</p>
+<h3 id="schedule-button-ssh-page">Schedule button — SSH page</h3>
+<p>Same pattern — Schedule button next to the SSH button. Only available when all selected instances have internal IPs (external IPs are not stable across restarts and cannot be scheduled reliably).</p>
 <h3 id="scheduledialog-component">ScheduleDialog component</h3>
 <p>New <code>frontend/src/components/ScheduleDialog.tsx</code>:</p>
 <ul>
 <li><strong>Name</strong> field</li>
-<li><strong>Cron expression</strong> field with human-readable preview (using <code>cronstrue</code> npm package)</li>
-<li><strong>Timezone</strong> selector (pre-filled with browser timezone)</li>
-<li><strong>Enabled</strong> toggle</li>
-<li>Read-only summary of job parameters</li>
+<li><strong>Date/time picker</strong> — month, day, year, hour, minute selectors (5-minute steps) with a human-readable preview</li>
+<li><strong>Timezone</strong> selector (pre-filled from browser timezone)</li>
+<li>Read-only JSON summary of job parameters</li>
 <li><strong>Save Schedule</strong> → <code>POST /api/schedules</code></li>
 </ul>
+<p>The dialog converts the selected date and time to a one-shot cron expression before saving (e.g. <code>30 14 5 3 *</code>).</p>
 <h3 id="schedules-page">Schedules page</h3>
 <p>New <code>frontend/src/pages/Schedules.tsx</code> with two sections:</p>
 <p><strong>Top — Schedule list:</strong></p>
@@ -2317,19 +2286,19 @@ if MODE == &quot;full&quot; and _FRONTEND_DIST.exists():
 </tr>
 <tr>
 <td>Type</td>
-<td>Clone or Configure</td>
+<td>Clone, Configure, or SSH</td>
 </tr>
 <tr>
 <td>Schedule</td>
-<td>Cron + human-readable form</td>
+<td>Scheduled date/time and timezone</td>
 </tr>
 <tr>
 <td>Status</td>
-<td>Enabled / Disabled toggle</td>
+<td>Last run status badge</td>
 </tr>
 <tr>
 <td>Actions</td>
-<td>Edit, Delete, Run now</td>
+<td>Run now, Preview, Reschedule, Delete</td>
 </tr>
 </tbody>
 </table>
@@ -2382,34 +2351,39 @@ if MODE == &quot;full&quot; and _FRONTEND_DIST.exists():
   --location=europe-west1 \
   --project={project_id}
 </code></pre>
-<h3 id="3-required-iam-roles-for-service-account">3. Required IAM roles for service account</h3>
+<h3 id="3-required-iam-permissions-for-service-account">3. Required IAM permissions for service account</h3>
+<p>The app checks these permissions via <code>GET /api/cloud-run/permissions</code> before deploying:</p>
 <table>
 <thead>
 <tr>
-<th>Role</th>
-<th>Purpose</th>
+<th>Permission group</th>
+<th>Permissions checked</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>roles/compute.instanceAdmin.v1</code></td>
-<td>Compute Engine (existing)</td>
+<td>Cloud Run</td>
+<td><code>run.services.create</code>, <code>run.services.update</code></td>
 </tr>
 <tr>
-<td><code>roles/dns.admin</code></td>
-<td>Cloud DNS (existing)</td>
+<td>IAM</td>
+<td><code>iam.serviceAccounts.actAs</code></td>
 </tr>
 <tr>
-<td><code>roles/datastore.user</code></td>
-<td>Read/write Firestore</td>
+<td>APIs</td>
+<td><code>serviceusage.services.enable</code></td>
 </tr>
 <tr>
-<td><code>roles/cloudscheduler.admin</code></td>
-<td>Create/manage scheduler jobs</td>
+<td>Firestore</td>
+<td><code>datastore.databases.create</code></td>
 </tr>
 <tr>
-<td><code>roles/run.invoker</code></td>
-<td>Invoke Cloud Run</td>
+<td>Cloud Build</td>
+<td><code>cloudbuild.builds.create</code></td>
+</tr>
+<tr>
+<td>Firewall</td>
+<td><code>compute.firewalls.create</code></td>
 </tr>
 </tbody>
 </table>
@@ -2458,52 +2432,6 @@ if MODE == &quot;full&quot; and _FRONTEND_DIST.exists():
 <pre><code>google-cloud-firestore==2.19.0
 google-cloud-scheduler==2.13.0
 </code></pre>
-<h3 id="new-npm-dependencies">New npm dependencies</h3>
-<pre><code>cronstrue  # cron expression to human-readable text
-</code></pre>
-<hr />
-<h2 id="implementation-phases">Implementation Phases</h2>
-<table>
-<thead>
-<tr>
-<th>Phase</th>
-<th>Goal</th>
-<th>Key deliverables</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>1</strong></td>
-<td>Backend Firestore CRUD</td>
-<td><code>schedules.py</code> router, Firestore client, Pydantic models, no Cloud Scheduler yet</td>
-</tr>
-<tr>
-<td><strong>2</strong></td>
-<td>Frontend Schedules page</td>
-<td>Schedule list, ScheduleDialog, Schedule buttons on Clone/Configure, Settings fields</td>
-</tr>
-<tr>
-<td><strong>3</strong></td>
-<td>Cloud Run backend mode</td>
-<td><code>APP_MODE</code> env var, settings-snapshot injection, key loading from Firestore, Firestore log writing</td>
-</tr>
-<tr>
-<td><strong>4</strong></td>
-<td>Cloud Scheduler integration</td>
-<td>Create/update/delete Cloud Scheduler jobs on schedule CRUD</td>
-</tr>
-<tr>
-<td><strong>5</strong></td>
-<td>Local proxy + ID token auth</td>
-<td>Proxy layer in <code>schedules.py</code>, ID token service, end-to-end local→Cloud Run test</td>
-</tr>
-<tr>
-<td><strong>6</strong></td>
-<td>Job history UI</td>
-<td>Run history panel, log viewer, Run now button</td>
-</tr>
-</tbody>
-</table>
 
 
 

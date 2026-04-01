@@ -1062,7 +1062,9 @@
 <p>Manages the <code>workshop-source-networks</code> GCP firewall rule — a list of allowed source IP addresses for workshop access.</p>
 <ul>
 <li>Type an IP or CIDR range (e.g. <code>203.0.113.0/24</code>) and click <strong>Add</strong> (or press Enter), or click <strong>Detect</strong> to auto-detect your current public IP.</li>
+<li>The firewall rule <code>workshop-source-networks</code> will be automatically created when the first IP address is added.</li>
 <li>Click the trash icon next to an IP to remove it from the allowlist.</li>
+<li>When the last IP address is removed, the firewall rule will be deleted.</li>
 </ul>
 <h2 id="global-access">Global Access</h2>
 <p>Toggles the <code>workshop-source-any</code> GCP firewall rule — allows all source IPs.</p>
@@ -1075,12 +1077,12 @@
 </thead>
 <tbody>
 <tr>
-<td><strong>Disabled</strong></td>
-<td>Only IPs in the Source IP Allowlist are allowed</td>
+<td><strong>Off</strong></td>
+<td>The <code>workshop-source-any</code> rule does not exist — only IPs in the Source IP Allowlist are allowed</td>
 </tr>
 <tr>
-<td><strong>Enabled</strong></td>
-<td>The whole Internet is allowed (not advised)</td>
+<td><strong>On</strong></td>
+<td>The <code>workshop-source-any</code> rule is created — the whole Internet is allowed (not advised)</td>
 </tr>
 </tbody>
 </table>

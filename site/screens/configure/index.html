@@ -1269,7 +1269,7 @@
 <li>Delete all Fabrics</li>
 <li>Clear the remote license server setting</li>
 <li>Enable the built-in license service</li>
-<li>Update GCP labels (<code>group</code>, <code>purpose</code>, remove <code>delete</code>)</li>
+<li>Update GCP labels (<code>group=production</code>, <code>purpose=licenseserver</code>, <code>delete=no</code>)</li>
 <li>Swap the firewall network tag from <code>fabric-studio</code> to <code>license-server</code></li>
 <li>Create the <code>license-server</code> firewall rule if it does not exist</li>
 </ol>
@@ -1280,10 +1280,8 @@
 <li>Templates are loaded automatically from the source instance.</li>
 <li>Add one or more <strong>Fabrics</strong> (name + template).</li>
 <li>Optionally select one fabric to <strong>install</strong> immediately (radio button).</li>
-<li>Check <strong>Delete all workspaces</strong> to remove existing workspaces before creating new ones (automatically checked and locked when any fabrics are defined).</li>
+<li>Check <strong>Delete all workspaces</strong> to remove existing workspaces (automatically checked and locked when any fabrics are defined).</li>
 </ol>
-<p>!!! warning
-    If template fetching fails with a DNS error, make sure the source instance is running and has a valid DNS record.</p>
 <h2 id="running-a-configure-job">Running a configure job</h2>
 <p>Click <strong>Configure (N)</strong> to start the job immediately. Click <strong>Schedule</strong> to schedule it for a later time via Cloud Scheduler.</p>
 <p>The job runs in the background. You can navigate to other pages while it is running — a status banner on the Configure page shows the current state (running / completed / failed) when you return.</p>

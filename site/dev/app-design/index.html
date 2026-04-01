@@ -1134,6 +1134,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#cloud-run-apicloud-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloud Run — /api/cloud-run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#version-apiversion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Version — /api/version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#other" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1394,10 +1416,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#sse-hook" class="md-nav__link">
+  <a href="#sse-hooks" class="md-nav__link">
     <span class="md-ellipsis">
       
-        SSE Hook
+        SSE Hooks
       
     </span>
   </a>
@@ -1409,6 +1431,17 @@
     <span class="md-ellipsis">
       
         Theme
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#context-providers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context Providers
       
     </span>
   </a>
@@ -1768,6 +1801,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#cloud-run-apicloud-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloud Run — /api/cloud-run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#version-apiversion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Version — /api/version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#other" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2028,10 +2083,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#sse-hook" class="md-nav__link">
+  <a href="#sse-hooks" class="md-nav__link">
     <span class="md-ellipsis">
       
-        SSE Hook
+        SSE Hooks
       
     </span>
   </a>
@@ -2043,6 +2098,17 @@
     <span class="md-ellipsis">
       
         Theme
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#context-providers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context Providers
       
     </span>
   </a>
@@ -2171,6 +2237,7 @@
 │   │   ├── images.py        # /api/images
 │   │   ├── configs.py       # /api/configs
 │   │   ├── costs.py         # /api/costs
+│   │   ├── cloud_run.py     # /api/cloud-run — deploy/undeploy Cloud Run scheduling backend
 │   │   └── schedules.py     # /api/schedules — CRUD, trigger, run history, proxy layer
 │   └── services/
 │       ├── gcp_compute.py   # GCPComputeService — all Compute Engine operations
@@ -2192,8 +2259,8 @@
 │   │   ├── pages/           # One file per page
 │   │   ├── components/      # Reusable components
 │   │   ├── api/             # TanStack Query hooks
-│   │   ├── hooks/           # useSSEStream
-│   │   ├── context/         # ThemeContext
+│   │   ├── hooks/           # useSSEStream, useDeployStream
+│   │   ├── context/         # ThemeContext, BuildContext, ImportContext, OpsContext
 │   │   └── lib/             # types.ts, utils.ts, zones.ts
 │   └── dist/                # Built output (Docker / production)
 ├── conf/                    # SSH configuration files (*.conf)
@@ -2286,6 +2353,12 @@
 <td>str</td>
 <td><code>""</code></td>
 <td>Default admin password for Fabric Studio API operations</td>
+</tr>
+<tr>
+<td><code>teams_webhook_url</code></td>
+<td>str | None</td>
+<td><code>None</code></td>
+<td>Microsoft Teams Power Automate webhook URL for job notifications</td>
 </tr>
 <tr>
 <td><code>remote_scheduling_enabled</code></td>
@@ -2724,6 +2797,75 @@
 </tr>
 </tbody>
 </table>
+<h3 id="cloud-run-apicloud-run">Cloud Run — <code>/api/cloud-run</code></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/cloud-run/permissions</code></td>
+<td>Check IAM permissions required for deploy</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/cloud-run/subnets?region=</code></td>
+<td>List VPC subnets in a region</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/cloud-run/deploy</code></td>
+<td>Start deploy job — returns <code>{deploy_id}</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/cloud-run/deploy/{deploy_id}/stream</code></td>
+<td>SSE log stream for deploy job</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/cloud-run/undeploy</code></td>
+<td>Start undeploy job — returns <code>{undeploy_id}</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/cloud-run/undeploy/{undeploy_id}/stream</code></td>
+<td>SSE log stream for undeploy job</td>
+</tr>
+</tbody>
+</table>
+<h3 id="version-apiversion">Version — <code>/api/version</code></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/version</code></td>
+<td>Local version + remote Cloud Run version + upgrade availability</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/version/upgrade-remote</code></td>
+<td>Start remote upgrade job — returns <code>{upgrade_id}</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/version/upgrade-remote/{upgrade_id}/stream</code></td>
+<td>SSE log stream for upgrade job</td>
+</tr>
+</tbody>
+</table>
 <h3 id="other">Other</h3>
 <table>
 <thead>
@@ -3076,6 +3218,11 @@ async get_hourly_price(machine_type, zone, vcpus, memory_gib) -&gt; dict | None
 <td>Edit SSH command config files (<code>conf/*.conf</code>)</td>
 </tr>
 <tr>
+<td><code>Schedules.tsx</code></td>
+<td><code>/schedules</code></td>
+<td>Schedule list and run history</td>
+</tr>
+<tr>
 <td><code>Images.tsx</code></td>
 <td><code>/images</code></td>
 <td>List custom GCP images</td>
@@ -3088,7 +3235,7 @@ async get_hourly_price(machine_type, zone, vcpus, memory_gib) -&gt; dict | None
 <tr>
 <td><code>Settings.tsx</code></td>
 <td><code>/settings</code></td>
-<td>Keys, preferences, DNS, passwords</td>
+<td>Keys, preferences, DNS, scheduling, notifications</td>
 </tr>
 </tbody>
 </table>
@@ -3143,7 +3290,7 @@ apiPut&lt;T&gt;(url, data?) -&gt; Promise&lt;T&gt;
 apiPatch&lt;T&gt;(url, data?) -&gt; Promise&lt;T&gt;
 apiDelete&lt;T&gt;(url, data?) -&gt; Promise&lt;T&gt;
 </code></pre>
-<h3 id="sse-hook">SSE Hook</h3>
+<h3 id="sse-hooks">SSE Hooks</h3>
 <p><code>useSSEStream(url: string | null)</code> in <code>src/hooks/</code>:</p>
 <ul>
 <li>Opens an <code>EventSource</code> when url is non-null</li>
@@ -3151,8 +3298,41 @@ apiDelete&lt;T&gt;(url, data?) -&gt; Promise&lt;T&gt;
 <li>Closes on <code>__DONE__</code> or <code>__FAILED__</code> sentinel</li>
 <li>Returns <code>{ lines, isStreaming, error }</code></li>
 </ul>
+<p><code>useDeployStream(url: string | null, onUrl: (url: string) =&gt; void)</code> in <code>src/hooks/</code>:</p>
+<ul>
+<li>Same as <code>useSSEStream</code> but also intercepts <code>__URL:&lt;value&gt;</code> sentinel lines and calls <code>onUrl</code> with the extracted URL (used to capture the deployed Cloud Run URL)</li>
+<li>Tracks <code>failed</code> separately as a boolean</li>
+<li>Returns <code>{ lines, isStreaming, failed, error }</code></li>
+</ul>
 <h3 id="theme">Theme</h3>
-<p><code>ThemeContext</code> provides a <code>theme</code> value: <code>"default"</code> or <code>"security-fabric"</code>. The <code>isSF</code> boolean is derived from this and used in every component for conditional Tailwind classes.</p>
+<p><code>ThemeContext</code> provides a <code>theme</code> value: <code>"dark"</code>, <code>"light"</code>, or <code>"security-fabric"</code>. The <code>isSF</code> boolean is derived from <code>theme === "security-fabric"</code> and used in components for Fortinet-style conditional Tailwind classes.</p>
+<h3 id="context-providers">Context Providers</h3>
+<table>
+<thead>
+<tr>
+<th>Context</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ThemeContext</code></td>
+<td>App-wide theme (<code>dark</code>, <code>light</code>, <code>security-fabric</code>)</td>
+</tr>
+<tr>
+<td><code>BuildContext</code></td>
+<td>State for the background build job (stream URL, phase)</td>
+</tr>
+<tr>
+<td><code>ImportContext</code></td>
+<td>State for the background image import job</td>
+</tr>
+<tr>
+<td><code>OpsContext</code></td>
+<td>State for background clone, configure, SSH, deploy, and undeploy jobs; exposes stream URLs, job phases, and <code>useDeployStream</code> results</td>
+</tr>
+</tbody>
+</table>
 <hr />
 <h2 id="static-file-serving">Static File Serving</h2>
 <p>In Docker / production mode (<code>frontend/dist</code> exists):</p>

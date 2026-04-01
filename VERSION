@@ -1,7 +1,8 @@
-2.31
+2.32
 
 # Version history
 # ---------------
+# 2.32   Developer documentation updates: Application Design (OpsContext/BuildContext/ImportContext, cloud_run router, version API, deploy stream hook, teams_webhook_url); Scheduling Feature (shipped status, SSH job type, date/time picker dialog, reschedule replaces enable/disable, IAM permissions)
 # 2.31   Cloud Run deploy/undeploy as background jobs with nav spinner and persistent log; dismiss on Build/Clone/Configure/SSH clears output and resets form fields; SSH returns 400 immediately if no key configured; documentation updates (Workshop Workflow, Configuration, Upgrade)
 # 2.30   Documentation updates: Schedules (date/time picker, SSH job type, Preview/Reschedule actions, run history details), Images (inline rename with background job, inline family edit, delete confirmation), Costs (warning vs error wording), Settings (first-key auto-select behaviour, Scheduling field corrections)
 # 2.29   Teams notifications via Microsoft Teams Workflow webhook (send message on schedule complete/fail); Settings layout: Preferences + Scheduling left, Service Account Keys + Notifications + Appearance right

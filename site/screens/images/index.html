@@ -1135,7 +1135,7 @@
 
 
 <h1 id="images">Images</h1>
-<p>Browse and manage VM machine images in the active GCP project.</p>
+<p>Browse and manage Fabric Studio GCP images in the active GCP project.</p>
 <p>The Images page lists all available images with the following columns:</p>
 <table>
 <thead>
@@ -1151,7 +1151,7 @@
 </tr>
 <tr>
 <td><strong>Family</strong></td>
-<td>Image family (e.g. <code>fortigate-7-6-1</code>) — click the pencil icon to edit inline</td>
+<td>Image family (e.g. <code>fabricstudio</code>) — click the pencil icon to edit inline</td>
 </tr>
 <tr>
 <td><strong>Status</strong></td>
@@ -1208,9 +1208,9 @@
 </table>
 <h3 id="import-flow">Import flow</h3>
 <ol>
-<li>The app auto-creates a staging GCS bucket (<code>{project-id}-fs-image-import</code>) if it does not exist, with CORS configured for direct browser uploads.</li>
+<li>The app auto-creates a staging GCS bucket (<code>{project-id}-fs-image-import</code>) if it does not exist.</li>
 <li>The file is uploaded directly from your browser to GCS — a progress bar shows the upload percentage.</li>
-<li>Once uploaded, the GCP Images API creates the image from the raw disk source (OS adaptation is skipped — equivalent to "Skip OS inspection and adaptation" in the GCP Console).</li>
+<li>Once uploaded, the GCP Images API creates the image from the raw disk source (OS adaptation is skipped).</li>
 <li>The staging file is deleted from GCS automatically after the image is created, whether the import succeeds or fails.</li>
 </ol>
 <h3 id="background-operation">Background operation</h3>
