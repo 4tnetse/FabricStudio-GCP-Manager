@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.35
+Teams notification cards now show a green or red accent bar on the left based on job outcome. SSH job type now displays as "SSH" instead of "Ssh". Title updated to "Fabric Studio GCP Manager". Requires remote backend update.
+
 ## 2.34
 Fix Teams notification not being sent after a scheduled job completes: `error_summary` was defined inside the Firestore `try` block, so any Firestore exception would silently prevent the notification from being sent. Requires remote backend update.
 

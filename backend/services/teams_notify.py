@@ -17,22 +17,43 @@ async def notify_teams(
 
     success = status == "completed"
     status_text = "✅ Completed" if success else "❌ Failed"
+    job_type_label = {"clone": "Clone", "configure": "Configure", "ssh": "SSH"}.get(job_type, job_type.capitalize())
+
+    accent_color = "Good" if success else "Attention"
 
     body = [
         {
-            "type": "TextBlock",
-            "text": f"Fabric Studio — Schedule '{schedule_name}' {status_text}",
-            "weight": "Bolder",
-            "wrap": True,
-        },
-        {
-            "type": "TextBlock",
-            "text": f"Job type: {job_type.capitalize()} | Project: {project_id or '—'} | Triggered by: {triggered_by}",
-            "wrap": True,
-        },
+            "type": "ColumnSet",
+            "columns": [
+                {
+                    "type": "Column",
+                    "width": "auto",
+                    "style": accent_color,
+                    "items": [{"type": "TextBlock", "text": " ", "color": accent_color}],
+                },
+                {
+                    "type": "Column",
+                    "width": "stretch",
+                    "items": [
+                        {
+                            "type": "TextBlock",
+                            "text": f"Fabric Studio GCP Manager — Schedule '{schedule_name}' {status_text}",
+                            "weight": "Bolder",
+                            "wrap": True,
+                        },
+                        {
+                            "type": "TextBlock",
+                            "text": f"Job type: {job_type_label} | Project: {project_id or '—'} | Triggered by: {triggered_by}",
+                            "wrap": True,
+                            "spacing": "Small",
+                        },
+                    ],
+                },
+            ],
+        }
     ]
     if error_summary:
-        body.append({"type": "TextBlock", "text": f"Error: {error_summary}", "color": "Attention", "wrap": True})
+        body.append({"type": "TextBlock", "text": f"Error: {error_summary}", "color": "Attention", "wrap": True, "spacing": "Small"})
 
     payload = {
         "type": "message",
