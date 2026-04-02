@@ -50,6 +50,163 @@ async def update_settings(update: SettingsUpdate):
     return {"detail": "Settings saved"}
 
 
+# ---- Project Health ----
+
+_HEALTH_PERMISSION_GROUPS = [
+    ("Instances", [
+        "compute.instances.list",
+        "compute.instances.get",
+        "compute.instances.start",
+        "compute.instances.stop",
+        "compute.instances.delete",
+        "compute.instances.create",
+        "compute.instances.setMetadata",
+        "compute.instances.setLabels",
+        "compute.instances.setTags",
+        "compute.zoneOperations.get",
+    ]),
+    ("Images & Build", [
+        "compute.images.list",
+        "compute.images.create",
+        "compute.images.delete",
+        "compute.machineTypes.list",
+        "compute.zones.list",
+        "compute.disks.create",
+        "compute.diskTypes.list",
+    ]),
+    ("Network", [
+        "compute.networks.list",
+        "compute.subnetworks.list",
+        "compute.firewalls.list",
+        "compute.firewalls.create",
+        "compute.firewalls.delete",
+        "compute.addresses.list",
+    ]),
+    ("DNS", [
+        "dns.managedZones.list",
+        "dns.resourceRecordSets.list",
+        "dns.resourceRecordSets.create",
+        "dns.resourceRecordSets.delete",
+        "dns.changes.create",
+    ]),
+    ("Scheduling (Cloud Run)", [
+        "run.services.create",
+        "run.services.update",
+        "run.services.get",
+        "cloudbuild.builds.create",
+        "iam.serviceAccounts.actAs",
+        "datastore.databases.create",
+        "serviceusage.services.enable",
+        "resourcemanager.projects.getIamPolicy",
+        "resourcemanager.projects.setIamPolicy",
+    ]),
+]
+
+_HEALTH_APIS = [
+    ("compute.googleapis.com", "Compute Engine"),
+    ("dns.googleapis.com", "Cloud DNS"),
+    ("run.googleapis.com", "Cloud Run"),
+    ("cloudbuild.googleapis.com", "Cloud Build"),
+    ("cloudscheduler.googleapis.com", "Cloud Scheduler"),
+    ("firestore.googleapis.com", "Firestore"),
+    ("cloudresourcemanager.googleapis.com", "Cloud Resource Manager"),
+]
+
+
+@router.get("/health")
+async def project_health():
+    """Check IAM permissions and API enablement for the active project."""
+    if not cfg.settings.active_project_id:
+        raise HTTPException(status_code=400, detail="No active project configured.")
+
+    from auth import get_credentials
+    import asyncio
+
+    credentials = get_credentials()
+    project_id = cfg.settings.active_project_id
+    loop = asyncio.get_event_loop()
+
+    all_permissions = [p for _, perms in _HEALTH_PERMISSION_GROUPS for p in perms]
+
+    def _run():
+        import requests as _req
+        from google.auth.transport.requests import Request as _AuthRequest
+        from google.cloud import resourcemanager_v3
+
+        # --- Permissions ---
+        client = resourcemanager_v3.ProjectsClient(credentials=credentials)
+        try:
+            granted = set(client.test_iam_permissions(
+                request={"resource": f"projects/{project_id}", "permissions": all_permissions}
+            ).permissions)
+        except Exception as exc:
+            if "is not valid for this resource" in str(exc):
+                # Some permissions aren't testable at project level — test each group separately
+                # and skip permissions that cause errors
+                granted = set()
+                for _, perms in _HEALTH_PERMISSION_GROUPS:
+                    try:
+                        result = client.test_iam_permissions(
+                            request={"resource": f"projects/{project_id}", "permissions": perms}
+                        )
+                        granted.update(result.permissions)
+                    except Exception:
+                        # Try one-by-one for this group
+                        for p in perms:
+                            try:
+                                result = client.test_iam_permissions(
+                                    request={"resource": f"projects/{project_id}", "permissions": [p]}
+                                )
+                                granted.update(result.permissions)
+                            except Exception:
+                                pass  # Skip permissions not valid at project level
+            else:
+                raise
+
+        # --- APIs ---
+        if not getattr(credentials, "valid", True):
+            try:
+                credentials.refresh(_AuthRequest())
+            except Exception:
+                pass
+        token = getattr(credentials, "token", None)
+        if not token:
+            credentials.refresh(_AuthRequest())
+            token = credentials.token
+
+        headers = {"Authorization": f"Bearer {token}"}
+        api_results = []
+        for api_id, api_name in _HEALTH_APIS:
+            try:
+                r = _req.get(
+                    f"https://serviceusage.googleapis.com/v1/projects/{project_id}/services/{api_id}",
+                    headers=headers,
+                    timeout=10,
+                )
+                enabled = r.ok and r.json().get("state") == "ENABLED"
+            except Exception:
+                enabled = False
+            api_results.append({"id": api_id, "name": api_name, "enabled": enabled})
+
+        return granted, api_results
+
+    try:
+        granted, api_results = await loop.run_in_executor(None, _run)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    permission_groups = [
+        {
+            "name": group_name,
+            "passed": all(p in granted for p in perms),
+            "items": [{"name": p, "granted": p in granted} for p in perms],
+        }
+        for group_name, perms in _HEALTH_PERMISSION_GROUPS
+    ]
+
+    return {"permission_groups": permission_groups, "apis": api_results}
+
+
 # ---- Networks ----
 
 @router.get("/networks")

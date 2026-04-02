@@ -29,6 +29,7 @@ export function useSelectProject() {
       queryClient.removeQueries({ queryKey: ['images'] })
       queryClient.removeQueries({ queryKey: ['cloud-run'] })
       queryClient.removeQueries({ queryKey: ['settings', 'networks'] })
+      queryClient.invalidateQueries({ queryKey: ['settings', 'health'] })
     },
   })
 }

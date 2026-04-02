@@ -33,7 +33,43 @@ When uploading the first key, the first available project is selected automatica
 
 The active project is selected from the sidebar project selector.
 
-## Notifications
+## Project Health
+
+The **Project Health** widget checks whether the active service account has all the permissions the app needs and whether all required GCP APIs are enabled.
+
+Click **Run check** to run the health check against the active project. The check runs automatically when a new key is uploaded or the active project is switched. Use **Refresh** to re-run it at any time.
+
+### Permissions
+
+Permissions are grouped by area:
+
+| Group | What it covers |
+|---|---|
+| **Instances** | Start, stop, delete, create, list instances; set labels, metadata, tags |
+| **Images & Build** | List, create, delete images; list machine types, zones, disk types; create disks |
+| **Network** | List networks, subnetworks, firewall rules, static IP addresses; create and delete firewall rules |
+| **DNS** | List managed zones and record sets; create and delete DNS records |
+| **Scheduling (Cloud Run)** | Deploy Cloud Run services, trigger Cloud Build, manage Firestore, set project IAM policy |
+
+Each group shows a pass/fail indicator. Click a group to expand it and see which individual permissions are granted or missing.
+
+> **Note:** A small number of Compute Engine permissions (such as `compute.addresses.insert`) cannot be tested at the project level via the GCP IAM API and are excluded from the check.
+
+### APIs
+
+The widget checks whether the following APIs are enabled in the active project:
+
+| API | Required for |
+|---|---|
+| **Compute Engine** | All instance, image, network, and firewall operations |
+| **Cloud DNS** | Creating and removing DNS records |
+| **Cloud Run** | Remote scheduling backend |
+| **Cloud Build** | Copying the container image during deploy |
+| **Cloud Scheduler** | Triggering scheduled jobs |
+| **Firestore** | Storing schedules and job run history |
+| **Cloud Resource Manager** | Project health check itself; project IAM management |
+
+Disabled APIs are highlighted in red. Enable them in the GCP Console under **APIs & Services** before using the affected features.
 
 Send a message to a Microsoft Teams channel when a scheduled job completes or fails.
 
@@ -91,10 +127,11 @@ Select a **VPC subnet** in the target region, then click **Start Deploy**. The a
 1. Enable required GCP APIs (Cloud Run, Firestore, Cloud Scheduler, Cloud Build)
 2. Create the `fabricstudio-gcp-manager` Firestore database in Native mode
 3. Create the `fs-gcpbackend-to-instances` firewall rule (allows the remote Fabric Studio GCP Manager to reach instances over internal IPs)
-4. Copy the container image to your project via Cloud Build (this step takes a few minutes)
-5. Deploy the `fabricstudio-scheduler` Cloud Run service connected to your VPC
-6. Inject required environment variables into the running service
-7. Save the Cloud Run URL and region to Settings and enable remote scheduling
+4. Grant the default compute service account access to the Cloud Build logs bucket
+5. Copy the container image to your project via Cloud Build (this step takes a few minutes)
+6. Deploy the `fabricstudio-scheduler` Cloud Run service connected to your VPC
+7. Inject required environment variables into the running service
+8. Save the Cloud Run URL and region to Settings and enable remote scheduling
 
 The deploy log streams live and stays visible after completion so you can review any warnings.
 

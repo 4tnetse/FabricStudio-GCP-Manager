@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiGet, apiPut, apiDelete, apiPost, apiClient } from './client'
-import type { Settings } from '@/lib/types'
+import type { Settings, ProjectHealth } from '@/lib/types'
 
 export function useSettings() {
   return useQuery({
@@ -67,6 +67,16 @@ export function useNetworks(enabled: boolean, projectId?: string | null) {
     queryFn: () => apiGet<{ networks: string[] }>('/settings/networks'),
     enabled: enabled && !!projectId,
     staleTime: 60_000,
+    retry: false,
+  })
+}
+
+export function useProjectHealth(enabled: boolean, projectId?: string | null) {
+  return useQuery({
+    queryKey: ['settings', 'health', projectId ?? ''],
+    queryFn: () => apiGet<ProjectHealth>('/settings/health'),
+    enabled: enabled && !!projectId,
+    staleTime: Infinity,
     retry: false,
   })
 }

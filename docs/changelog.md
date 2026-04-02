@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.3
+New **Project Health** widget on the Settings page. Checks all IAM permissions required by the app (grouped by Instances, Images & Build, Network, DNS, and Scheduling) and verifies that all required GCP APIs are enabled. Runs automatically after a key is uploaded or the active project is switched; a manual refresh button is also available. Failing permission groups start expanded; passing groups are collapsed. Permissions are tested via `testIamPermissions` at the project level.
+
 ## 3.2
 Cloud Run deploy automatically grants the compute service account access to the Cloud Build logs bucket as a new deploy step. Bucket-level IAM (`roles/storage.objectAdmin`) is tried first; if the service account key lacks the necessary permission, the step falls back to granting `roles/cloudbuild.builds.builder` at the project level via the Cloud Resource Manager API. Both paths are idempotent.
 

@@ -101,3 +101,25 @@ export type PublicIpsResponse = Array<{
   name: string
   ip: string
 }>
+
+export interface ProjectHealthPermission {
+  name: string
+  granted: boolean
+}
+
+export interface ProjectHealthGroup {
+  name: string
+  passed: boolean
+  items: ProjectHealthPermission[]
+}
+
+export interface ProjectHealthApi {
+  id: string
+  name: string
+  enabled: boolean
+}
+
+export interface ProjectHealth {
+  permission_groups: ProjectHealthGroup[]
+  apis: ProjectHealthApi[]
+}

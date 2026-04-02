@@ -1,7 +1,8 @@
-3.2
+3.3
 
 # Version history
 # ---------------
+# 3.3    Project Health widget: checks all app IAM permissions (Instances, Images & Build, Network, DNS, Scheduling) and required API enablement; auto-runs on key upload/project switch; manual refresh; failing groups expanded by default
 # 3.2    Cloud Run deploy: new step 5 grants compute SA access to Cloud Build logs bucket (bucket-level IAM first, falls back to roles/cloudbuild.builds.builder at project level; idempotent)
 # 3.1    VPC network dropdown: refetches on key upload/delete/project switch; toast on permission error (compute.networks.list); query key includes project ID
 # 3.0    Multi-VPC support (phase 1): Default network (GCP VPC) setting per project; VPC dropdown in Preferences with "Create new VPC" placeholder; nav items disabled when no network configured; Build page disk size field starts empty

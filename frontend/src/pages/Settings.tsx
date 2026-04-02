@@ -13,6 +13,7 @@ import { useSelectProject } from '@/api/projects'
 import { useTheme, type AppTheme } from '@/context/ThemeContext'
 import type { Settings, KeyInfo } from '@/lib/types'
 import { CustomSelect } from '@/components/CustomSelect'
+import { ProjectHealthWidget } from '@/components/ProjectHealthWidget'
 import { zoneLabel } from '@/lib/zones'
 import { SwitchProjectDialog } from '@/components/SwitchProjectDialog'
 
@@ -1007,6 +1008,9 @@ export default function SettingsPage() {
           />
         </div>
       </div>{/* end Service Account Keys widget */}
+
+      {/* Project Health */}
+      <ProjectHealthWidget hasKeys={hasKey} projectId={settings?.active_project_id} />
 
       {/* Notifications */}
       <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
