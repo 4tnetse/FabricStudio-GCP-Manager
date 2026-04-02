@@ -4,6 +4,8 @@ The Dashboard gives you a live overview of your project at a glance. It is the f
 
 The page is organised as a responsive grid of widgets. Each widget is self-contained, loads its own data, and links to the relevant full-screen page for further action.
 
+Widgets can be reordered by dragging the grip handle that appears in the top-right corner of each widget on hover. The order is saved in the browser and persists across page refreshes.
+
 ---
 
 ## Widgets
@@ -18,7 +20,7 @@ Calculates a live hourly cost estimate for all currently running instances by lo
 
 ### Instance Groups
 
-Groups all instances by their `workshop` label and shows a mini progress bar for each group indicating how many instances are running versus the total. Groups are sorted by the number of running instances, descending. Up to six groups are shown; any additional groups are noted with a count. Links to the Instances page.
+Groups all instances by their `group` GCP label and shows a mini progress bar for each group indicating how many instances are running versus the total. Groups are sorted by the number of running instances, descending. Up to six groups are shown; any additional groups are noted with a count. Links to the Instances page.
 
 ### License Server
 
@@ -38,7 +40,7 @@ Shows the total number of machine images in the active project and their combine
 
 ### Project Health
 
-A compact version of the full Project Health check from Settings. Shows the result of each permission group and required API as a coloured dot (green = OK, red = issue). If the health check has not been run yet, a prompt is shown to open Settings. Links to the Settings page.
+Shows a summary of the full Project Health check from Settings. Displays a large shield icon (green = all OK, red = issues found) with a count of passing checks out of the total. If the health check has not been run yet, a prompt is shown to open Settings. Links to the Settings page.
 
 ### Firewall
 

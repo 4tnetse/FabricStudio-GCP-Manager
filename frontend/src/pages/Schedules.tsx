@@ -186,6 +186,9 @@ function PayloadPreview({ jobType, payload }: { jobType: string; payload: Record
     const commands = payload.commands as string[] | undefined
     if (commands?.length) add('Commands', commands.join('\n'))
     add('Mode', payload.parallel === false ? 'Sequential' : payload.parallel === true ? 'Parallel' : undefined)
+  } else if (jobType === 'delete') {
+    const instances = payload.instances as { name: string; zone: string }[] | undefined
+    if (instances?.length) add('Instances', instances.map(i => i.name))
   }
 
   if (rows.length === 0) {

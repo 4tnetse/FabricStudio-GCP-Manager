@@ -371,6 +371,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#39" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.9
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#38" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1712,6 +1723,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#39" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.9
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#38" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2447,6 +2469,19 @@
 
 
 <h1 id="changelog">Changelog</h1>
+<h2 id="39">3.9</h2>
+<p>Dashboard widgets are now draggable — hover any widget to reveal a grip handle in the top-right corner and drag to reorder. The layout is saved in the browser and persists across refreshes.</p>
+<p>Additional fixes and improvements:</p>
+<ul>
+<li><strong>Project Health widget</strong> (Dashboard): replaced the dot-grid with a summary view showing a large shield icon and a passing/total check count.</li>
+<li><strong>Instance Groups widget</strong>: fixed — was reading the <code>workshop</code> label instead of the <code>group</code> label, causing all groups to appear as <code>—</code>.</li>
+<li><strong>Schedules widget</strong>: all job type badges now have equal width so columns align consistently.</li>
+<li><strong>Auto-delete schedule names</strong>: no longer include the date/time in the schedule name (the date is already visible below the name in the Schedules page).</li>
+<li><strong>Schedule preview popup</strong>: delete schedules now show the full list of instances that will be deleted.</li>
+<li><strong>Auto-delete output log</strong>: the confirmation line now lists all instance names that have been scheduled for deletion.</li>
+<li><strong>Auto-delete via Cloud Scheduler</strong>: fixed a bug where auto-delete schedules created from Configure or Clone were never executed by Cloud Scheduler — the service account email was set to the literal string <code>"auto-delete"</code> instead of the actual SA email, causing Cloud Scheduler job creation to fail silently.</li>
+<li><strong>Settings</strong>: the Default network (GCP VPC) dropdown no longer auto-opens when navigating to the Settings page.</li>
+</ul>
 <h2 id="38">3.8</h2>
 <p><strong>Auto-delete</strong>: schedule automatic deletion of instances at a specific date and time.</p>
 <ul>

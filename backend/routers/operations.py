@@ -208,9 +208,15 @@ async def _delete_instances_job(job_id: str, instances: list[dict]) -> None:
 async def _create_delete_schedule(instances: list[dict], auto_delete: AutoDeleteConfig) -> None:
     """Create a Firestore + Cloud Scheduler delete schedule (best-effort)."""
     from services import firestore_client as fs
+    from services.key_store import load_keys
 
     project_id = cfg.settings.active_project_id or ""
     key_id = cfg.settings.active_key_id or ""
+
+    keys = load_keys()
+    key_meta = next((k for k in keys if k.id == key_id), None)
+    created_by = key_meta.client_email if key_meta else ""
+
     data = {
         "name": auto_delete.name,
         "job_type": "delete",
@@ -221,7 +227,7 @@ async def _create_delete_schedule(instances: list[dict], auto_delete: AutoDelete
         "project_id": project_id,
         "key_id": key_id,
         "cloud_scheduler_job_name": "",
-        "created_by": "auto-delete",
+        "created_by": created_by,
         "settings_snapshot": {},
     }
     schedule = await fs.create_schedule(data)
@@ -359,7 +365,8 @@ async def _clone_job(job_id: str, clone_req: CloneRequest) -> None:
     if not failed and clone_req.auto_delete and cloned_instances:
         try:
             await _create_delete_schedule(cloned_instances, clone_req.auto_delete)
-            await q.put(f"Auto-delete scheduled: {clone_req.auto_delete.name}")
+            names = ", ".join(i["name"] for i in cloned_instances)
+            await q.put(f"Auto-delete scheduled: {clone_req.auto_delete.name} — instances: {names}")
         except Exception as exc:
             await q.put(f"WARNING: failed to create auto-delete schedule: {exc}")
 
@@ -751,7 +758,8 @@ async def _bulk_configure_job(job_id: str, req: BulkConfigureRequest) -> None:
         try:
             instances = [{"name": i.name, "zone": i.zone} for i in req.instances]
             await _create_delete_schedule(instances, req.auto_delete)
-            await q.put(f"Auto-delete scheduled: {req.auto_delete.name}")
+            names = ", ".join(i.name for i in req.instances)
+            await q.put(f"Auto-delete scheduled: {req.auto_delete.name} — instances: {names}")
         except Exception as exc:
             await q.put(f"WARNING: failed to create auto-delete schedule: {exc}")
 

@@ -257,8 +257,6 @@ export default function SettingsPage() {
   useEffect(() => {
     if (networksData && !form.default_network) {
       networkDropdownRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      setOpenNetworkDropdown(true)
-      setTimeout(() => setOpenNetworkDropdown(false), 0)
     }
   }, [networksData])
 

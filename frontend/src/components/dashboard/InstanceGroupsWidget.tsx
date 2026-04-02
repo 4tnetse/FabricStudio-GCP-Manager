@@ -10,7 +10,7 @@ export function InstanceGroupsWidget() {
 
   const groupMap = new Map<string, { total: number; running: number }>()
   for (const inst of instances) {
-    const key = inst.labels?.workshop ?? '—'
+    const key = inst.labels?.group ?? '—'
     const existing = groupMap.get(key) ?? { total: 0, running: 0 }
     groupMap.set(key, {
       total: existing.total + 1,

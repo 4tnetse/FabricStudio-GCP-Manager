@@ -305,7 +305,7 @@ export default function Configure() {
         auto_delete: autoDelete ? {
           cron_expression: scheduleDatetimeToCron(adYear, adMonth, adDay, adHour, adMinute),
           timezone: adTz,
-          name: `Delete configured instances — ${scheduleFormatPreview(adYear, adMonth, adDay, adHour, adMinute)}`,
+          name: `Delete configured instances`,
         } : undefined,
       }
       const result = await apiPost<{ job_id: string }>('/ops/bulk-configure', payload)

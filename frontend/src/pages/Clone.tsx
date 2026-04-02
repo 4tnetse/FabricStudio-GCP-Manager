@@ -163,7 +163,7 @@ export default function Clone() {
     setCloning(true)
     try {
       const adCron = scheduleDatetimeToCron(adYear, adMonth, adDay, adHour, adMinute)
-      const adName = `Delete ${fullBaseName || cloneName} — ${scheduleFormatPreview(adYear, adMonth, adDay, adHour, adMinute)}`
+      const adName = `Delete ${fullBaseName || cloneName}`
       const result = await apiPost<{ job_id: string }>('/ops/clone', {
         source_name: source,
         zone: sourceZone,
@@ -374,7 +374,7 @@ export default function Clone() {
                 className="rounded border-slate-600 bg-slate-700 text-red-500 focus:ring-red-500 focus:ring-offset-slate-900"
               />
               <div>
-                <span className="text-sm text-slate-300">Auto-delete after clone</span>
+                <span className="text-sm text-slate-300">Auto-delete</span>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Schedule deletion of the cloned instances at a specific date and time. Only created when the clone succeeds.
                 </p>

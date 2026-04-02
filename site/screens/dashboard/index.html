@@ -1253,6 +1253,7 @@
 <h1 id="dashboard">Dashboard</h1>
 <p>The Dashboard gives you a live overview of your project at a glance. It is the first page you see after the Instances list and is always reachable from the <strong>Dashboard</strong> entry in the sidebar.</p>
 <p>The page is organised as a responsive grid of widgets. Each widget is self-contained, loads its own data, and links to the relevant full-screen page for further action.</p>
+<p>Widgets can be reordered by dragging the grip handle that appears in the top-right corner of each widget on hover. The order is saved in the browser and persists across page refreshes.</p>
 <hr />
 <h2 id="widgets">Widgets</h2>
 <h3 id="instance-summary">Instance Summary</h3>
@@ -1260,7 +1261,7 @@
 <h3 id="cost-estimate">Cost Estimate</h3>
 <p>Calculates a live hourly cost estimate for all currently running instances by looking up the on-demand price for each unique machine type and zone combination. Also shows projected <strong>daily</strong> and <strong>monthly</strong> costs. If pricing data is unavailable for a machine type the widget still shows the number of running instances. Links to the Costs page.</p>
 <h3 id="instance-groups">Instance Groups</h3>
-<p>Groups all instances by their <code>workshop</code> label and shows a mini progress bar for each group indicating how many instances are running versus the total. Groups are sorted by the number of running instances, descending. Up to six groups are shown; any additional groups are noted with a count. Links to the Instances page.</p>
+<p>Groups all instances by their <code>group</code> GCP label and shows a mini progress bar for each group indicating how many instances are running versus the total. Groups are sorted by the number of running instances, descending. Up to six groups are shown; any additional groups are noted with a count. Links to the Instances page.</p>
 <h3 id="license-server">License Server</h3>
 <p>Shows the name, status, internal IP, and machine type of the instance labelled <code>purpose=licenseserver</code>. The status is shown as a solid colour badge: green for <strong>RUNNING</strong>, red for <strong>TERMINATED</strong> or <strong>STOPPED</strong>, orange for transitional states. If no license server is found, a hint is shown to use Configure to set the purpose label. Links to the Configure page.</p>
 <h3 id="schedules">Schedules</h3>
@@ -1270,7 +1271,7 @@
 <h3 id="images">Images</h3>
 <p>Shows the total number of machine images in the active project and their combined disk size. The three most recently created images are listed by name and creation date. Links to the Images page.</p>
 <h3 id="project-health">Project Health</h3>
-<p>A compact version of the full Project Health check from Settings. Shows the result of each permission group and required API as a coloured dot (green = OK, red = issue). If the health check has not been run yet, a prompt is shown to open Settings. Links to the Settings page.</p>
+<p>Shows a summary of the full Project Health check from Settings. Displays a large shield icon (green = all OK, red = issues found) with a count of passing checks out of the total. If the health check has not been run yet, a prompt is shown to open Settings. Links to the Settings page.</p>
 <h3 id="firewall">Firewall</h3>
 <p>Shows the total number of firewall rules, whether Global Access is enabled, how many IPs are in the Source IP Allowlist, and the three highest-priority active rules. Links to the Firewall page.</p>
 

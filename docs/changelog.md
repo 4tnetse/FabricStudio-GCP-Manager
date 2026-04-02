@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.9
+
+Dashboard widgets are now draggable — hover any widget to reveal a grip handle in the top-right corner and drag to reorder. The layout is saved in the browser and persists across refreshes.
+
+Additional fixes and improvements:
+
+- **Project Health widget** (Dashboard): replaced the dot-grid with a summary view showing a large shield icon and a passing/total check count.
+- **Instance Groups widget**: fixed — was reading the `workshop` label instead of the `group` label, causing all groups to appear as `—`.
+- **Schedules widget**: all job type badges now have equal width so columns align consistently.
+- **Auto-delete schedule names**: no longer include the date/time in the schedule name (the date is already visible below the name in the Schedules page).
+- **Schedule preview popup**: delete schedules now show the full list of instances that will be deleted.
+- **Auto-delete output log**: the confirmation line now lists all instance names that have been scheduled for deletion.
+- **Auto-delete via Cloud Scheduler**: fixed a bug where auto-delete schedules created from Configure or Clone were never executed by Cloud Scheduler — the service account email was set to the literal string `"auto-delete"` instead of the actual SA email, causing Cloud Scheduler job creation to fail silently.
+- **Settings**: the Default network (GCP VPC) dropdown no longer auto-opens when navigating to the Settings page.
+
 ## 3.8
 
 **Auto-delete**: schedule automatic deletion of instances at a specific date and time.

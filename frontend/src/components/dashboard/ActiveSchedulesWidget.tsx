@@ -61,7 +61,7 @@ export function ActiveSchedulesWidget() {
         <div className="space-y-2">
           {visible.map((schedule) => (
             <div key={schedule.id} className="flex items-center gap-2">
-              <span className={cn('rounded px-1.5 py-0.5 text-xs font-medium shrink-0', jobTypeBadge(schedule.job_type))}>
+              <span className={cn('rounded px-1.5 py-0.5 text-xs font-medium shrink-0 w-16 text-center', jobTypeBadge(schedule.job_type))}>
                 {schedule.job_type}
               </span>
               <span className="text-xs text-slate-200 flex-1 truncate">{schedule.name}</span>
