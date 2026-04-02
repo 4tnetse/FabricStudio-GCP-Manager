@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Upload, Loader2, Trash2, Key, Settings2, Palette, Pencil, CalendarClock, Search, CheckCircle2, XCircle, AlertTriangle, Rocket, ChevronDown, ChevronUp, Bell } from 'lucide-react'
+import { Upload, Loader2, Trash2, Key, Settings2, Palette, Pencil, CalendarClock, Search, CheckCircle2, XCircle, AlertTriangle, Rocket, ChevronDown, ChevronUp, Bell, Info } from 'lucide-react'
 import { DocLink } from '@/components/DocLink'
 import { useDetectCloudRunUrl } from '@/api/schedules'
-import { useCloudRunPermissions, useCloudRunSubnets, useStartDeploy, useStartUndeploy } from '@/api/cloudrun'
+import { useCloudRunSubnets, useStartDeploy, useStartUndeploy } from '@/api/cloudrun'
 import { useOps } from '@/context/OpsContext'
-import { useSettings, useUpdateSettings, useResetSettings, useTestTeamsWebhook, useNetworks, useCreateNetwork } from '@/api/settings'
+import { useSettings, useUpdateSettings, useResetSettings, useTestTeamsWebhook, useNetworks, useCreateNetwork, useProjectHealth, useDnsZones, useCreateDnsZone } from '@/api/settings'
 import { useKeys, useUploadKey, useDeleteKey, useRenameKey } from '@/api/keys'
 import { useZones, useZoneLocations } from '@/api/instances'
 import { useSelectProject } from '@/api/projects'
@@ -80,7 +80,12 @@ export default function SettingsPage() {
   const { data: settings, isLoading } = useSettings()
   const { data: zones = [] } = useZones()
   const { data: zoneLocations = {} } = useZoneLocations()
-  const { data: networksData, error: networksError } = useNetworks(!!settings?.has_keys, settings?.active_project_id)
+  const { data: healthData } = useProjectHealth(!!settings?.has_keys, settings?.active_project_id)
+  const computeEnabled = healthData?.apis.find((a) => a.id === 'compute.googleapis.com')?.enabled ?? false
+  const dnsEnabled = healthData?.apis.find((a) => a.id === 'dns.googleapis.com')?.enabled ?? false
+  const { data: networksData, error: networksError } = useNetworks(!!settings?.has_keys && computeEnabled, settings?.active_project_id)
+  const { data: dnsZonesData } = useDnsZones(!!settings?.has_keys && dnsEnabled, settings?.active_project_id)
+  const createDnsZone = useCreateDnsZone()
 
   useEffect(() => {
     if (networksError) {
@@ -126,9 +131,7 @@ export default function SettingsPage() {
   const region = (form.cloud_run_region as string) ?? ''
   const isConfigured = !!(form.remote_backend_url as string)
 
-  const { data: permsData, isLoading: permsLoading, isError: permsError, error: permsErrorObj } = useCloudRunPermissions(showDeployPanel)
   const { data: subnets, isLoading: subnetsLoading, isError: subnetsError, error: subnetsErrorObj } = useCloudRunSubnets(region, showDeployPanel)
-  const allPermsOk = permsData?.groups.every((g) => g.passed) ?? false
 
   const defaultNetwork = (form.default_network as string) ?? ''
   const filteredSubnets = subnets?.filter((s) => !defaultNetwork || s.network === defaultNetwork || s.network.endsWith(`/networks/${defaultNetwork}`)) ?? []
@@ -193,6 +196,49 @@ export default function SettingsPage() {
   const createNetwork = useCreateNetwork()
 
   const vpcNameValid = /^[a-z][a-z0-9\-]{0,62}$/.test(newVpcName)
+
+  const [showCreateDnsZone, setShowCreateDnsZone] = useState(false)
+  const [newDnsZoneName, setNewDnsZoneName] = useState('')
+  const [newDnsDomain, setNewDnsDomain] = useState('')
+  const [newDnsZoneType, setNewDnsZoneType] = useState<'public' | 'private'>('public')
+  const [createdNsRecords, setCreatedNsRecords] = useState<string[]>([])
+  const [showNsInfo, setShowNsInfo] = useState(false)
+  function closeDnsZoneDialog() {
+    setShowCreateDnsZone(false)
+    setNewDnsZoneName('')
+    setNewDnsDomain('')
+    setNewDnsZoneType('public')
+    setCreatedNsRecords([])
+  }
+
+  const dnsZoneNameValid = /^[a-z][a-z0-9\-]{0,62}$/.test(newDnsZoneName)
+  const dnsDomainInputValid = newDnsDomain.length > 0 && /^[a-z0-9]([a-z0-9\-\.]*[a-z0-9])?$/.test(newDnsDomain.replace(/\.$/, ''))
+
+  async function handleCreateDnsZone() {
+    if (!dnsZoneNameValid || !dnsDomainInputValid) return
+    try {
+      const zone = await createDnsZone.mutateAsync({
+        zone_name: newDnsZoneName,
+        dns_name: newDnsDomain,
+        zone_type: newDnsZoneType,
+        network_name: newDnsZoneType === 'private' ? (form.default_network as string | undefined) : undefined,
+      })
+      setField('dns_zone_name', newDnsZoneName as Settings['dns_zone_name'])
+      setField('dns_domain', zone.dns_name.replace(/\.$/, '') as Settings['dns_domain'])
+      queryClient.invalidateQueries({ queryKey: ['settings', 'dns-zones', settings?.active_project_id ?? ''] })
+      if (newDnsZoneType === 'public' && zone.name_servers?.length) {
+        setCreatedNsRecords(zone.name_servers)
+      } else {
+        setShowCreateDnsZone(false)
+        setNewDnsZoneName('')
+        setNewDnsDomain('')
+        setNewDnsZoneType('public')
+        toast.success(`DNS zone '${newDnsZoneName}' created`)
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create DNS zone')
+    }
+  }
 
   async function handleCreateVpc() {
     if (!vpcNameValid) return
@@ -386,6 +432,7 @@ export default function SettingsPage() {
   }
 
   const hasKey = !!(keys && keys.length > 0)
+  const activeKeyName = keys?.find((k) => k.id === settings?.active_key_id)?.display_name ?? null
 
   const DNS_LABEL = '[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?'
   const DNS_DOMAIN_RE = new RegExp(`^${DNS_LABEL}(\\.${DNS_LABEL})*$`)
@@ -431,14 +478,14 @@ export default function SettingsPage() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
 
       {/* Left column: Preferences + Scheduling */}
-      <div className="space-y-6">
+      <div className={`space-y-6 ${!hasKey ? 'xl:order-2' : ''}`}>
       {hasKey && <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
         <div className="flex items-center gap-2">
           <Settings2 className="w-4 h-4 text-slate-400" />
           <h2 className="text-sm font-semibold text-slate-200">Preferences</h2>
-          {settings?.active_project_id && (
-            <span className="ml-auto text-xs text-slate-500 bg-slate-800 border border-slate-700 rounded px-2 py-0.5 font-mono truncate max-w-[180px]" title={settings.active_project_id}>
-              {settings.active_project_id}
+          {activeKeyName && (
+            <span className="ml-auto text-xs text-slate-500 bg-slate-800 border border-slate-700 rounded px-2 py-0.5 truncate max-w-[180px]" title={activeKeyName}>
+              {activeKeyName}
             </span>
           )}
         </div>
@@ -527,16 +574,107 @@ export default function SettingsPage() {
           />
         </div>
 
+        <div>
+          <label className={labelClass}>DNS Zone</label>
+          {dnsEnabled && dnsZonesData ? (
+            <>
+              <CustomSelect
+                className={inputClass}
+                value={(form.dns_zone_name as string) ?? ''}
+                onChange={(v) => {
+                  if (v === '__create_new__') { setShowCreateDnsZone(true) }
+                  else {
+                    const zone = dnsZonesData.zones.find((z) => z.name === v)
+                    setField('dns_zone_name', v as Settings['dns_zone_name'])
+                    if (zone) setField('dns_domain', zone.dns_name.replace(/\.$/, '') as Settings['dns_domain'])
+                    setShowNsInfo(false)
+                  }
+                }}
+                options={[
+                  { value: '__create_new__', label: 'Create new DNS zone …' },
+                  ...(dnsZonesData.zones.map((z) => ({ value: z.name, label: `${z.name} (${z.dns_name})` }))),
+                ]}
+              />
+              {form.dns_zone_name && (() => {
+                const selectedZone = dnsZonesData.zones.find((z) => z.name === form.dns_zone_name)
+                return selectedZone ? (
+                  <p className="text-xs text-slate-500 mt-1">
+                    Zone type: <span className="capitalize text-slate-400">{selectedZone.visibility}</span>
+                  </p>
+                ) : null
+              })()}
+            </>
+          ) : (
+            <input
+              className={inputClass}
+              placeholder="e.g. fs-fortilab-be"
+              value={(form.dns_zone_name as string) ?? ''}
+              onChange={(e) => setField('dns_zone_name', e.target.value)}
+            />
+          )}
+          {!dnsEnabled && <p className="text-xs text-slate-500 mt-1">Enable the Cloud DNS API to select a zone from GCP</p>}
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className={labelClass}>DNS Domain</label>
-            <input
-              className={dnsDomainError ? inputErrorClass : inputClass}
-              placeholder="e.g. fs.fortilab.be"
-              value={(form.dns_domain as string) ?? ''}
-              onChange={(e) => setField('dns_domain', e.target.value)}
-            />
+            <div className="flex items-center gap-1 mb-1">
+              <label className={labelClass.replace('mb-1', '')}>DNS Domain</label>
+              {(() => {
+                const selectedZone = dnsZonesData?.zones.find((z) => z.name === form.dns_zone_name)
+                return selectedZone?.visibility === 'public' && selectedZone.name_servers?.length ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowNsInfo((v) => !v)}
+                    className="text-slate-500 hover:text-slate-300 transition-colors"
+                    title="NS records"
+                  >
+                    <Info className="w-3.5 h-3.5" />
+                  </button>
+                ) : null
+              })()}
+            </div>
+            {dnsEnabled && form.dns_zone_name ? (
+              <input
+                className={inputClass + ' opacity-60 cursor-not-allowed'}
+                readOnly
+                value={(form.dns_domain as string) ?? ''}
+              />
+            ) : (
+              <input
+                className={dnsDomainError ? inputErrorClass : inputClass}
+                placeholder="e.g. fs.fortilab.be"
+                value={(form.dns_domain as string) ?? ''}
+                onChange={(e) => setField('dns_domain', e.target.value)}
+              />
+            )}
             {dnsDomainError && <p className="text-xs text-red-400 mt-1">{dnsDomainError}</p>}
+            {showNsInfo && (() => {
+              const selectedZone = dnsZonesData?.zones.find((z) => z.name === form.dns_zone_name)
+              return selectedZone?.name_servers?.length ? (
+                <div className="mt-2 rounded-lg border border-slate-700 bg-slate-800/60 p-3 space-y-2">
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Your DNS zone is hosted on Google Cloud DNS. For it to be authoritative for your domain,
+                    add the following <span className="text-slate-200 font-medium">NS records</span> at your domain registrar or parent DNS zone.
+                    Once configured, DNS queries for <span className="text-slate-200 font-medium">{form.dns_domain as string}</span> will
+                    be routed to Google's name servers. Propagation can take <span className="text-slate-200 font-medium">up to 48 hours</span>.
+                  </p>
+                  <div className="divide-y divide-slate-700/50">
+                    {selectedZone.name_servers.map((ns) => (
+                      <div key={ns} className="flex items-center justify-between py-1.5 gap-2">
+                        <span className="text-xs font-mono text-slate-300">{ns}</span>
+                        <button
+                          type="button"
+                          onClick={() => { navigator.clipboard.writeText(ns); toast.success('Copied') }}
+                          className="text-xs text-slate-500 hover:text-slate-300 shrink-0"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null
+            })()}
           </div>
           <div>
             <label className={labelClass}>Instance FQDN prefix</label>
@@ -548,17 +686,6 @@ export default function SettingsPage() {
             />
             {fqdnPrefixError && <p className="text-xs text-red-400 mt-1">{fqdnPrefixError}</p>}
           </div>
-        </div>
-
-        <div>
-          <label className={labelClass}>DNS Zone name</label>
-          <input
-            className={inputClass}
-            placeholder="e.g. fs-fortilab-be"
-            value={(form.dns_zone_name as string) ?? ''}
-            onChange={(e) => setField('dns_zone_name', e.target.value)}
-          />
-          <p className="text-xs text-slate-500 mt-1">The managed zone name in Google Cloud DNS</p>
         </div>
 
         <div>
@@ -596,9 +723,9 @@ export default function SettingsPage() {
         <div className="flex items-center gap-2">
           <CalendarClock className="w-4 h-4 text-slate-400" />
           <h2 className="text-sm font-semibold text-slate-200">Scheduling</h2>
-          {settings?.active_project_id && (
-            <span className="ml-auto text-xs text-slate-500 bg-slate-800 border border-slate-700 rounded px-2 py-0.5 font-mono truncate max-w-[180px]" title={settings.active_project_id}>
-              {settings.active_project_id}
+          {activeKeyName && (
+            <span className="ml-auto text-xs text-slate-500 bg-slate-800 border border-slate-700 rounded px-2 py-0.5 truncate max-w-[180px]" title={activeKeyName}>
+              {activeKeyName}
             </span>
           )}
         </div>
@@ -804,45 +931,8 @@ export default function SettingsPage() {
 
                 {/* Deploy panel */}
                 {showDeployPanel && (
-                  <div className="rounded-lg border border-blue-900/50 bg-blue-950/20 p-4 space-y-4">
+                  <div className="rounded-lg bg-blue-950/20 p-4 space-y-4">
                     <p className="text-xs font-semibold text-blue-300 uppercase tracking-wide">Deploy Cloud Run</p>
-
-                    {/* Permissions check */}
-                    <div>
-                      <p className="text-xs text-slate-400 mb-2">GCP permissions</p>
-                      {permsLoading && (
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking...
-                        </div>
-                      )}
-                      {permsError && (
-                        <p className="text-xs text-red-400"><ErrorWithLink message={permsErrorObj instanceof Error ? permsErrorObj.message : 'Failed to check permissions'} /></p>
-                      )}
-                      {permsData && (
-                        <div className="flex flex-wrap gap-x-4 gap-y-1">
-                          {permsData.groups.map((g) => (
-                            <div key={g.name} className="flex items-start gap-1.5 text-xs">
-                              {g.passed
-                                ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0 mt-px" />
-                                : <XCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-px" />}
-                              <div>
-                                <span className={g.passed ? 'text-slate-300' : 'text-red-400'}>{g.name}</span>
-                                {!g.passed && g.message && (
-                                  <p className="text-red-400/80 mt-0.5 leading-snug">{g.message}</p>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {permsData && !allPermsOk && (
-                        <p className="text-xs text-red-400 mt-1.5">
-                          {permsData.groups.some(g => !g.passed && g.message)
-                            ? 'Fix the issues above before deploying.'
-                            : 'Missing permissions — the service account needs Owner or the specific roles above.'}
-                        </p>
-                      )}
-                    </div>
 
                     {/* Subnet selector */}
                     {!deployStreamUrl && (
@@ -875,9 +965,8 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={handleStartDeploy}
-                        disabled={startDeploy.isPending || !selectedSubnet || (permsData != null && !allPermsOk)}
+                        disabled={startDeploy.isPending || !selectedSubnet}
                         className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium transition-colors"
-                        title={!allPermsOk && permsData ? 'Fix missing permissions first' : undefined}
                       >
                         {startDeploy.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />}
                         Start Deploy
@@ -927,7 +1016,7 @@ export default function SettingsPage() {
       </div>{/* end left column */}
 
       {/* Right column: Service Account Keys + Notifications + Appearance */}
-      <div className="space-y-6">
+      <div className={`space-y-6 ${!hasKey ? 'xl:order-1' : ''}`}>
 
       {/* Service Account Keys */}
       <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
@@ -1026,7 +1115,7 @@ export default function SettingsPage() {
       </div>{/* end Service Account Keys widget */}
 
       {/* Project Health */}
-      <ProjectHealthWidget hasKeys={hasKey} projectId={settings?.active_project_id} />
+      <ProjectHealthWidget hasKeys={hasKey} projectId={settings?.active_project_id} keyName={activeKeyName} />
 
       {/* Notifications */}
       <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
@@ -1073,6 +1162,121 @@ export default function SettingsPage() {
       </div>{/* end two-column grid */}
 
 
+
+      {/* Create DNS Zone dialog */}
+      {showCreateDnsZone && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-6 space-y-4">
+            {createdNsRecords.length > 0 ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
+                  <h2 className="text-base font-semibold text-slate-100">DNS zone created</h2>
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Your DNS zone is now hosted on Google Cloud DNS. For it to be authoritative for your domain,
+                  you must add the following NS records at your <span className="text-slate-200 font-medium">domain registrar or parent DNS zone</span>.
+                  Once configured, DNS queries for <span className="text-slate-200 font-medium">{form.dns_domain as string}</span> will
+                  be routed to Google's name servers. Propagation can take <span className="text-slate-200 font-medium">up to 48 hours</span>.
+                </p>
+                <div className="rounded-lg border border-slate-700 bg-slate-800/60 divide-y divide-slate-700/50">
+                  {createdNsRecords.map((ns) => (
+                    <div key={ns} className="flex items-center justify-between px-3 py-2 gap-2">
+                      <span className="text-xs font-mono text-slate-300">{ns}</span>
+                      <button
+                        type="button"
+                        onClick={() => { navigator.clipboard.writeText(ns); toast.success('Copied') }}
+                        className="text-xs text-slate-500 hover:text-slate-300 shrink-0"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    onClick={closeDnsZoneDialog}
+                    className="px-4 py-1.5 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 transition-colors"
+                  >
+                    Done
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="text-base font-semibold text-slate-100">Create new DNS zone</h2>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Zone name</label>
+                  <input
+                    autoFocus
+                    className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    placeholder="e.g. my-zone"
+                    value={newDnsZoneName}
+                    onChange={(e) => setNewDnsZoneName(e.target.value.toLowerCase())}
+                    onKeyDown={(e) => { if (e.key === 'Escape') closeDnsZoneDialog() }}
+                  />
+                  {newDnsZoneName && !dnsZoneNameValid && (
+                    <p className="text-xs text-red-400 mt-1">Must start with a letter, contain only lowercase letters, numbers, and hyphens, max 63 characters.</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">DNS name</label>
+                  <input
+                    className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    placeholder="e.g. workshop.example.com"
+                    value={newDnsDomain}
+                    onChange={(e) => setNewDnsDomain(e.target.value.toLowerCase())}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleCreateDnsZone(); if (e.key === 'Escape') closeDnsZoneDialog() }}
+                  />
+                  {newDnsDomain && !dnsDomainInputValid && (
+                    <p className="text-xs text-red-400 mt-1">Enter a valid domain name (e.g. workshop.example.com)</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Zone type</label>
+                  <div className="flex gap-4">
+                    {(['public', 'private'] as const).map((t) => (
+                      <label key={t} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="dns-zone-type"
+                          value={t}
+                          checked={newDnsZoneType === t}
+                          onChange={() => setNewDnsZoneType(t)}
+                          className="accent-blue-500"
+                        />
+                        <span className="text-sm text-slate-300 capitalize">{t}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {newDnsZoneType === 'private' && !form.default_network && (
+                    <p className="text-xs text-yellow-400 mt-1">No VPC selected — set a Default network in Preferences first.</p>
+                  )}
+                  {newDnsZoneType === 'private' && form.default_network && (
+                    <p className="text-xs text-slate-500 mt-1">Will be scoped to VPC: <span className="text-slate-300">{form.default_network as string}</span></p>
+                  )}
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={closeDnsZoneDialog}
+                    className="px-3 py-1.5 rounded-lg text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCreateDnsZone}
+                    disabled={!dnsZoneNameValid || !dnsDomainInputValid || createDnsZone.isPending || (newDnsZoneType === 'private' && !form.default_network)}
+                    className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 transition-colors"
+                  >
+                    {createDnsZone.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    Create
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Create VPC dialog */}
       {showCreateVpc && (

@@ -239,10 +239,17 @@ async def _run_deploy(deploy_id: str, q: asyncio.Queue, project_id: str, region:
                 await log("✓ Firestore ready")
                 break
             except Exception as exc:
-                m = _re.search(r"retry in (\d+) seconds?", str(exc), _re.IGNORECASE)
+                exc_str = str(exc)
+                m = _re.search(r"retry in (\d+) seconds?", exc_str, _re.IGNORECASE)
                 if m:
                     wait = int(m.group(1)) + 5
                     await log(f"  Firestore not yet available (GCP cooldown after recent delete), waiting {wait}s...")
+                    await _asyncio.sleep(wait)
+                    continue
+                # Transient 500 — API was just enabled and may not be fully propagated yet
+                if _re.search(r"500|internal error|service unavailable", exc_str, _re.IGNORECASE):
+                    wait = 10 * (_attempt + 1)
+                    await log(f"  Firestore API not yet ready, retrying in {wait}s... ({exc_str[:80]})")
                     await _asyncio.sleep(wait)
                     continue
                 raise

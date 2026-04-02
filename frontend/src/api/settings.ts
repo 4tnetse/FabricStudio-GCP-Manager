@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiGet, apiPut, apiDelete, apiPost, apiClient } from './client'
-import type { Settings, ProjectHealth } from '@/lib/types'
+import type { Settings, ProjectHealth, DnsZone } from '@/lib/types'
 
 export function useSettings() {
   return useQuery({
@@ -94,6 +94,27 @@ export function useProjectHealth(enabled: boolean, projectId?: string | null) {
     enabled: enabled && !!projectId,
     staleTime: Infinity,
     retry: false,
+  })
+}
+
+export function useDnsZones(enabled: boolean, projectId?: string | null) {
+  return useQuery({
+    queryKey: ['settings', 'dns-zones', projectId ?? ''],
+    queryFn: () => apiGet<{ zones: DnsZone[] }>('/settings/dns-zones'),
+    enabled: enabled && !!projectId,
+    staleTime: 60_000,
+    retry: false,
+  })
+}
+
+export function useCreateDnsZone() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { zone_name: string; dns_name: string; zone_type: string; network_name?: string }) =>
+      apiPost<DnsZone>('/settings/dns-zones', body),
+    onSuccess: (_data, _vars, _ctx) => {
+      queryClient.removeQueries({ queryKey: ['settings', 'dns-zones'] })
+    },
   })
 }
 

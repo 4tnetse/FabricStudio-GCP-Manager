@@ -6,17 +6,6 @@ import { apiGet, apiPost } from './client'
 // Types
 // ---------------------------------------------------------------------------
 
-export interface PermissionGroup {
-  name: string
-  passed: boolean
-  permissions: { name: string; granted: boolean }[]
-  message?: string
-}
-
-export interface PermissionsResult {
-  groups: PermissionGroup[]
-}
-
 export interface Subnet {
   name: string
   network: string
@@ -26,16 +15,6 @@ export interface Subnet {
 // ---------------------------------------------------------------------------
 // Hooks
 // ---------------------------------------------------------------------------
-
-export function useCloudRunPermissions(enabled: boolean) {
-  return useQuery({
-    queryKey: ['cloud-run', 'permissions'],
-    queryFn: () => apiGet<PermissionsResult>('/cloud-run/permissions'),
-    enabled,
-    staleTime: 60_000,
-    retry: false,
-  })
-}
 
 export function useCloudRunSubnets(region: string, enabled: boolean) {
   return useQuery({

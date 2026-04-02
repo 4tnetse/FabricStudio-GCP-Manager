@@ -3,6 +3,7 @@ import { ShieldCheck, RefreshCw, ChevronDown, ChevronUp, CheckCircle2, XCircle, 
 import { useProjectHealth, useEnableApi } from '@/api/settings'
 import type { ProjectHealthGroup } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { useTheme } from '@/context/ThemeContext'
 
 function PermissionGroup({ group }: { group: ProjectHealthGroup }) {
   const [open, setOpen] = useState(!group.passed)
@@ -45,12 +46,19 @@ function PermissionGroup({ group }: { group: ProjectHealthGroup }) {
 interface ProjectHealthWidgetProps {
   hasKeys: boolean
   projectId?: string | null
+  keyName?: string | null
 }
 
-export function ProjectHealthWidget({ hasKeys, projectId }: ProjectHealthWidgetProps) {
+export function ProjectHealthWidget({ hasKeys, projectId, keyName }: ProjectHealthWidgetProps) {
   const { data, isLoading, isFetching, error, refetch, dataUpdatedAt } = useProjectHealth(hasKeys, projectId)
   const enableApi = useEnableApi()
   const [enablingId, setEnablingId] = useState<string | null>(null)
+  const [enablingAll, setEnablingAll] = useState(false)
+  const { theme } = useTheme()
+  const isSF = theme === 'security-fabric'
+  const enableBtnClass = isSF
+    ? 'bg-[#db291c] hover:bg-[#c4241a] text-white'
+    : 'bg-blue-600 hover:bg-blue-500 text-white'
 
   const allPermsPassed = data?.permission_groups.every((g) => g.passed) ?? false
   const allApisPassed = data?.apis.every((a) => a.enabled) ?? false
@@ -73,11 +81,34 @@ export function ProjectHealthWidget({ hasKeys, projectId }: ProjectHealthWidgetP
     }
   }
 
+  async function handleEnableAll() {
+    if (!data) return
+    const disabled = data.apis.filter((a) => !a.enabled)
+    setEnablingAll(true)
+    for (const api of disabled) {
+      setEnablingId(api.id)
+      try {
+        await enableApi.mutateAsync(api.id)
+      } catch {
+        // continue with remaining APIs even if one fails
+      }
+    }
+    setEnablingId(null)
+    setEnablingAll(false)
+    await refetch()
+  }
+
   return (
     <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
       <div className="flex items-center gap-2">
         <ShieldCheck className="w-4 h-4 text-slate-400" />
-        <h2 className="text-sm font-semibold text-slate-200 flex-1">Project Health</h2>
+        <h2 className="text-sm font-semibold text-slate-200">Project Health</h2>
+        {keyName && (
+          <span className="text-xs text-slate-500 bg-slate-800 border border-slate-700 rounded px-2 py-0.5 truncate max-w-[180px]" title={keyName}>
+            {keyName}
+          </span>
+        )}
+        <span className="flex-1" />
         {lastChecked && (
           <span className="text-xs text-slate-600">checked {lastChecked}</span>
         )}
@@ -100,7 +131,25 @@ export function ProjectHealthWidget({ hasKeys, projectId }: ProjectHealthWidgetP
           <Loader2 className="w-3.5 h-3.5 animate-spin" /> Running checks…
         </div>
       ) : error ? (
-        <p className="text-xs text-red-400">{error instanceof Error ? error.message : 'Health check failed'}</p>
+        (error instanceof Error && error.message === 'crm_disabled') ? (
+          <div className="space-y-3">
+            <p className="text-xs text-red-400">
+              The <span className="font-medium">Cloud Resource Manager API</span> must be enabled before the health check can run — it is used to verify permissions.
+            </p>
+            <button
+              type="button"
+              onClick={() => handleEnableApi('cloudresourcemanager.googleapis.com')}
+              disabled={!!enablingId}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 transition-colors ${enableBtnClass}`}
+            >
+              {enablingId === 'cloudresourcemanager.googleapis.com'
+                ? <><Loader2 className="w-3 h-3 animate-spin" /> Enabling…</>
+                : 'Enable Cloud Resource Manager API'}
+            </button>
+          </div>
+        ) : (
+          <p className="text-xs text-red-400">{error instanceof Error ? error.message : 'Health check failed'}</p>
+        )
       ) : data ? (
         <>
           {/* Summary */}
@@ -118,7 +167,7 @@ export function ProjectHealthWidget({ hasKeys, projectId }: ProjectHealthWidgetP
 
           {/* Permission groups */}
           <div className="space-y-1.5">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Permissions</p>
+            <p className="text-xs font-medium text-slate-500 tracking-wide">Permissions</p>
             <div className="space-y-1">
               {data.permission_groups.map((group) => (
                 <PermissionGroup key={group.name} group={group} />
@@ -128,7 +177,21 @@ export function ProjectHealthWidget({ hasKeys, projectId }: ProjectHealthWidgetP
 
           {/* APIs */}
           <div className="space-y-2">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">APIs</p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-medium text-slate-500 tracking-wide flex-1">APIs</p>
+              {data.apis.some((a) => !a.enabled) && (
+                <button
+                  type="button"
+                  onClick={handleEnableAll}
+                  disabled={enablingAll || !!enablingId}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium disabled:opacity-40 transition-colors ${enableBtnClass}`}
+                >
+                  {enablingAll
+                    ? <><Loader2 className="w-3 h-3 animate-spin" /> Enabling…</>
+                    : 'Enable all'}
+                </button>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-1.5">
               {data.apis.map((api) => (
                 <div
@@ -137,7 +200,7 @@ export function ProjectHealthWidget({ hasKeys, projectId }: ProjectHealthWidgetP
                     'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs',
                     api.enabled
                       ? 'border-slate-700 bg-slate-800/40 text-slate-300'
-                      : 'border-red-900 bg-red-900/20 text-red-300',
+                      : 'border-slate-700 bg-slate-800/40 text-red-300',
                   )}
                 >
                   {enablingId === api.id
@@ -151,7 +214,7 @@ export function ProjectHealthWidget({ hasKeys, projectId }: ProjectHealthWidgetP
                       type="button"
                       onClick={() => handleEnableApi(api.id)}
                       disabled={!!enablingId}
-                      className="ml-1 px-1.5 py-0.5 rounded text-xs bg-red-900/40 hover:bg-red-800/60 text-red-200 border border-red-800 disabled:opacity-40 shrink-0 transition-colors"
+                      className={`ml-1 px-1.5 py-0.5 rounded text-xs disabled:opacity-40 shrink-0 transition-colors ${enableBtnClass}`}
                     >
                       Enable
                     </button>

@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.6
+
+DNS zone management in Preferences: when the Cloud DNS API is enabled, the DNS Zone field becomes a dropdown listing all managed zones in the active project. Selecting a zone auto-populates the DNS Domain field (which becomes read-only) and shows the zone type (public or private) as a read-only label below the dropdown.
+
+**Create new DNS zone** dialog: enter a zone name, DNS name, and choose the zone type. Private zones are automatically scoped to the selected VPC network. After creating a public zone, the dialog shows the four NS records assigned by Google Cloud DNS — copy them to your registrar to make the zone authoritative. The same NS records are always accessible via the **ⓘ** icon next to the DNS Domain field.
+
+The **Default network (GCP VPC)** dropdown now only fetches networks when the Compute Engine API is confirmed enabled (via the Project Health widget), avoiding failed requests when the API is not yet active.
+
+**Project Health**: added an **Enable all** button in the APIs section that enables every disabled API in a single click, sequentially, with a single health check refresh at the end.
+
+**Cloud Run deploy**: removed the redundant GCP permissions check from the deploy panel — use the **Scheduling** group in Project Health instead. Fixed a deploy failure where Firestore database creation returned a 500 error immediately after enabling the Firestore API (GCP propagation delay); the deploy now retries automatically with progressive backoff.
+
 ## 3.5
 VPC creation from Settings: selecting **Create new VPC …** in the Default network dropdown opens a dialog to name and create a new VPC (auto subnets, global routing). The new network is auto-selected after creation. The dropdown no longer pre-selects a network on first load — the user must choose explicitly. Firewall rules, ACL, and Global Access are now scoped to the selected VPC. The project selector in the sidebar shows the key's custom display name when set. Key name always shown as a group header in the project selector dropdown.
 

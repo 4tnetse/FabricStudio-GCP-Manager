@@ -57,6 +57,13 @@ export interface Settings {
   teams_webhook_url?: string | null
 }
 
+export interface DnsZone {
+  name: string
+  dns_name: string
+  visibility: 'public' | 'private'
+  name_servers: string[]
+}
+
 export interface FirewallRule {
   name: string
   direction: string

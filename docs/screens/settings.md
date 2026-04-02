@@ -12,9 +12,9 @@ Configure your GCP connection and application preferences.
 | **Default instance prefix** | Instance name prefix (e.g. `fs`) |
 | **Default group** | Group GCP label applied to new instances |
 | **Default Fabric Studio admin password** | Used as the default admin password on the Configure page and for bulk shutdown via the Fabric Studio API |
-| **DNS Domain** | Base domain for instance FQDNs (e.g. `labs.yourdomain.com`) |
+| **DNS Zone** | Managed zone in Google Cloud DNS. When the Cloud DNS API is enabled, lists all zones in the active project. Selecting a zone auto-populates DNS Domain. |
+| **DNS Domain** | Base domain for instance FQDNs (e.g. `labs.yourdomain.com`). Read-only when a GCP zone is selected — populated automatically from the zone. |
 | **Instance FQDN prefix** | Prefix applied to instance names in FQDNs (e.g. `fs`) |
-| **DNS Zone name** | Managed zone name in Google Cloud DNS (e.g. `labs-yourdomain-com`) |
 | **SSH public key** | Default public key installed on instances during Configure and Clone operations |
 | **Default network (GCP VPC)** | VPC network used for all operations in the active project. All pages (Instances, Firewall, Build, etc.) are scoped to this network. |
 
@@ -37,6 +37,32 @@ Network name rules: must start with a lowercase letter, contain only lowercase l
 After creation the new VPC is automatically selected as the default network. Click **Save settings** to persist the selection.
 
 > **Note:** GCP firewall rules are scoped to a specific VPC. The Firewall page only shows rules for the selected network, and all firewall operations (Source IP Allowlist, Global Access) create rules in the selected network.
+
+### DNS Zone
+
+The **DNS Zone** dropdown lists all managed zones in the active project, but only when the **Cloud DNS API** is enabled (visible in the Project Health widget). When no zone is selected, the field is a free-text input for manually entering the zone name.
+
+Selecting a zone automatically fills in the **DNS Domain** field with the zone's DNS name (trailing dot stripped) and makes it read-only. To override the domain manually, clear the zone selection first.
+
+The zone type (**public** or **private**) is shown as a read-only label below the dropdown after a zone is selected.
+
+#### NS records (public zones)
+
+For public zones, an **ⓘ** icon appears next to the DNS Domain label. Click it to expand a panel showing the four NS records assigned by Google Cloud DNS. These records must be added at your domain registrar or parent DNS zone for the zone to become authoritative. Propagation can take up to 48 hours.
+
+#### Creating a new DNS zone
+
+Select **Create new DNS zone …** at the top of the dropdown to open the creation dialog. Fill in:
+
+| Field | Description |
+|---|---|
+| **Zone name** | GCP resource name (e.g. `workshop-zone`). Must start with a lowercase letter, contain only lowercase letters, numbers, and hyphens, max 63 characters. |
+| **DNS name** | The domain this zone covers (e.g. `workshop.example.com`). A trailing dot is added automatically. |
+| **Zone type** | **Public** — accessible from the internet; **Private** — accessible only from the selected VPC. |
+
+For **private** zones the zone is scoped to the VPC selected in **Default network**. A warning is shown and the Create button is disabled if no VPC is configured.
+
+After creating a **public** zone the dialog shows the four NS records assigned by GCP. Copy them and add them at your registrar before closing. The same records are always accessible later via the ⓘ icon next to DNS Domain.
 
 ## Service account keys
 
@@ -86,7 +112,7 @@ The widget checks whether the following APIs are enabled in the active project:
 | **Firestore** | Storing schedules and job run history |
 | **Cloud Resource Manager** | Project health check itself; project IAM management |
 
-Disabled APIs are highlighted in red. Click the **Enable** button next to a disabled API to enable it directly from the app — no need to open the GCP Console. The widget refreshes automatically once the operation completes.
+Disabled APIs are highlighted in red. Click the **Enable** button next to a disabled API to enable it directly from the app — no need to open the GCP Console. To enable all disabled APIs at once, click the **Enable all** button in the APIs section header. The widget refreshes automatically once all operations complete.
 
 Send a message to a Microsoft Teams channel when a scheduled job completes or fails.
 
@@ -137,7 +163,7 @@ Click **Save settings** to apply changes.
 
 Click **Deploy to GCP** to expand the deploy panel and set up the scheduling backend without leaving the app.
 
-The panel first checks all required GCP permissions for the active service account and shows which are granted or missing. Fix any missing permissions before deploying (see [Scheduling setup](../configuration.md#scheduling-setup-optional) for the required roles).
+Before deploying, verify that all required permissions and APIs are in place using the **Project Health** widget above — in particular the **Scheduling** permission group. Also check that the Firestore database, if it already exists, is in Native mode (Datastore mode is not supported).
 
 Select a **VPC subnet** in the target region, then click **Start Deploy**. The app will:
 

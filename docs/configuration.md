@@ -2,60 +2,72 @@
 
 ## Setup GCP for FS GCP Manager
 
-### 1. Create a new VPC
+Before using FS GCP Manager, you need a GCP project with a service account that has permission to manage resources.
 
-Create a new project in GCP and create a new default VPC network at [GCP VPC networks](https://console.cloud.google.com/networking/networks).  
-The new VPC network should be named `default`, Subnet creation mode set to automatic and the Dynamic routing mode set to global.
+### 1. Create a new project
 
-### 2. Enable GCP DNS (optional)
+Go to the [GCP Console](https://console.cloud.google.com/) and create a new project for your Fabric Studio workloads. Give it a clear, recognisable name — all resources (instances, images, firewall rules, DNS zones) will be created inside this project.
 
-You will need GCP Cloud DNS to auto generate DNS A records for your Fabric Studio instances.
+### 2. Create a service account
 
-Enable [GCP Cloud DNS API](https://console.cloud.google.com/net-services/dns).
+Navigate to **[IAM & Admin → Service Accounts](https://console.cloud.google.com/iam-admin/serviceaccounts)** and click **Create service account**. Give it a descriptive name such as `fabricstudio-manager`. A service account acts as the identity that FS GCP Manager uses to make API calls on your behalf.
 
-Create a public DNS zone. E.g. labs.yourdomain.com
+### 3. Assign the Owner role
 
-Open the new zone NS record. You will see the 4 NS records that your yourdomain.com DNS server needs to point to.
+On the **Grant this service account access to the project** step, add the **Owner** role (`roles/owner`). This grants the service account full access to manage all resources in the project, which is required for operations such as creating instances, managing firewall rules, enabling APIs, and deploying Cloud Run.
+
+> If your organisation's security policy does not allow the Owner role, refer to the Project Health widget in FS GCP Manager Settings — it lists all individual permissions required and allows you to enable missing APIs directly from the app.
+
+### 4. Create and download a private key
+
+Open the service account you just created, go to the **Keys** tab, and click **Add Key → Create new key**. Select **JSON** as the key type and click **Create**. The key file is downloaded automatically to your computer.
+
+This JSON file is what you upload to FS GCP Manager in the next step. Keep it secure — it provides programmatic access to your GCP project.
 
 
 ## First-time setup FS GCP Manager
 
-On first launch, go to **Settings** and configure at least the following:
+On first launch, open **Settings** and work through the following steps in order.
 
-### 1. Service account key
+### 1. Upload your service account key
 
-Upload one or more GCP service account JSON key files. At least one key is required before any GCP operations will work.
+Drag and drop the JSON key file you downloaded in the previous section onto the upload zone in the **Service Account Keys** widget, or click the zone to browse for the file. Once uploaded, the key appears in the list and the first project it covers is selected automatically. You can upload additional keys at any time to manage multiple projects.
 
-To generate a key: **[GCP Console → IAM & Admin → Service Accounts](https://console.cloud.google.com/iam-admin/serviceaccounts) → select account → Keys tab → Add Key → JSON**
+The active project is always shown and changed in the sidebar project selector. Keys can be renamed to something more descriptive (e.g. the client or environment name) using the pencil icon.
 
-Keys can be renamed and deleted from Settings. The active project is selected per-key in the sidebar.
+### 2. Enable required APIs
 
-### 2. GCP Project
+After uploading a key, the **Project Health** widget runs automatically and checks whether all GCP APIs needed by the app are enabled. Any disabled APIs are listed in red. Click **Enable all** to enable every missing API in one go, or use the individual **Enable** buttons to enable them one at a time. The widget refreshes automatically when the operations complete.
 
-After uploading a key, select the active project from the sidebar project selector.
+If the **Cloud Resource Manager API** is not yet enabled you will see a prompt to enable it first — this API is required before any other checks can run.
 
-### 3. SSH public key
+### 3. Create a VPC network
 
-Paste your SSH public key to enable SSH command execution on instances via the [SSH](screens/ssh.md) page.
+Once the Compute Engine API is enabled, the **Default network (GCP VPC)** dropdown in Preferences becomes active and lists all VPC networks in the project. Select an existing network, or choose **Create new VPC …** to create one without leaving the app. The VPC is created with automatic subnets and global dynamic routing.
 
-### 4. Default admin password
+All operations in FS GCP Manager — instances, firewall rules, build, clone — are scoped to the selected network, so this step is required before any other pages become usable.
 
-Enter the strong admin password you configured in the GCP image.  
-This pre-fills the current admin password field on the Configure page and is used for Fabric Studio API access. The workshop students will try to login with admin so it is highly recommended to choose a strong password.
+### 4. Configure DNS (optional)
 
-### 5. Default zone
+DNS is required for automatic A record creation when cloning instances. Once the **Cloud DNS API** is enabled, the **DNS Zone** dropdown in Preferences lists all managed zones in the project. Select an existing zone, or choose **Create new DNS zone …** to create one directly from the app.
 
-Set your preferred GCP zone (e.g. `europe-west4-a`). Used as default when building or cloning instances. Note that a different zone can always be set when creating instances.
+When creating a public zone, the app shows the four NS records assigned by Google Cloud DNS. Add these records at your domain registrar or parent DNS zone so that queries for your domain are routed to Google's name servers. Propagation can take up to 48 hours. You can always retrieve the NS records later by clicking the **ⓘ** icon next to the DNS Domain field.
 
-### 6. DNS settings (optional)
+Also set the **Instance FQDN prefix** (e.g. `fs`) to control how instance hostnames appear in DNS.
 
-Required for automatic DNS record creation during cloning:
+### 5. Configure the remaining preferences
 
-| Setting | Example | Description |
-|---|---|---|
-| DNS Domain | `labs.yourdomain.com` | Base domain for instance FQDNs |
-| Instance FQDN prefix | `fs` | Prefix applied to instance names in FQDNs |
-| DNS Zone name | `labs-yourdomain-com` | Managed zone name in Google Cloud DNS |
+With the network and DNS in place, fill in the remaining fields in the **Preferences** widget:
+
+| Setting | Why it matters |
+|---|---|
+| **Initials** | Used as a prefix in instance names to identify your deployments |
+| **Default zone** | Pre-selects the GCP zone on the Build and Clone pages (e.g. `europe-west4-a`) |
+| **Default Fabric Studio admin password** | Pre-fills the admin password on the Configure page and is used for Fabric Studio API calls during shutdown and configuration |
+| **SSH public key** | Installed on instances during Configure and Clone operations, required for the SSH page |
+| **Default instance prefix** | Instance name prefix used when building new instances (e.g. `fs`) |
+
+Click **Save settings** when done.
 
 
 ## Scheduling setup (optional)
@@ -93,8 +105,7 @@ done
 
 Open **Settings → Scheduling** and click **Deploy to GCP**. The deploy panel will:
 
-1. Check that all required GCP permissions are in place and show which are missing. Also checks that the Firestore database (if it already exists) is in Native mode — Datastore mode is not supported.
-2. Let you select the target **region** (defaulting to your default zone's region) and **VPC subnet**.
+1. Let you select the target **region** (defaulting to your default zone's region) and **VPC subnet**.
 3. On clicking **Start Deploy**, the app will automatically:
    - Enable required GCP APIs (Cloud Run, Firestore, Cloud Scheduler, Cloud Build)
    - Create the `fabricstudio-gcp-manager` Firestore database in Native mode
@@ -114,15 +125,6 @@ To remove Cloud Run and all associated resources, click **Undeploy** in the same
 ### Manual deploy (fallback)
 
 If you prefer to deploy manually with `gcloud`, follow these steps.
-
-#### Enable required GCP APIs
-
-Enable the following APIs in your GCP project:
-
-- [Cloud Run API](https://console.cloud.google.com/apis/library/run.googleapis.com)
-- [Cloud Scheduler API](https://console.cloud.google.com/apis/library/cloudscheduler.googleapis.com)
-- [Firestore API](https://console.cloud.google.com/apis/library/firestore.googleapis.com)
-- [Cloud Build API](https://console.cloud.google.com/apis/library/cloudbuild.googleapis.com)
 
 #### Create a Firestore database
 

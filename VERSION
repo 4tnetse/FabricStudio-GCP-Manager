@@ -1,7 +1,8 @@
-3.5
+3.6
 
 # Version history
 # ---------------
+# 3.6    DNS zone dropdown in Preferences (fetches from GCP when Cloud DNS API enabled); selecting a zone auto-populates DNS Domain (read-only) and shows zone type; DNS zone creation dialog with zone name, DNS name, zone type (public/private); private zones scoped to selected VPC; public zones show NS records after creation; ⓘ icon next to DNS Domain shows NS records inline; VPC dropdown gated on Compute API enabled; Project Health: Enable all APIs button; Cloud Run deploy: removed redundant permissions check; Firestore 500 retry fix on API propagation delay; documentation updates
 # 3.5    VPC creation dialog from Settings dropdown; firewall scoped to selected VPC (list/ACL/global-access); project selector shows key custom name; no auto-select of default network on first load
 # 3.4    Project Health widget: Enable button on disabled APIs — enables via Service Usage API directly from the app, auto-refreshes health check on completion
 # 3.3    Project Health widget: checks all app IAM permissions (Instances, Images & Build, Network, DNS, Scheduling) and required API enablement; auto-runs on key upload/project switch; manual refresh; failing groups expanded by default

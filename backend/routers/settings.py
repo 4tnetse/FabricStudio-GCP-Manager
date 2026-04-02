@@ -193,7 +193,13 @@ async def project_health():
     try:
         granted, api_results = await loop.run_in_executor(None, _run)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        exc_str = str(exc)
+        if "SERVICE_DISABLED" in exc_str and "cloudresourcemanager.googleapis.com" in exc_str:
+            raise HTTPException(
+                status_code=503,
+                detail="crm_disabled",
+            )
+        raise HTTPException(status_code=500, detail=exc_str)
 
     permission_groups = [
         {
@@ -316,6 +322,143 @@ async def list_networks():
         return {"networks": names}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ---- DNS Zones ----
+
+@router.get("/dns-zones")
+async def list_dns_zones():
+    """Return the list of managed DNS zones in the active project."""
+    if not cfg.settings.active_project_id:
+        raise HTTPException(status_code=400, detail="No active project configured.")
+
+    from auth import get_credentials
+    import asyncio
+
+    credentials = get_credentials()
+    project_id = cfg.settings.active_project_id
+    loop = asyncio.get_event_loop()
+
+    def _run():
+        import requests as _req
+        from google.auth.transport.requests import Request as _AuthRequest
+
+        if not getattr(credentials, "valid", True):
+            try:
+                credentials.refresh(_AuthRequest())
+            except Exception:
+                pass
+        token = getattr(credentials, "token", None)
+        if not token:
+            credentials.refresh(_AuthRequest())
+            token = credentials.token
+
+        r = _req.get(
+            f"https://dns.googleapis.com/dns/v1/projects/{project_id}/managedZones",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=10,
+        )
+        if not r.ok:
+            raise RuntimeError(f"Cloud DNS API error (HTTP {r.status_code}): {r.text[:200]}")
+        zones = r.json().get("managedZones", [])
+        return [
+            {
+                "name": z["name"],
+                "dns_name": z["dnsName"],
+                "visibility": z.get("visibility", "public"),
+                "name_servers": z.get("nameServers", []),
+            }
+            for z in zones
+        ]
+
+    try:
+        zones = await loop.run_in_executor(None, _run)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    return {"zones": zones}
+
+
+class CreateDnsZoneRequest(BaseModel):
+    zone_name: str
+    dns_name: str
+    zone_type: str = "public"   # "public" or "private"
+    network_name: str | None = None  # required for private zones
+
+
+@router.post("/dns-zones")
+async def create_dns_zone(body: CreateDnsZoneRequest):
+    """Create a new managed DNS zone in the active project."""
+    if not cfg.settings.active_project_id:
+        raise HTTPException(status_code=400, detail="No active project configured.")
+
+    import re
+    if not re.fullmatch(r'[a-z][a-z0-9\-]{0,62}', body.zone_name):
+        raise HTTPException(status_code=400, detail="Invalid zone name.")
+    if body.zone_type not in ("public", "private"):
+        raise HTTPException(status_code=400, detail="zone_type must be 'public' or 'private'.")
+    if body.zone_type == "private" and not body.network_name:
+        raise HTTPException(status_code=400, detail="network_name is required for private zones.")
+
+    dns_name = body.dns_name if body.dns_name.endswith(".") else body.dns_name + "."
+
+    from auth import get_credentials
+    import asyncio
+
+    credentials = get_credentials()
+    project_id = cfg.settings.active_project_id
+    loop = asyncio.get_event_loop()
+
+    def _run():
+        import requests as _req
+        from google.auth.transport.requests import Request as _AuthRequest
+
+        if not getattr(credentials, "valid", True):
+            try:
+                credentials.refresh(_AuthRequest())
+            except Exception:
+                pass
+        token = getattr(credentials, "token", None)
+        if not token:
+            credentials.refresh(_AuthRequest())
+            token = credentials.token
+
+        payload: dict = {
+            "name": body.zone_name,
+            "dnsName": dns_name,
+            "description": "",
+            "visibility": body.zone_type,
+        }
+        if body.zone_type == "private":
+            network_url = (
+                f"https://www.googleapis.com/compute/v1/projects/{project_id}"
+                f"/global/networks/{body.network_name}"
+            )
+            payload["privateVisibilityConfig"] = {
+                "networks": [{"networkUrl": network_url}]
+            }
+
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        r = _req.post(
+            f"https://dns.googleapis.com/dns/v1/projects/{project_id}/managedZones",
+            headers=headers,
+            json=payload,
+            timeout=15,
+        )
+        if not r.ok:
+            raise RuntimeError(f"Failed to create DNS zone (HTTP {r.status_code}): {r.text[:200]}")
+        data = r.json()
+        return {
+            "name": data["name"],
+            "dns_name": data["dnsName"],
+            "visibility": data.get("visibility", "public"),
+            "name_servers": data.get("nameServers", []),
+        }
+
+    try:
+        zone = await loop.run_in_executor(None, _run)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    return zone
 
 
 # ---- Notifications ----
