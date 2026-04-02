@@ -371,6 +371,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#36" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.6
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#35" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1173,6 +1184,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../screens/dashboard/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../screens/instances/" class="md-nav__link">
         
   
@@ -1649,6 +1688,17 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#36" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.6
+      
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#35" class="md-nav__link">
@@ -2353,6 +2403,12 @@
 
 
 <h1 id="changelog">Changelog</h1>
+<h2 id="36">3.6</h2>
+<p>DNS zone management in Preferences: when the Cloud DNS API is enabled, the DNS Zone field becomes a dropdown listing all managed zones in the active project. Selecting a zone auto-populates the DNS Domain field (which becomes read-only) and shows the zone type (public or private) as a read-only label below the dropdown.</p>
+<p><strong>Create new DNS zone</strong> dialog: enter a zone name, DNS name, and choose the zone type. Private zones are automatically scoped to the selected VPC network. After creating a public zone, the dialog shows the four NS records assigned by Google Cloud DNS — copy them to your registrar to make the zone authoritative. The same NS records are always accessible via the <strong>ⓘ</strong> icon next to the DNS Domain field.</p>
+<p>The <strong>Default network (GCP VPC)</strong> dropdown now only fetches networks when the Compute Engine API is confirmed enabled (via the Project Health widget), avoiding failed requests when the API is not yet active.</p>
+<p><strong>Project Health</strong>: added an <strong>Enable all</strong> button in the APIs section that enables every disabled API in a single click, sequentially, with a single health check refresh at the end.</p>
+<p><strong>Cloud Run deploy</strong>: removed the redundant GCP permissions check from the deploy panel — use the <strong>Scheduling</strong> group in Project Health instead. Fixed a deploy failure where Firestore database creation returned a 500 error immediately after enabling the Firestore API (GCP propagation delay); the deploy now retries automatically with progressive backoff.</p>
 <h2 id="35">3.5</h2>
 <p>VPC creation from Settings: selecting <strong>Create new VPC …</strong> in the Default network dropdown opens a dialog to name and create a new VPC (auto subnets, global routing). The new network is auto-selected after creation. The dropdown no longer pre-selects a network on first load — the user must choose explicitly. Firewall rules, ACL, and Global Access are now scoped to the selected VPC. The project selector in the sidebar shows the key's custom display name when set. Key name always shown as a group header in the project selector dropdown.</p>
 <h2 id="34">3.4</h2>

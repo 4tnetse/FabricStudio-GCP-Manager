@@ -14,7 +14,7 @@
         <link rel="prev" href="../configuration/">
       
       
-        <link rel="next" href="../screens/instances/">
+        <link rel="next" href="../screens/dashboard/">
       
       
         
@@ -571,6 +571,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../screens/dashboard/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1167,13 +1195,8 @@
 <h1 id="workshop-workflow">Workshop Workflow</h1>
 <p>This page describes the recommended end-to-end workflow for setting up and delivering a Fabric Studio workshop on GCP.</p>
 <h2 id="1-initial-setup">1. Initial setup</h2>
-<p>Complete the <a href="../configuration/">first-time configuration</a> in Settings before doing anything else:</p>
-<ul>
-<li>Upload your GCP service account key</li>
-<li>Set your SSH public key, default zone, and admin password</li>
-<li>Configure DNS settings if you want automatic DNS records</li>
-</ul>
-<p>To continue you should already have a Fabric Studio GCP image uploaded and a running Fabric Studio license server.</p>
+<p>Complete the <a href="../configuration/">first-time configuration</a> in Settings before doing anything else.</p>
+<p>To continue from here you should already have a <a href="../configuration/#import-the-fabric-studio-gcp-image">Fabric Studio GCP image imported</a> and a running Fabric Studio license server.</p>
 <h2 id="2-build-a-workshop-golden-image">2. Build a workshop golden image</h2>
 <p>Go to <strong>Build</strong> and create the <code>000</code> instance — this is your golden workshop image.<br />
 You can reuse it fo several workshops or create a new golden image for each workshop.</p>

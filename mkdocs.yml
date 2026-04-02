@@ -31,6 +31,7 @@ nav:
   - Configuration: configuration.md
   - Workshop Workflow: workflow.md
   - Screens:
+      - Dashboard: screens/dashboard.md
       - Instances: screens/instances.md
       - Build: screens/build.md
       - Configure: screens/configure.md

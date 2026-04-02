@@ -7,6 +7,7 @@ import { useProjects } from '@/api/projects'
 import { useDeployStream } from '@/api/cloudrun'
 import {
   LayoutDashboard,
+  Monitor,
   Hammer,
   Copy,
   Wrench,
@@ -32,6 +33,7 @@ import { useImport } from '@/context/ImportContext'
 import { useOps } from '@/context/OpsContext'
 
 import Dashboard from '@/pages/Dashboard'
+import { Instances } from '@/pages/Instances'
 import Build from '@/pages/Build'
 import Clone from '@/pages/Clone'
 import Configure from '@/pages/Configure'
@@ -45,7 +47,8 @@ import Costs from '@/pages/Costs'
 import Schedules from '@/pages/Schedules'
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Instances', icon: LayoutDashboard, exact: true },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/', label: 'Instances', icon: Monitor, exact: true },
   { to: '/build', label: 'Build', icon: Hammer },
   { to: '/configure', label: 'Configure', icon: Wrench },
   { to: '/clone', label: 'Clone', icon: Copy },
@@ -486,7 +489,8 @@ export default function App() {
       <main className="flex-1 flex flex-col overflow-hidden">
         <div ref={mainScrollRef} className="flex-1 flex flex-col min-h-0 p-6 overflow-y-auto">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<Instances />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/build" element={<Build />} />
             <Route path="/clone" element={<Clone />} />
             <Route path="/configure" element={<Configure />} />

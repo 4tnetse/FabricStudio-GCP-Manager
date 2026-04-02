@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.7
+
+New **Dashboard** page with nine overview widgets: Instance Summary (total, running, stopped, transitioning counts), Cost Estimate (live hourly, daily, and monthly cost for running instances), Instance Groups (per-workshop progress bars), License Server (status, IP, and machine type of the `purpose=licenseserver` instance), Schedules (upcoming schedules with job type badge and human-readable date/time), Recent Activity (last three schedule job run results), Images (image count, total disk size, and three most recent images), Project Health (compact dot-grid status for all permission groups and APIs), and Firewall (rule count, Global Access state, IP Allowlist size, and top rules).
+
+**Project Health**: when the Service Usage API itself is not enabled on a project, the widget now shows a clear explanation and a direct link to the GCP Console enable page instead of silently reporting all APIs as disabled. Fixed a bug where the token refresh was skipped under certain credential states, causing all API checks and the enable-API action to fail with a 500 error.
+
+Status badges across all dashboard widgets now use solid colour backgrounds with white text and no border.
+
 ## 3.6
 
 DNS zone management in Preferences: when the Cloud DNS API is enabled, the DNS Zone field becomes a dropdown listing all managed zones in the active project. Selecting a zone auto-populates the DNS Domain field (which becomes read-only) and shows the zone type (public or private) as a read-only label below the dropdown.

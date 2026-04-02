@@ -6,6 +6,7 @@ Fabric Studio GCP Manager is a web-based management interface for deploying, con
 
 | Page | Description |
 |---|---|
+| **Dashboard** | Live project overview: instance counts, cost estimate, instance groups, license server status, schedules, recent activity, images, project health, and firewall summary. |
 | **Instances** | Overview of all GCP instances with status summary, filtering, bulk actions, and detailed instance info. |
 | **Build** | Create a new Fabric Studio workshop golden image from scratch. |
 | **Configure** | Bulk-configure instances: passwords, SSH keys, registration token, license server, hostname, and Fabric Workspace templates. |

@@ -1,7 +1,8 @@
-3.6
+3.7
 
 # Version history
 # ---------------
+# 3.7    Dashboard page with 9 overview widgets (instance summary, cost estimate, instance groups, license server, schedules, recent activity, images, project health mini, firewall); Project Health: detect Service Usage API disabled with GCP Console link; fix all-APIs-showing-disabled bug (unconditional token refresh); solid colour status badges with white text across dashboard widgets; schedules widget shows human-readable date/time instead of cron
 # 3.6    DNS zone dropdown in Preferences (fetches from GCP when Cloud DNS API enabled); selecting a zone auto-populates DNS Domain (read-only) and shows zone type; DNS zone creation dialog with zone name, DNS name, zone type (public/private); private zones scoped to selected VPC; public zones show NS records after creation; ⓘ icon next to DNS Domain shows NS records inline; VPC dropdown gated on Compute API enabled; Project Health: Enable all APIs button; Cloud Run deploy: removed redundant permissions check; Firestore 500 retry fix on API propagation delay; documentation updates
 # 3.5    VPC creation dialog from Settings dropdown; firewall scoped to selected VPC (list/ACL/global-access); project selector shows key custom name; no auto-select of default network on first load
 # 3.4    Project Health widget: Enable button on disabled APIs — enables via Service Usage API directly from the app, auto-refreshes health check on completion

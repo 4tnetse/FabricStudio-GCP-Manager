@@ -131,7 +131,21 @@ export function ProjectHealthWidget({ hasKeys, projectId, keyName }: ProjectHeal
           <Loader2 className="w-3.5 h-3.5 animate-spin" /> Running checks…
         </div>
       ) : error ? (
-        (error instanceof Error && error.message === 'crm_disabled') ? (
+        (error instanceof Error && error.message === 'serviceusage_disabled') ? (
+          <div className="space-y-3">
+            <p className="text-xs text-red-400">
+              The <span className="font-medium">Service Usage API</span> must be enabled before the health check can run — it is used to check and enable all other APIs. Enable it manually in the GCP Console, then refresh.
+            </p>
+            <a
+              href={`https://console.developers.google.com/apis/api/serviceusage.googleapis.com/overview?project=${projectId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${enableBtnClass}`}
+            >
+              Enable in GCP Console ↗
+            </a>
+          </div>
+        ) : (error instanceof Error && error.message === 'crm_disabled') ? (
           <div className="space-y-3">
             <p className="text-xs text-red-400">
               The <span className="font-medium">Cloud Resource Manager API</span> must be enabled before the health check can run — it is used to verify permissions.
@@ -155,11 +169,11 @@ export function ProjectHealthWidget({ hasKeys, projectId, keyName }: ProjectHeal
           {/* Summary */}
           <div className={cn(
             'flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium',
-            allOk ? 'bg-green-900/20 border border-green-800 text-green-300' : 'bg-yellow-900/20 border border-yellow-800 text-yellow-300',
+            allOk ? 'bg-green-900/20 border border-green-800 text-green-300' : 'bg-orange-600 text-white',
           )}>
             {allOk
               ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
-              : <XCircle className="w-3.5 h-3.5 text-yellow-400 shrink-0" />}
+              : <XCircle className="w-3.5 h-3.5 text-white shrink-0" />}
             {allOk
               ? 'All permissions and APIs are configured correctly'
               : `${missingPerms > 0 ? `${missingPerms} permission${missingPerms > 1 ? 's' : ''} missing` : ''}${missingPerms > 0 && missingApis > 0 ? ' · ' : ''}${missingApis > 0 ? `${missingApis} API${missingApis > 1 ? 's' : ''} disabled` : ''}`}

@@ -164,15 +164,8 @@ async def project_health():
                 raise
 
         # --- APIs ---
-        if not getattr(credentials, "valid", True):
-            try:
-                credentials.refresh(_AuthRequest())
-            except Exception:
-                pass
-        token = getattr(credentials, "token", None)
-        if not token:
-            credentials.refresh(_AuthRequest())
-            token = credentials.token
+        credentials.refresh(_AuthRequest())
+        token = credentials.token
 
         headers = {"Authorization": f"Bearer {token}"}
         api_results = []
@@ -183,9 +176,13 @@ async def project_health():
                     headers=headers,
                     timeout=10,
                 )
-                enabled = r.ok and r.json().get("state") == "ENABLED"
-            except Exception:
-                enabled = False
+                if not r.ok:
+                    raise RuntimeError(f"HTTP {r.status_code}: {r.text[:200]}")
+                enabled = r.json().get("state") == "ENABLED"
+            except RuntimeError:
+                raise
+            except Exception as e:
+                raise RuntimeError(f"Failed to check {api_id}: {e}") from e
             api_results.append({"id": api_id, "name": api_name, "enabled": enabled})
 
         return granted, api_results
@@ -195,10 +192,11 @@ async def project_health():
     except Exception as exc:
         exc_str = str(exc)
         if "SERVICE_DISABLED" in exc_str and "cloudresourcemanager.googleapis.com" in exc_str:
-            raise HTTPException(
-                status_code=503,
-                detail="crm_disabled",
-            )
+            raise HTTPException(status_code=503, detail="crm_disabled")
+        if "Service Usage API has not been used" in exc_str or (
+            "SERVICE_DISABLED" in exc_str and "serviceusage.googleapis.com" in exc_str
+        ):
+            raise HTTPException(status_code=503, detail="serviceusage_disabled")
         raise HTTPException(status_code=500, detail=exc_str)
 
     permission_groups = [
@@ -240,15 +238,8 @@ async def enable_api(body: EnableApiRequest):
         import requests as _req
         from google.auth.transport.requests import Request as _AuthRequest
 
-        if not getattr(credentials, "valid", True):
-            try:
-                credentials.refresh(_AuthRequest())
-            except Exception:
-                pass
-        token = getattr(credentials, "token", None)
-        if not token:
-            credentials.refresh(_AuthRequest())
-            token = credentials.token
+        credentials.refresh(_AuthRequest())
+        token = credentials.token
 
         headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
         base = f"https://serviceusage.googleapis.com/v1/projects/{project_id}/services"

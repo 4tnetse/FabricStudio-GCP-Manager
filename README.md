@@ -113,23 +113,26 @@ You can create and edit configuration files directly in the **Configurations** s
 
 ```
 FabricStudio-GCP-Manager/
-├── frontend/          # React + TypeScript + Vite frontend
+├── frontend/                  # React + TypeScript + Vite frontend
 │   └── src/
-│       ├── pages/     # One file per screen
-│       ├── api/       # API client hooks (TanStack Query)
+│       ├── pages/             # One file per screen
+│       ├── api/               # API client hooks (TanStack Query)
+│       ├── context/           # React context providers (theme, ops, build, import)
 │       └── components/
-├── backend/           # FastAPI Python backend
-│   ├── routers/       # API endpoints
-│   ├── services/      # GCP, SSH, and DNS logic
-│   └── models/        # Pydantic data models
-├── conf/              # CLI command configuration templates
-├── docs/              # MkDocs documentation source
-├── site/              # Built documentation (served at /manual)
-├── Dockerfile         # Multi-stage Docker build
-├── docker-compose.yml # Docker Compose configuration
-├── setup.py           # Installation script
-├── start.py           # Start script
-└── stop.py            # Stop script
+│           ├── dashboard/     # Dashboard page widgets
+│           └── ...            # Shared UI components
+├── backend/                   # FastAPI Python backend
+│   ├── routers/               # API endpoints
+│   ├── services/              # GCP, SSH, and DNS logic
+│   └── models/                # Pydantic data models
+├── conf/                      # CLI command configuration templates
+├── docs/                      # MkDocs documentation source
+├── site/                      # Built documentation (served at /manual)
+├── Dockerfile                 # Multi-stage Docker build
+├── docker-compose.yml         # Docker Compose configuration
+├── setup.py                   # Installation script
+├── start.py                   # Start script
+└── stop.py                    # Stop script
 ```
 
 ---

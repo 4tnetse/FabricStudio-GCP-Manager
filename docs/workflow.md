@@ -4,13 +4,9 @@ This page describes the recommended end-to-end workflow for setting up and deliv
 
 ## 1. Initial setup
 
-Complete the [first-time configuration](configuration.md) in Settings before doing anything else:
+Complete the [first-time configuration](configuration.md) in Settings before doing anything else.
 
-- Upload your GCP service account key
-- Set your SSH public key, default zone, and admin password
-- Configure DNS settings if you want automatic DNS records
-
-To continue you should already have a Fabric Studio GCP image uploaded and a running Fabric Studio license server.
+To continue from here you should already have a [Fabric Studio GCP image imported](configuration.md#import-the-fabric-studio-gcp-image) and a running Fabric Studio license server.
 
 ## 2. Build a workshop golden image
 
