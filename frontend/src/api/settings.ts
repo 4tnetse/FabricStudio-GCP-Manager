@@ -71,6 +71,12 @@ export function useNetworks(enabled: boolean, projectId?: string | null) {
   })
 }
 
+export function useEnableApi() {
+  return useMutation({
+    mutationFn: (api_id: string) => apiPost('/settings/health/enable-api', { api_id }),
+  })
+}
+
 export function useProjectHealth(enabled: boolean, projectId?: string | null) {
   return useQuery({
     queryKey: ['settings', 'health', projectId ?? ''],

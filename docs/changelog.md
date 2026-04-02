@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.4
+Project Health widget: disabled APIs now show an **Enable** button. Clicking it enables the API directly from the app via the Service Usage API and auto-refreshes the health check when done. The service account key must have `serviceusage.services.enable` permission (included in the Scheduling group check).
+
 ## 3.3
 New **Project Health** widget on the Settings page. Checks all IAM permissions required by the app (grouped by Instances, Images & Build, Network, DNS, and Scheduling) and verifies that all required GCP APIs are enabled. Runs automatically after a key is uploaded or the active project is switched; a manual refresh button is also available. Failing permission groups start expanded; passing groups are collapsed. Permissions are tested via `testIamPermissions` at the project level.
 

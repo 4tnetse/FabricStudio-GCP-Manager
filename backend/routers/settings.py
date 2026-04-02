@@ -207,6 +207,78 @@ async def project_health():
     return {"permission_groups": permission_groups, "apis": api_results}
 
 
+_ALLOWED_APIS = {api_id for api_id, _ in _HEALTH_APIS}
+
+
+class EnableApiRequest(BaseModel):
+    api_id: str
+
+
+@router.post("/health/enable-api")
+async def enable_api(body: EnableApiRequest):
+    """Enable a single GCP API for the active project."""
+    if not cfg.settings.active_project_id:
+        raise HTTPException(status_code=400, detail="No active project configured.")
+    if body.api_id not in _ALLOWED_APIS:
+        raise HTTPException(status_code=400, detail=f"API '{body.api_id}' is not in the allowed list.")
+
+    from auth import get_credentials
+    import asyncio
+    import time
+
+    credentials = get_credentials()
+    project_id = cfg.settings.active_project_id
+    loop = asyncio.get_event_loop()
+
+    def _run():
+        import requests as _req
+        from google.auth.transport.requests import Request as _AuthRequest
+
+        if not getattr(credentials, "valid", True):
+            try:
+                credentials.refresh(_AuthRequest())
+            except Exception:
+                pass
+        token = getattr(credentials, "token", None)
+        if not token:
+            credentials.refresh(_AuthRequest())
+            token = credentials.token
+
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        base = f"https://serviceusage.googleapis.com/v1/projects/{project_id}/services"
+
+        # Check current state
+        r = _req.get(f"{base}/{body.api_id}", headers=headers, timeout=10)
+        if r.ok and r.json().get("state") == "ENABLED":
+            return  # Already enabled
+
+        # Enable it
+        resp = _req.post(f"{base}/{body.api_id}:enable", headers=headers, json={}, timeout=30)
+        if not resp.ok:
+            raise RuntimeError(f"Failed to enable {body.api_id} (HTTP {resp.status_code}): {resp.text[:200]}")
+
+        # Poll until enabled (up to 60s)
+        op = resp.json()
+        op_name = op.get("name")
+        if op_name:
+            for _ in range(12):
+                time.sleep(5)
+                r2 = _req.get(
+                    f"https://serviceusage.googleapis.com/v1/{op_name}",
+                    headers=headers,
+                    timeout=10,
+                )
+                if r2.ok and r2.json().get("done"):
+                    break
+
+    try:
+        await loop.run_in_executor(None, _run)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return {"detail": f"{body.api_id} enabled"}
+
+
 # ---- Networks ----
 
 @router.get("/networks")

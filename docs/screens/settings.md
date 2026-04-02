@@ -69,7 +69,7 @@ The widget checks whether the following APIs are enabled in the active project:
 | **Firestore** | Storing schedules and job run history |
 | **Cloud Resource Manager** | Project health check itself; project IAM management |
 
-Disabled APIs are highlighted in red. Enable them in the GCP Console under **APIs & Services** before using the affected features.
+Disabled APIs are highlighted in red. Click the **Enable** button next to a disabled API to enable it directly from the app — no need to open the GCP Console. The widget refreshes automatically once the operation completes.
 
 Send a message to a Microsoft Teams channel when a scheduled job completes or fails.
 

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ShieldCheck, RefreshCw, ChevronDown, ChevronUp, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
-import { useProjectHealth } from '@/api/settings'
+import { useProjectHealth, useEnableApi } from '@/api/settings'
 import type { ProjectHealthGroup } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -49,6 +49,8 @@ interface ProjectHealthWidgetProps {
 
 export function ProjectHealthWidget({ hasKeys, projectId }: ProjectHealthWidgetProps) {
   const { data, isLoading, isFetching, error, refetch, dataUpdatedAt } = useProjectHealth(hasKeys, projectId)
+  const enableApi = useEnableApi()
+  const [enablingId, setEnablingId] = useState<string | null>(null)
 
   const allPermsPassed = data?.permission_groups.every((g) => g.passed) ?? false
   const allApisPassed = data?.apis.every((a) => a.enabled) ?? false
@@ -60,6 +62,16 @@ export function ProjectHealthWidget({ hasKeys, projectId }: ProjectHealthWidgetP
   const lastChecked = dataUpdatedAt
     ? new Date(dataUpdatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : null
+
+  async function handleEnableApi(apiId: string) {
+    setEnablingId(apiId)
+    try {
+      await enableApi.mutateAsync(apiId)
+      await refetch()
+    } finally {
+      setEnablingId(null)
+    }
+  }
 
   return (
     <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-5 space-y-4">
@@ -128,10 +140,22 @@ export function ProjectHealthWidget({ hasKeys, projectId }: ProjectHealthWidgetP
                       : 'border-red-900 bg-red-900/20 text-red-300',
                   )}
                 >
-                  {api.enabled
-                    ? <CheckCircle2 className="w-3 h-3 text-green-400 shrink-0" />
-                    : <XCircle className="w-3 h-3 text-red-400 shrink-0" />}
-                  <span className="truncate">{api.name}</span>
+                  {enablingId === api.id
+                    ? <Loader2 className="w-3 h-3 animate-spin shrink-0 text-slate-400" />
+                    : api.enabled
+                      ? <CheckCircle2 className="w-3 h-3 text-green-400 shrink-0" />
+                      : <XCircle className="w-3 h-3 text-red-400 shrink-0" />}
+                  <span className="truncate flex-1">{api.name}</span>
+                  {!api.enabled && enablingId !== api.id && (
+                    <button
+                      type="button"
+                      onClick={() => handleEnableApi(api.id)}
+                      disabled={!!enablingId}
+                      className="ml-1 px-1.5 py-0.5 rounded text-xs bg-red-900/40 hover:bg-red-800/60 text-red-200 border border-red-800 disabled:opacity-40 shrink-0 transition-colors"
+                    >
+                      Enable
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
