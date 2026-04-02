@@ -57,6 +57,12 @@ Configure Fabric Workspace templates from a source instance.
 4. Optionally select one fabric to **install** immediately (radio button).
 5. Check **Delete all workspaces** to remove existing workspaces (automatically checked and locked when any fabrics are defined).
 
+## Auto-delete
+
+Enable the **Auto-delete** checkbox at the bottom of the form to automatically delete the configured instances at a chosen date and time. When checked, a date/time picker and timezone selector appear. The deletion is registered as a separate schedule in the Schedules system and only created if the configure job completes successfully. The output panel shows a confirmation line when the auto-delete schedule has been saved.
+
+Instances with the label `delete=no` are always skipped at deletion time, regardless of the schedule.
+
 ## Running a configure job
 
 Click **Configure (N)** to start the job immediately. Click **Schedule** to schedule it for a later time via Cloud Scheduler.

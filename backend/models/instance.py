@@ -59,6 +59,12 @@ class BulkConfigureItem(BaseModel):
     zone: str
 
 
+class AutoDeleteConfig(BaseModel):
+    cron_expression: str
+    timezone: str
+    name: str
+
+
 class BulkConfigureRequest(BaseModel):
     instances: list[BulkConfigureItem]
     old_admin_password: str = ""
@@ -74,6 +80,7 @@ class BulkConfigureRequest(BaseModel):
     delete_all_workspaces: bool = False
     workspace_fabrics: list[dict] = []  # [{name: str, template_name: str, install: bool}]
     convert_to_license_server: bool = False
+    auto_delete: AutoDeleteConfig | None = None  # if set, create a delete schedule after successful configure
 
 
 class CloneRequest(BaseModel):
@@ -85,6 +92,7 @@ class CloneRequest(BaseModel):
     count_start: int = 1
     count_end: int = 1
     overwrite: bool = False  # if True, delete existing instance before cloning; if False, skip
+    auto_delete: AutoDeleteConfig | None = None  # if set, create a delete schedule after successful clone
 
 
 class MachineTypeRequest(BaseModel):

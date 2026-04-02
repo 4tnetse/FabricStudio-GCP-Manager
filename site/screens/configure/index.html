@@ -668,6 +668,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#auto-delete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Auto-delete
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#running-a-configure-job" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1188,6 +1199,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#auto-delete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Auto-delete
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#running-a-configure-job" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1312,6 +1334,9 @@
 <li>Optionally select one fabric to <strong>install</strong> immediately (radio button).</li>
 <li>Check <strong>Delete all workspaces</strong> to remove existing workspaces (automatically checked and locked when any fabrics are defined).</li>
 </ol>
+<h2 id="auto-delete">Auto-delete</h2>
+<p>Enable the <strong>Auto-delete</strong> checkbox at the bottom of the form to automatically delete the configured instances at a chosen date and time. When checked, a date/time picker and timezone selector appear. The deletion is registered as a separate schedule in the Schedules system and only created if the configure job completes successfully. The output panel shows a confirmation line when the auto-delete schedule has been saved.</p>
+<p>Instances with the label <code>delete=no</code> are always skipped at deletion time, regardless of the schedule.</p>
 <h2 id="running-a-configure-job">Running a configure job</h2>
 <p>Click <strong>Configure (N)</strong> to start the job immediately. Click <strong>Schedule</strong> to schedule it for a later time via Cloud Scheduler.</p>
 <p>The job runs in the background. You can navigate to other pages while it is running — a status banner on the Configure page shows the current state (running / completed / failed) when you return.</p>

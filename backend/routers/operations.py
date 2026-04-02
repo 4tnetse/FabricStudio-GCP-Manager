@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 import config as cfg
 from auth import get_credentials
-from models.instance import BuildConfig, BulkConfigureItem, BulkConfigureRequest, CloneRequest, ConfigureRequest
+from models.instance import AutoDeleteConfig, BuildConfig, BulkConfigureItem, BulkConfigureRequest, CloneRequest, ConfigureRequest
 from services.fs_api import FabricStudioClient, wait_until_ready
 from services.dns_helpers import create_dns_for_instance, delete_dns_for_instance
 from services.gcp_compute import GCPComputeService
@@ -179,6 +179,61 @@ async def build_instances(build_cfg: BuildConfig, background_tasks: BackgroundTa
 
 
 # ------------------------------------------------------------------ #
+#  Delete instances (scheduled)                                        #
+# ------------------------------------------------------------------ #
+
+async def _delete_instances_job(job_id: str, instances: list[dict]) -> None:
+    q = job_manager.jobs[job_id]
+    svc = _get_service()
+    failed = False
+    await q.put(f"Deleting {len(instances)} instance(s)…")
+    for inst in instances:
+        name = inst.get("name", "")
+        zone = inst.get("zone", "")
+        try:
+            existing = await svc.get_instance(zone=zone, name=name)
+            if (existing.labels or {}).get("delete") == "no":
+                await q.put(f"Skipping {name} — protected (label delete=no)")
+                continue
+            await q.put(f"Deleting {name} ({zone})…")
+            await svc.delete_instance(zone=zone, name=name)
+            await delete_dns_for_instance(name, zone)
+            await q.put(f"  {name} deleted")
+        except Exception as exc:
+            await q.put(f"ERROR deleting {name}: {exc}")
+            failed = True
+    await job_manager.mark_done(job_id, failed=failed)
+
+
+async def _create_delete_schedule(instances: list[dict], auto_delete: AutoDeleteConfig) -> None:
+    """Create a Firestore + Cloud Scheduler delete schedule (best-effort)."""
+    from services import firestore_client as fs
+
+    project_id = cfg.settings.active_project_id or ""
+    key_id = cfg.settings.active_key_id or ""
+    data = {
+        "name": auto_delete.name,
+        "job_type": "delete",
+        "cron_expression": auto_delete.cron_expression,
+        "timezone": auto_delete.timezone,
+        "enabled": True,
+        "payload": {"instances": instances},
+        "project_id": project_id,
+        "key_id": key_id,
+        "cloud_scheduler_job_name": "",
+        "created_by": "auto-delete",
+        "settings_snapshot": {},
+    }
+    schedule = await fs.create_schedule(data)
+    try:
+        from services.cloud_scheduler import create_scheduler_job
+        job_name = await create_scheduler_job(schedule)
+        await fs.update_schedule(schedule["id"], {"cloud_scheduler_job_name": job_name})
+    except Exception:
+        pass  # Cloud Scheduler is best-effort; Firestore record is always created
+
+
+# ------------------------------------------------------------------ #
 #  Clone                                                               #
 # ------------------------------------------------------------------ #
 
@@ -186,6 +241,7 @@ async def _clone_job(job_id: str, clone_req: CloneRequest) -> None:
     q = job_manager.jobs[job_id]
     svc = _get_service()
     failed = False
+    cloned_instances: list[dict] = []
 
     try:
         # Parse the source name to determine base_name
@@ -203,12 +259,12 @@ async def _clone_job(job_id: str, clone_req: CloneRequest) -> None:
         count_start = clone_req.count_start
         count_end = clone_req.count_end
 
-
         numbers = list(range(count_start, count_end + 1))
         total = len(numbers)
 
         target_zone = clone_req.target_zone or clone_req.zone
         cross_zone = target_zone != clone_req.zone
+        cloned_instances = [{"name": f"{base_name}-{n:03d}", "zone": target_zone} for n in numbers]
 
         await q.put(
             f"Cloning {total} instance(s) from {clone_req.source_name} "
@@ -299,6 +355,13 @@ async def _clone_job(job_id: str, clone_req: CloneRequest) -> None:
     except Exception as exc:
         await q.put(f"Clone job failed: {exc}")
         failed = True
+
+    if not failed and clone_req.auto_delete and cloned_instances:
+        try:
+            await _create_delete_schedule(cloned_instances, clone_req.auto_delete)
+            await q.put(f"Auto-delete scheduled: {clone_req.auto_delete.name}")
+        except Exception as exc:
+            await q.put(f"WARNING: failed to create auto-delete schedule: {exc}")
 
     await job_manager.mark_done(job_id, failed=failed)
 
@@ -682,7 +745,17 @@ async def _bulk_configure_job(job_id: str, req: BulkConfigureRequest) -> None:
     tasks = [configure_one(item) for item in req.instances]
     await asyncio.gather(*tasks, return_exceptions=True)
 
-    await job_manager.mark_done(job_id, failed=bool(failures))
+    failed = bool(failures)
+
+    if not failed and req.auto_delete:
+        try:
+            instances = [{"name": i.name, "zone": i.zone} for i in req.instances]
+            await _create_delete_schedule(instances, req.auto_delete)
+            await q.put(f"Auto-delete scheduled: {req.auto_delete.name}")
+        except Exception as exc:
+            await q.put(f"WARNING: failed to create auto-delete schedule: {exc}")
+
+    await job_manager.mark_done(job_id, failed=failed)
 
 
 @router.post("/bulk-configure")

@@ -11,6 +11,7 @@ function jobTypeBadge(type: string) {
   if (type === 'clone') return 'bg-blue-600 text-white'
   if (type === 'configure') return 'bg-purple-600 text-white'
   if (type === 'ssh') return 'bg-teal-600 text-white'
+  if (type === 'delete') return 'bg-red-600 text-white'
   return 'bg-slate-600 text-white'
 }
 

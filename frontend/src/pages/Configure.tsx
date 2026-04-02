@@ -7,7 +7,7 @@ import { useTheme } from '@/context/ThemeContext'
 import { useInstances } from '@/api/instances'
 import { LogStream } from '@/components/LogStream'
 import { CustomSelect } from '@/components/CustomSelect'
-import { ScheduleDialog } from '@/components/ScheduleDialog'
+import { ScheduleDialog, DateTimePicker, scheduleDatetimeToCron, scheduleFormatPreview, scheduleDefaultParts, SCHEDULE_TZ_OPTIONS } from '@/components/ScheduleDialog'
 import { useOps } from '@/context/OpsContext'
 import { DocLink } from '@/components/DocLink'
 
@@ -161,6 +161,17 @@ export default function Configure() {
 
   const { configure: configureOps, setConfigureStreamUrl, configureJob, startConfigureJob, dismissConfigureJob } = useOps()
 
+  // Auto-delete state
+  const [autoDelete, setAutoDelete] = useState(false)
+  const _adInit = scheduleDefaultParts()
+  const [adYear, setAdYear] = useState(_adInit.year)
+  const [adMonth, setAdMonth] = useState(_adInit.month)
+  const [adDay, setAdDay] = useState(_adInit.day)
+  const [adHour, setAdHour] = useState(_adInit.hour)
+  const [adMinute, setAdMinute] = useState(0)
+  const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const [adTz, setAdTz] = useState(SCHEDULE_TZ_OPTIONS.includes(browserTz) ? browserTz : 'UTC')
+
   useEffect(() => {
     if (!workspaceSource) {
       setWorkspaceTemplates([])
@@ -291,6 +302,11 @@ export default function Configure() {
         ssh_keys: sshKeys.filter(Boolean),
         delete_existing_keys: deleteExistingKeys,
         convert_to_license_server: isNewLicenseServer || undefined,
+        auto_delete: autoDelete ? {
+          cron_expression: scheduleDatetimeToCron(adYear, adMonth, adDay, adHour, adMinute),
+          timezone: adTz,
+          name: `Delete configured instances — ${scheduleFormatPreview(adYear, adMonth, adDay, adHour, adMinute)}`,
+        } : undefined,
       }
       const result = await apiPost<{ job_id: string }>('/ops/bulk-configure', payload)
       setConfigureStreamUrl(`/api/ops/${result.job_id}/stream`)
@@ -747,6 +763,43 @@ export default function Configure() {
                     <Plus className="w-3 h-3" />
                     Add Fabric
                   </button>
+                </div>
+              )}
+            </div>
+
+            {/* Auto-delete */}
+            <div className="space-y-3 pt-3 border-t border-slate-700">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={autoDelete}
+                  onChange={(e) => setAutoDelete(e.target.checked)}
+                  className="rounded border-slate-600 bg-slate-700 text-red-500 focus:ring-red-500 focus:ring-offset-slate-900"
+                />
+                <div>
+                  <span className="text-sm text-slate-300">Auto-delete</span>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Schedule deletion of the configured instances at a specific date and time. Only created when the configure job succeeds.
+                  </p>
+                </div>
+              </label>
+              {autoDelete && (
+                <div className="pl-7 space-y-2">
+                  <DateTimePicker
+                    year={adYear} month={adMonth} day={adDay} hour={adHour} minute={adMinute}
+                    onChange={(y, mo, d, h, mi) => { setAdYear(y); setAdMonth(mo); setAdDay(d); setAdHour(h); setAdMinute(mi) }}
+                    selectClass="flex-1 px-2 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <select
+                    className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    value={adTz}
+                    onChange={(e) => setAdTz(e.target.value)}
+                  >
+                    {SCHEDULE_TZ_OPTIONS.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
+                  </select>
+                  <p className="text-xs text-red-400">
+                    Deletes on {scheduleFormatPreview(adYear, adMonth, adDay, adHour, adMinute)} ({adTz})
+                  </p>
                 </div>
               )}
             </div>

@@ -7,7 +7,7 @@ import { useInstances, useZones, useZoneLocations } from '@/api/instances'
 import { LogStream } from '@/components/LogStream'
 import { CustomSelect } from '@/components/CustomSelect'
 import { DocLink } from '@/components/DocLink'
-import { ScheduleDialog } from '@/components/ScheduleDialog'
+import { ScheduleDialog, DateTimePicker, scheduleDatetimeToCron, scheduleFormatPreview, scheduleDefaultParts, SCHEDULE_TZ_OPTIONS } from '@/components/ScheduleDialog'
 import { zoneLabel } from '@/lib/zones'
 import { useOps } from '@/context/OpsContext'
 
@@ -125,6 +125,17 @@ export default function Clone() {
   const { clone: cloneOps, setCloneStreamUrl, cloneJob, startCloneJob, dismissCloneJob } = useOps()
   const [scheduleOpen, setScheduleOpen] = useState(false)
 
+  // Auto-delete state
+  const [autoDelete, setAutoDelete] = useState(false)
+  const _adInit = scheduleDefaultParts()
+  const [adYear, setAdYear] = useState(_adInit.year)
+  const [adMonth, setAdMonth] = useState(_adInit.month)
+  const [adDay, setAdDay] = useState(_adInit.day)
+  const [adHour, setAdHour] = useState(_adInit.hour)
+  const [adMinute, setAdMinute] = useState(0)
+  const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const [adTz, setAdTz] = useState(SCHEDULE_TZ_OPTIONS.includes(browserTz) ? browserTz : 'UTC')
+
   const count = rangeTo >= rangeFrom ? rangeTo - rangeFrom + 1 : 0
   const batches = Math.ceil(count / 5)
 
@@ -151,6 +162,8 @@ export default function Clone() {
     setDnsWarning(null)
     setCloning(true)
     try {
+      const adCron = scheduleDatetimeToCron(adYear, adMonth, adDay, adHour, adMinute)
+      const adName = `Delete ${fullBaseName || cloneName} — ${scheduleFormatPreview(adYear, adMonth, adDay, adHour, adMinute)}`
       const result = await apiPost<{ job_id: string }>('/ops/clone', {
         source_name: source,
         zone: sourceZone,
@@ -160,6 +173,7 @@ export default function Clone() {
         count_start: rangeFrom,
         count_end: rangeTo,
         overwrite,
+        auto_delete: autoDelete ? { cron_expression: adCron, timezone: adTz, name: adName } : undefined,
       })
       setCloneStreamUrl(`/api/ops/${result.job_id}/stream`)
       startCloneJob(`Cloning ${count} instance${count !== 1 ? 's' : ''} from '${source}'…`)
@@ -349,6 +363,43 @@ export default function Clone() {
               </p>
             </div>
           </label>
+
+          {/* Auto-delete */}
+          <div className="space-y-3 pt-3 border-t border-slate-700">
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={autoDelete}
+                onChange={(e) => setAutoDelete(e.target.checked)}
+                className="rounded border-slate-600 bg-slate-700 text-red-500 focus:ring-red-500 focus:ring-offset-slate-900"
+              />
+              <div>
+                <span className="text-sm text-slate-300">Auto-delete after clone</span>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Schedule deletion of the cloned instances at a specific date and time. Only created when the clone succeeds.
+                </p>
+              </div>
+            </label>
+            {autoDelete && (
+              <div className="pl-7 space-y-2">
+                <DateTimePicker
+                  year={adYear} month={adMonth} day={adDay} hour={adHour} minute={adMinute}
+                  onChange={(y, mo, d, h, mi) => { setAdYear(y); setAdMonth(mo); setAdDay(d); setAdHour(h); setAdMinute(mi) }}
+                  selectClass={inputClass.replace('w-full', 'flex-1')}
+                />
+                <select
+                  className={inputClass}
+                  value={adTz}
+                  onChange={(e) => setAdTz(e.target.value)}
+                >
+                  {SCHEDULE_TZ_OPTIONS.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
+                </select>
+                <p className="text-xs text-red-400">
+                  Deletes on {scheduleFormatPreview(adYear, adMonth, adDay, adHour, adMinute)} ({adTz})
+                </p>
+              </div>
+            )}
+          </div>
 
           <div className="flex gap-2">
           <button

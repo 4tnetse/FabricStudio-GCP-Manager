@@ -10,6 +10,7 @@ import {
   Square,
   PowerOff,
   Trash2,
+  CalendarClock,
   MoreHorizontal,
   RefreshCw,
   Pencil,
@@ -35,6 +36,7 @@ import { useMachineTypePrice } from '@/api/costs'
 import { useNavigate } from 'react-router-dom'
 import { useSettings } from '@/api/settings'
 import { useTheme } from '@/context/ThemeContext'
+import { ScheduleDialog } from '@/components/ScheduleDialog'
 import { StatusBadge } from './StatusBadge'
 import { cn } from '@/lib/utils'
 import { zoneLabel } from '@/lib/zones'
@@ -681,6 +683,7 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [detailInstance, setDetailInstance] = useState<Instance | null>(null)
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false)
+  const [deleteScheduleOpen, setDeleteScheduleOpen] = useState(false)
   const [bulkJobId, setBulkJobId] = useState<string | null>(null)
   // Queue of auth-failed instances to retry one by one; null = dialog closed
   const [shutdownRetryQueue, setShutdownRetryQueue] = useState<{ zone: string; name: string }[] | null>(null)
@@ -964,6 +967,15 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
               Shutdown
             </button>
             <button
+              onClick={() => setDeleteScheduleOpen(true)}
+              disabled={bulkOp.isPending}
+              title="Schedule deletion of selected instances"
+              className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm disabled:opacity-50', isSF ? 'bg-slate-700 hover:bg-slate-600 text-red-400' : 'bg-red-900/40 hover:bg-red-800/40 text-red-300 border border-red-800')}
+            >
+              <CalendarClock className="w-3.5 h-3.5" />
+              Schedule deletion
+            </button>
+            <button
               onClick={() => setBulkDeleteConfirm(true)}
               disabled={bulkOp.isPending}
               className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm disabled:opacity-50', isSF ? 'bg-slate-700 hover:bg-slate-600 text-[#db291c]' : 'bg-red-900/40 hover:bg-red-800/40 text-red-300 border border-red-800')}
@@ -1129,6 +1141,15 @@ export function InstanceTable({ defaultZone, defaultStatus }: InstanceTableProps
           onConfirmAll={shutdownRetryQueue.length > 1 ? (password) => retryAllWithPassword(password) : undefined}
           onSkip={() => setShutdownRetryQueue(shutdownRetryQueue.length > 1 ? shutdownRetryQueue.slice(1) : null)}
           onCancelAll={() => setShutdownRetryQueue(null)}
+        />
+      )}
+
+      {deleteScheduleOpen && (
+        <ScheduleDialog
+          jobType="delete"
+          projectId={settings?.active_project_id ?? undefined}
+          payload={{ instances: selectedInstances.map((i) => ({ name: i.name, zone: i.zone })) }}
+          onClose={() => setDeleteScheduleOpen(false)}
         />
       )}
 

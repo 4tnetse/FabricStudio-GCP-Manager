@@ -87,6 +87,15 @@ async def run_triggered_job(schedule: dict, run_id: str, triggered_by: str = "sc
                 commands = req.commands
                 asyncio.create_task(_safe_job(_ssh_job(job_id, req.addresses, commands, req.parallel), job_id))
 
+        elif job_type == "delete":
+            instances = payload.get("instances", [])
+            if not instances:
+                await q.put("ERROR: delete payload contains no instances")
+                await job_manager.mark_done(job_id, failed=True)
+            else:
+                from routers.operations import _delete_instances_job
+                asyncio.create_task(_safe_job(_delete_instances_job(job_id, instances), job_id))
+
         else:
             await q.put(f"ERROR: unknown job_type '{job_type}'")
             await job_manager.mark_done(job_id, failed=True)
@@ -154,6 +163,8 @@ async def run_triggered_job(schedule: dict, run_id: str, triggered_by: str = "sc
             instance_count = len(payload.get("instances", []))
         elif job_type == "ssh":
             instance_count = len(payload.get("addresses", []))
+        elif job_type == "delete":
+            instance_count = len(payload.get("instances", []))
         else:
             instance_count = None
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.8
+
+**Auto-delete**: schedule automatic deletion of instances at a specific date and time.
+
+- **Clone page**: an **Auto-delete** checkbox below the form opens a date/time picker and timezone selector. When the clone job completes successfully, a delete schedule is created automatically for all cloned instances. A confirmation line is shown in the output panel.
+- **Configure page**: same checkbox and picker, creates a delete schedule for all configured instances on success.
+- **Instances page**: a **Schedule deletion** button in the bulk action bar opens the schedule dialog for the selected instances, creating a delete schedule immediately.
+
+Instances with the GCP label `delete=no` are always skipped at deletion time regardless of the schedule. The auto-delete schedule appears in the Schedules page with a red badge and full run history.
+
 ## 3.7
 
 New **Dashboard** page with nine overview widgets: Instance Summary (total, running, stopped, transitioning counts), Cost Estimate (live hourly, daily, and monthly cost for running instances), Instance Groups (per-workshop progress bars), License Server (status, IP, and machine type of the `purpose=licenseserver` instance), Schedules (upcoming schedules with job type badge and human-readable date/time), Recent Activity (last three schedule job run results), Images (image count, total disk size, and three most recent images), Project Health (compact dot-grid status for all permission groups and APIs), and Firewall (rule count, Global Access state, IP Allowlist size, and top rules).

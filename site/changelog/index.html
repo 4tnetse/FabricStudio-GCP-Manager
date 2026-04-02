@@ -371,6 +371,28 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#38" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.8
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#37" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.7
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#36" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1690,6 +1712,28 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#38" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.8
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#37" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.7
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#36" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2403,6 +2447,18 @@
 
 
 <h1 id="changelog">Changelog</h1>
+<h2 id="38">3.8</h2>
+<p><strong>Auto-delete</strong>: schedule automatic deletion of instances at a specific date and time.</p>
+<ul>
+<li><strong>Clone page</strong>: an <strong>Auto-delete</strong> checkbox below the form opens a date/time picker and timezone selector. When the clone job completes successfully, a delete schedule is created automatically for all cloned instances. A confirmation line is shown in the output panel.</li>
+<li><strong>Configure page</strong>: same checkbox and picker, creates a delete schedule for all configured instances on success.</li>
+<li><strong>Instances page</strong>: a <strong>Schedule deletion</strong> button in the bulk action bar opens the schedule dialog for the selected instances, creating a delete schedule immediately.</li>
+</ul>
+<p>Instances with the GCP label <code>delete=no</code> are always skipped at deletion time regardless of the schedule. The auto-delete schedule appears in the Schedules page with a red badge and full run history.</p>
+<h2 id="37">3.7</h2>
+<p>New <strong>Dashboard</strong> page with nine overview widgets: Instance Summary (total, running, stopped, transitioning counts), Cost Estimate (live hourly, daily, and monthly cost for running instances), Instance Groups (per-workshop progress bars), License Server (status, IP, and machine type of the <code>purpose=licenseserver</code> instance), Schedules (upcoming schedules with job type badge and human-readable date/time), Recent Activity (last three schedule job run results), Images (image count, total disk size, and three most recent images), Project Health (compact dot-grid status for all permission groups and APIs), and Firewall (rule count, Global Access state, IP Allowlist size, and top rules).</p>
+<p><strong>Project Health</strong>: when the Service Usage API itself is not enabled on a project, the widget now shows a clear explanation and a direct link to the GCP Console enable page instead of silently reporting all APIs as disabled. Fixed a bug where the token refresh was skipped under certain credential states, causing all API checks and the enable-API action to fail with a 500 error.</p>
+<p>Status badges across all dashboard widgets now use solid colour backgrounds with white text and no border.</p>
 <h2 id="36">3.6</h2>
 <p>DNS zone management in Preferences: when the Cloud DNS API is enabled, the DNS Zone field becomes a dropdown listing all managed zones in the active project. Selecting a zone auto-populates the DNS Domain field (which becomes read-only) and shows the zone type (public or private) as a read-only label below the dropdown.</p>
 <p><strong>Create new DNS zone</strong> dialog: enter a zone name, DNS name, and choose the zone type. Private zones are automatically scoped to the selected VPC network. After creating a public zone, the dialog shows the four NS records assigned by Google Cloud DNS — copy them to your registrar to make the zone authoritative. The same NS records are always accessible via the <strong>ⓘ</strong> icon next to the DNS Domain field.</p>

@@ -62,7 +62,8 @@ Select multiple instances using the checkboxes. A bulk action bar appears at the
 | **Start** | Stopped instances only |
 | **Stop** | Running instances only |
 | **Shutdown** | Running instances only — uses Fabric Studio API |
-| **Delete** | All selected — requires confirmation |
+| **Schedule deletion** | All selected — opens a date/time picker to schedule deletion via Cloud Scheduler |
+| **Delete** | All selected — requires confirmation, deletes immediately |
 
 #### Shutdown password prompt
 

@@ -6,26 +6,34 @@ import { useCreateSchedule, type ScheduleCreate } from '@/api/schedules'
 import { useTheme } from '@/context/ThemeContext'
 
 interface Props {
-  jobType: 'clone' | 'configure' | 'ssh'
+  jobType: 'clone' | 'configure' | 'ssh' | 'delete'
   payload: Record<string, unknown>
   projectId?: string
   onClose: () => void
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+export const SCHEDULE_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+const MONTHS = SCHEDULE_MONTHS
 
 function daysInMonth(month: number, year: number): number {
   return new Date(year, month, 0).getDate()
 }
 
-function defaultParts() {
+export function scheduleDefaultParts() {
   const d = new Date()
   return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate(), hour: d.getHours(), minute: d.getMinutes() }
 }
 
+function defaultParts() { return scheduleDefaultParts() }
+
 function partsToDt(year: number, month: number, day: number, hour: number, minute: number): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${year}-${pad(month)}-${pad(day)}T${pad(hour)}:${pad(minute)}`
+}
+
+export function scheduleDatetimeToCron(year: number, month: number, day: number, hour: number, minute: number): string {
+  return `${minute} ${hour} ${day} ${month} *`
 }
 
 function datetimeToCron(dt: string): string {
@@ -35,12 +43,16 @@ function datetimeToCron(dt: string): string {
   return `${minute} ${hour} ${day} ${month} *`
 }
 
-function formatPreview(year: number, month: number, day: number, hour: number, minute: number): string {
+export function scheduleFormatPreview(year: number, month: number, day: number, hour: number, minute: number): string {
   const pad = (n: number) => String(n).padStart(2, '0')
-  return `${MONTHS[month - 1]} ${day}, ${year} at ${pad(hour)}:${pad(minute)}`
+  return `${SCHEDULE_MONTHS[month - 1]} ${day}, ${year} at ${pad(hour)}:${pad(minute)}`
 }
 
-const TZ_OPTIONS = [
+function formatPreview(year: number, month: number, day: number, hour: number, minute: number): string {
+  return scheduleFormatPreview(year, month, day, hour, minute)
+}
+
+export const SCHEDULE_TZ_OPTIONS = [
   'Europe/Brussels',
   'Europe/London',
   'Europe/Paris',
@@ -54,13 +66,15 @@ const TZ_OPTIONS = [
   'UTC',
 ]
 
-interface DateTimePickerProps {
+const TZ_OPTIONS = SCHEDULE_TZ_OPTIONS
+
+export interface DateTimePickerProps {
   year: number; month: number; day: number; hour: number; minute: number
   onChange: (year: number, month: number, day: number, hour: number, minute: number) => void
   selectClass: string
 }
 
-function DateTimePicker({ year, month, day, hour, minute, onChange, selectClass }: DateTimePickerProps) {
+export function DateTimePicker({ year, month, day, hour, minute, onChange, selectClass }: DateTimePickerProps) {
   const currentYear = new Date().getFullYear()
   const years = Array.from({ length: 6 }, (_, i) => currentYear + i)
   const maxDay = daysInMonth(month, year)
@@ -170,7 +184,7 @@ export function ScheduleDialog({ jobType, payload, projectId, onClose }: Props) 
           <div className="flex items-center gap-2">
             <CalendarClock className="w-4 h-4 text-slate-400" />
             <h2 className="text-base font-semibold text-slate-100">
-              Schedule {jobType === 'clone' ? 'Clone' : jobType === 'configure' ? 'Configure' : 'SSH'} job
+              Schedule {jobType === 'clone' ? 'Clone' : jobType === 'configure' ? 'Configure' : jobType === 'ssh' ? 'SSH' : 'Delete'} job
             </h2>
           </div>
           <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors">
