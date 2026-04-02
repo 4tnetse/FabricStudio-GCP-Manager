@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.0
+## 3.10
 
 Instance rename and license server conversion now also rename the boot disk so the disk name always matches the instance name. GCP has no disk rename API, so this is done as: create snapshot → create new disk from snapshot → detach old disk → attach new disk → delete old disk → delete snapshot. A message in the output panel warns that the step may take a few minutes.
 
