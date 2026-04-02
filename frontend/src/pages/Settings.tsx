@@ -6,7 +6,7 @@ import { DocLink } from '@/components/DocLink'
 import { useDetectCloudRunUrl } from '@/api/schedules'
 import { useCloudRunPermissions, useCloudRunSubnets, useStartDeploy, useStartUndeploy } from '@/api/cloudrun'
 import { useOps } from '@/context/OpsContext'
-import { useSettings, useUpdateSettings, useResetSettings, useTestTeamsWebhook, useNetworks } from '@/api/settings'
+import { useSettings, useUpdateSettings, useResetSettings, useTestTeamsWebhook, useNetworks, useCreateNetwork } from '@/api/settings'
 import { useKeys, useUploadKey, useDeleteKey, useRenameKey } from '@/api/keys'
 import { useZones, useZoneLocations } from '@/api/instances'
 import { useSelectProject } from '@/api/projects'
@@ -188,15 +188,28 @@ export default function SettingsPage() {
 
   const networkDropdownRef = useRef<HTMLDivElement>(null)
   const [openNetworkDropdown, setOpenNetworkDropdown] = useState(false)
+  const [showCreateVpc, setShowCreateVpc] = useState(false)
+  const [newVpcName, setNewVpcName] = useState('')
+  const createNetwork = useCreateNetwork()
+
+  const vpcNameValid = /^[a-z][a-z0-9\-]{0,62}$/.test(newVpcName)
+
+  async function handleCreateVpc() {
+    if (!vpcNameValid) return
+    try {
+      await createNetwork.mutateAsync(newVpcName)
+      setField('default_network', newVpcName as Settings['default_network'])
+      setShowCreateVpc(false)
+      setNewVpcName('')
+      queryClient.invalidateQueries({ queryKey: ['settings', 'networks', settings?.active_project_id ?? ''] })
+      toast.success(`VPC '${newVpcName}' created`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create VPC')
+    }
+  }
 
   useEffect(() => {
     if (networksData && !form.default_network) {
-      const networks = networksData.networks
-      if (networks.includes('default')) {
-        setField('default_network', 'default')
-      } else if (networks.length > 0) {
-        setField('default_network', networks[0])
-      }
       networkDropdownRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       setOpenNetworkDropdown(true)
       setTimeout(() => setOpenNetworkDropdown(false), 0)
@@ -467,9 +480,12 @@ export default function SettingsPage() {
             <CustomSelect
               className={inputClass}
               value={(form.default_network as string) ?? ''}
-              onChange={(v) => setField('default_network', v)}
+              onChange={(v) => {
+                if (v === '__create_new__') { setShowCreateVpc(true) }
+                else setField('default_network', v)
+              }}
               options={[
-                { value: '__create_new__', label: 'Create new VPC', disabled: true },
+                { value: '__create_new__', label: 'Create new VPC …' },
                 ...(networksData?.networks ?? []).map((n) => ({ value: n, label: n })),
               ]}
               autoOpen={openNetworkDropdown}
@@ -1057,6 +1073,45 @@ export default function SettingsPage() {
       </div>{/* end two-column grid */}
 
 
+
+      {/* Create VPC dialog */}
+      {showCreateVpc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-6 space-y-4">
+            <h2 className="text-base font-semibold text-slate-100">Create new VPC</h2>
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Network name</label>
+              <input
+                autoFocus
+                className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="e.g. my-vpc"
+                value={newVpcName}
+                onChange={(e) => setNewVpcName(e.target.value.toLowerCase())}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleCreateVpc(); if (e.key === 'Escape') setShowCreateVpc(false) }}
+              />
+              {newVpcName && !vpcNameValid && (
+                <p className="text-xs text-red-400 mt-1">Must start with a letter, contain only lowercase letters, numbers, and hyphens, max 63 characters.</p>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => { setShowCreateVpc(false); setNewVpcName('') }}
+                className="px-3 py-1.5 rounded-lg text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateVpc}
+                disabled={!vpcNameValid || createNetwork.isPending}
+                className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 transition-colors"
+              >
+                {createNetwork.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Reset confirmation dialog */}
       {confirmReset && (

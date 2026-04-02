@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.5
+VPC creation from Settings: selecting **Create new VPC …** in the Default network dropdown opens a dialog to name and create a new VPC (auto subnets, global routing). The new network is auto-selected after creation. The dropdown no longer pre-selects a network on first load — the user must choose explicitly. Firewall rules, ACL, and Global Access are now scoped to the selected VPC. The project selector in the sidebar shows the key's custom display name when set. Key name always shown as a group header in the project selector dropdown.
+
 ## 3.4
 Project Health widget: disabled APIs now show an **Enable** button. Clicking it enables the API directly from the app via the Service Usage API and auto-refreshes the health check when done. The service account key must have `serviceusage.services.enable` permission (included in the Scheduling group check).
 

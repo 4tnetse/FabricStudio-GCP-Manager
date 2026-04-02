@@ -16,10 +16,27 @@ Configure your GCP connection and application preferences.
 | **Instance FQDN prefix** | Prefix applied to instance names in FQDNs (e.g. `fs`) |
 | **DNS Zone name** | Managed zone name in Google Cloud DNS (e.g. `labs-yourdomain-com`) |
 | **SSH public key** | Default public key installed on instances during Configure and Clone operations |
+| **Default network (GCP VPC)** | VPC network used for all operations in the active project. All pages (Instances, Firewall, Build, etc.) are scoped to this network. |
 
 Click **Save settings** to apply changes. Click **Reset all settings** to remove all settings (requires re-configuration).
 
 > **Note:** The Preferences widget is only shown after at least one service account key has been uploaded.
+
+### Default network (GCP VPC)
+
+The **Default network** dropdown lists all VPC networks available in the active project. When a key is first loaded the dropdown opens automatically — no network is pre-selected, so you must choose one explicitly. Navigation items are disabled until a network is selected.
+
+To create a new VPC directly from the app, select **Create new VPC …** at the top of the dropdown. A dialog appears asking for a network name. The VPC is created with the following fixed settings:
+
+- **Subnet creation mode:** auto (subnets are created automatically in all regions)
+- **Dynamic routing mode:** global
+- **Best path selection mode:** Legacy (GCP default)
+
+Network name rules: must start with a lowercase letter, contain only lowercase letters, numbers, and hyphens, and be at most 63 characters long.
+
+After creation the new VPC is automatically selected as the default network. Click **Save settings** to persist the selection.
+
+> **Note:** GCP firewall rules are scoped to a specific VPC. The Firewall page only shows rules for the selected network, and all firewall operations (Source IP Allowlist, Global Access) create rules in the selected network.
 
 ## Service account keys
 

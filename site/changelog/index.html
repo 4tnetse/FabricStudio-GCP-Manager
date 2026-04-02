@@ -371,6 +371,105 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#35" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#34" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#33" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#32" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#242" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.42
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#241" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.41
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#240" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.40
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#239" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1552,6 +1651,105 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#35" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#34" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#33" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#32" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#242" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.42
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#241" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.41
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#240" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.40
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#239" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2155,6 +2353,24 @@
 
 
 <h1 id="changelog">Changelog</h1>
+<h2 id="35">3.5</h2>
+<p>VPC creation from Settings: selecting <strong>Create new VPC …</strong> in the Default network dropdown opens a dialog to name and create a new VPC (auto subnets, global routing). The new network is auto-selected after creation. The dropdown no longer pre-selects a network on first load — the user must choose explicitly. Firewall rules, ACL, and Global Access are now scoped to the selected VPC. The project selector in the sidebar shows the key's custom display name when set. Key name always shown as a group header in the project selector dropdown.</p>
+<h2 id="34">3.4</h2>
+<p>Project Health widget: disabled APIs now show an <strong>Enable</strong> button. Clicking it enables the API directly from the app via the Service Usage API and auto-refreshes the health check when done. The service account key must have <code>serviceusage.services.enable</code> permission (included in the Scheduling group check).</p>
+<h2 id="33">3.3</h2>
+<p>New <strong>Project Health</strong> widget on the Settings page. Checks all IAM permissions required by the app (grouped by Instances, Images &amp; Build, Network, DNS, and Scheduling) and verifies that all required GCP APIs are enabled. Runs automatically after a key is uploaded or the active project is switched; a manual refresh button is also available. Failing permission groups start expanded; passing groups are collapsed. Permissions are tested via <code>testIamPermissions</code> at the project level.</p>
+<h2 id="32">3.2</h2>
+<p>Cloud Run deploy automatically grants the compute service account access to the Cloud Build logs bucket as a new deploy step. Bucket-level IAM (<code>roles/storage.objectAdmin</code>) is tried first; if the service account key lacks the necessary permission, the step falls back to granting <code>roles/cloudbuild.builds.builder</code> at the project level via the Cloud Resource Manager API. Both paths are idempotent.</p>
+<h2 id="31">3.1</h2>
+<p>VPC network dropdown now refetches correctly after uploading or deleting a service account key, and after switching projects. A toast is shown when the service account does not have the <code>compute.networks.list</code> permission. Network query key includes the active project ID so switching projects always loads the correct VPC list.</p>
+<h2 id="30">3.0</h2>
+<p>Multi-VPC support (phase 1): a <strong>Default network (GCP VPC)</strong> dropdown is now shown in Preferences, listing all VPC networks in the active project. The <code>default</code> network is auto-selected on first load. A <strong>Create new VPC</strong> option is shown at the top of the list (no action behind it yet). Nav items are disabled when no network is configured, in addition to the existing no-key check. Build page disk size field now starts empty (shows <code>e.g. 200</code> as placeholder).</p>
+<h2 id="242">2.42</h2>
+<p>Configure page scrolls to the top when a job starts and stays there — log output now auto-scrolls within the panel instead of dragging the whole page down. All configure and SSH jobs now fail immediately with a clear error if the selected instance is not running. Fixed InstanceStatus.TERMINATED reference (correct name is STOPPED) in the license server conversion flow.</p>
+<h2 id="241">2.41</h2>
+<p>License server conversion now automatically renames the instance to <code>srv-{prepend}-{product}-001</code> (incrementing if already taken). The instance is powered down before the rename and restarted once the conversion is complete. Step 7 runs in parallel: static IP reservation, label update, firewall tag swap, and firewall rule creation all happen concurrently.</p>
+<h2 id="240">2.40</h2>
+<p>License server conversion now reserves a static internal IP as step 5 of 8 — the instance's current IP is promoted to a named GCP static address so the license server always keeps the same IP. When any instance with a static internal IP reservation is deleted from the app, the reservation is automatically released.</p>
 <h2 id="239">2.39</h2>
 <p>Teams notification cards now use a FactSet layout showing schedule name, status, job type, project, triggered by, start time, duration, and instance count. On failure, the last 5 log lines are shown as an error snippet. Added <code>speak</code> property to the Adaptive Card as an additional attempt to populate the Teams toast preview. Requires remote backend update.</p>
 <h2 id="238">2.38</h2>

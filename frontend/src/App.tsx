@@ -203,7 +203,7 @@ export default function App() {
 
   const { data: projects } = useProjects()
   const currentProject = projects?.find((p) => p.is_selected) ?? projects?.[0]
-  const projectLabel = currentProject?.name ?? currentProject?.id ?? ''
+  const projectLabel = currentProject?.key_name ?? currentProject?.name ?? currentProject?.id ?? ''
 
   useEffect(() => {
     if (!projectLabel) return

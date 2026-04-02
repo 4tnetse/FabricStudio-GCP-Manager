@@ -95,8 +95,11 @@ def _parse_firewall(fw: Any) -> FirewallRule:
             entry["ports"] = list(a.ports)
         allowed_list.append(entry)
 
+    network_name = (fw.network or "").split("/")[-1]
+
     return FirewallRule(
         name=fw.name,
+        network=network_name,
         direction=fw.direction or "INGRESS",
         priority=fw.priority or 1000,
         source_ranges=list(fw.source_ranges) if fw.source_ranges else [],
@@ -456,6 +459,23 @@ class GCPComputeService:
 
         names = await self._run(_list)
         return sorted(names)
+
+    async def create_network(self, name: str) -> None:
+        """Create a VPC network with auto subnets and global dynamic routing."""
+        client = compute_v1.NetworksClient(credentials=self._credentials)
+
+        def _create():
+            network = compute_v1.Network(
+                name=name,
+                auto_create_subnetworks=True,
+                routing_config=compute_v1.NetworkRoutingConfig(
+                    routing_mode="GLOBAL",
+                ),
+            )
+            op = client.insert(project=self._project_id, network_resource=network)
+            _wait_for_op(op)
+
+        await self._run(_create)
 
     async def list_firewall_rules(self) -> list[FirewallRule]:
         client = compute_v1.FirewallsClient(credentials=self._credentials)

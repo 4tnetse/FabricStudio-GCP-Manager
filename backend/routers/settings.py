@@ -281,6 +281,28 @@ async def enable_api(body: EnableApiRequest):
 
 # ---- Networks ----
 
+class CreateNetworkRequest(BaseModel):
+    name: str
+
+
+@router.post("/networks")
+async def create_network(body: CreateNetworkRequest):
+    """Create a new VPC network with auto subnets and global routing."""
+    if not cfg.settings.active_project_id:
+        raise HTTPException(status_code=400, detail="No active project configured.")
+    import re
+    if not re.fullmatch(r'[a-z][a-z0-9\-]{0,62}', body.name):
+        raise HTTPException(status_code=400, detail="Invalid network name.")
+    from auth import get_credentials
+    from services.gcp_compute import GCPComputeService
+    svc = GCPComputeService(get_credentials(), cfg.settings.active_project_id)
+    try:
+        await svc.create_network(body.name)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    return {"name": body.name}
+
+
 @router.get("/networks")
 async def list_networks():
     """Return the list of VPC network names in the active project."""

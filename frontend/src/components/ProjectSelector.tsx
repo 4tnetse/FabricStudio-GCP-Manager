@@ -83,7 +83,7 @@ export function ProjectSelector() {
           <FolderOpen className="w-4 h-4 text-slate-400 shrink-0" />
         )}
         <span className="flex-1 text-left truncate">
-          {currentProject?.name ?? currentProject?.id ?? 'Select project'}
+          {currentProject?.key_name ?? currentProject?.name ?? currentProject?.id ?? 'Select project'}
         </span>
         <ChevronDown className={cn('w-3.5 h-3.5 text-slate-400 transition-transform', open && 'rotate-180')} />
       </button>
@@ -96,15 +96,13 @@ export function ProjectSelector() {
             <div className="max-h-64 overflow-y-auto">
               {grouped.map((group, gi) => (
                 <div key={group.keyId}>
-                  {/* Key group header — non-clickable separator */}
-                  {grouped.length > 1 && (
-                    <div className={cn(
-                      'px-3 py-1.5 text-xs font-medium text-slate-500 bg-slate-800/60 select-none',
-                      gi > 0 && 'border-t border-slate-700/60'
-                    )}>
-                      {group.keyName}
-                    </div>
-                  )}
+                  {/* Key group header */}
+                  <div className={cn(
+                    'px-3 py-1.5 text-xs font-medium text-slate-500 bg-slate-800/60 select-none',
+                    gi > 0 && 'border-t border-slate-700/60'
+                  )}>
+                    {group.keyName}
+                  </div>
                   {group.projects.map((project) => (
                     <button
                       key={project.id}

@@ -1,7 +1,8 @@
-3.4
+3.5
 
 # Version history
 # ---------------
+# 3.5    VPC creation dialog from Settings dropdown; firewall scoped to selected VPC (list/ACL/global-access); project selector shows key custom name; no auto-select of default network on first load
 # 3.4    Project Health widget: Enable button on disabled APIs — enables via Service Usage API directly from the app, auto-refreshes health check on completion
 # 3.3    Project Health widget: checks all app IAM permissions (Instances, Images & Build, Network, DNS, Scheduling) and required API enablement; auto-runs on key upload/project switch; manual refresh; failing groups expanded by default
 # 3.2    Cloud Run deploy: new step 5 grants compute SA access to Cloud Build logs bucket (bucket-level IAM first, falls back to roles/cloudbuild.builds.builder at project level; idempotent)

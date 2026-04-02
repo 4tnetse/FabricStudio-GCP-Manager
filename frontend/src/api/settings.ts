@@ -61,6 +61,16 @@ export function useTestTeamsWebhook() {
   })
 }
 
+export function useCreateNetwork() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (name: string) => apiPost<{ name: string }>('/settings/networks', { name }),
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: ['settings', 'networks'] })
+    },
+  })
+}
+
 export function useNetworks(enabled: boolean, projectId?: string | null) {
   return useQuery({
     queryKey: ['settings', 'networks', projectId ?? ''],

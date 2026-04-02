@@ -822,6 +822,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Preferences">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#default-network-gcp-vpc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default network (GCP VPC)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -836,16 +853,38 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#notifications" class="md-nav__link">
+  <a href="#project-health" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Notifications
+        Project Health
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Notifications">
+    <nav class="md-nav" aria-label="Project Health">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#permissions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Permissions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        APIs
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#setting-up-a-teams-workflow-webhook" class="md-nav__link">
@@ -1079,6 +1118,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Preferences">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#default-network-gcp-vpc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default network (GCP VPC)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1093,16 +1149,38 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#notifications" class="md-nav__link">
+  <a href="#project-health" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Notifications
+        Project Health
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Notifications">
+    <nav class="md-nav" aria-label="Project Health">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#permissions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Permissions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        APIs
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#setting-up-a-teams-workflow-webhook" class="md-nav__link">
@@ -1241,11 +1319,28 @@
 <td><strong>SSH public key</strong></td>
 <td>Default public key installed on instances during Configure and Clone operations</td>
 </tr>
+<tr>
+<td><strong>Default network (GCP VPC)</strong></td>
+<td>VPC network used for all operations in the active project. All pages (Instances, Firewall, Build, etc.) are scoped to this network.</td>
+</tr>
 </tbody>
 </table>
 <p>Click <strong>Save settings</strong> to apply changes. Click <strong>Reset all settings</strong> to remove all settings (requires re-configuration).</p>
 <blockquote>
 <p><strong>Note:</strong> The Preferences widget is only shown after at least one service account key has been uploaded.</p>
+</blockquote>
+<h3 id="default-network-gcp-vpc">Default network (GCP VPC)</h3>
+<p>The <strong>Default network</strong> dropdown lists all VPC networks available in the active project. When a key is first loaded the dropdown opens automatically — no network is pre-selected, so you must choose one explicitly. Navigation items are disabled until a network is selected.</p>
+<p>To create a new VPC directly from the app, select <strong>Create new VPC …</strong> at the top of the dropdown. A dialog appears asking for a network name. The VPC is created with the following fixed settings:</p>
+<ul>
+<li><strong>Subnet creation mode:</strong> auto (subnets are created automatically in all regions)</li>
+<li><strong>Dynamic routing mode:</strong> global</li>
+<li><strong>Best path selection mode:</strong> Legacy (GCP default)</li>
+</ul>
+<p>Network name rules: must start with a lowercase letter, contain only lowercase letters, numbers, and hyphens, and be at most 63 characters long.</p>
+<p>After creation the new VPC is automatically selected as the default network. Click <strong>Save settings</strong> to persist the selection.</p>
+<blockquote>
+<p><strong>Note:</strong> GCP firewall rules are scoped to a specific VPC. The Firewall page only shows rules for the selected network, and all firewall operations (Source IP Allowlist, Global Access) create rules in the selected network.</p>
 </blockquote>
 <h2 id="service-account-keys">Service account keys</h2>
 <p>Upload one or more <a href="https://console.cloud.google.com/iam-admin/serviceaccounts">GCP service account JSON key</a> files. Each key can have multiple projects.</p>
@@ -1256,7 +1351,86 @@
 </ul>
 <p>When uploading the first key, the first available project is selected automatically. When uploading additional keys, a dialog appears to optionally switch to a project from the new key.</p>
 <p>The active project is selected from the sidebar project selector.</p>
-<h2 id="notifications">Notifications</h2>
+<h2 id="project-health">Project Health</h2>
+<p>The <strong>Project Health</strong> widget checks whether the active service account has all the permissions the app needs and whether all required GCP APIs are enabled.</p>
+<p>Click <strong>Run check</strong> to run the health check against the active project. The check runs automatically when a new key is uploaded or the active project is switched. Use <strong>Refresh</strong> to re-run it at any time.</p>
+<h3 id="permissions">Permissions</h3>
+<p>Permissions are grouped by area:</p>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>What it covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Instances</strong></td>
+<td>Start, stop, delete, create, list instances; set labels, metadata, tags</td>
+</tr>
+<tr>
+<td><strong>Images &amp; Build</strong></td>
+<td>List, create, delete images; list machine types, zones, disk types; create disks</td>
+</tr>
+<tr>
+<td><strong>Network</strong></td>
+<td>List networks, subnetworks, firewall rules, static IP addresses; create and delete firewall rules</td>
+</tr>
+<tr>
+<td><strong>DNS</strong></td>
+<td>List managed zones and record sets; create and delete DNS records</td>
+</tr>
+<tr>
+<td><strong>Scheduling (Cloud Run)</strong></td>
+<td>Deploy Cloud Run services, trigger Cloud Build, manage Firestore, set project IAM policy</td>
+</tr>
+</tbody>
+</table>
+<p>Each group shows a pass/fail indicator. Click a group to expand it and see which individual permissions are granted or missing.</p>
+<blockquote>
+<p><strong>Note:</strong> A small number of Compute Engine permissions (such as <code>compute.addresses.insert</code>) cannot be tested at the project level via the GCP IAM API and are excluded from the check.</p>
+</blockquote>
+<h3 id="apis">APIs</h3>
+<p>The widget checks whether the following APIs are enabled in the active project:</p>
+<table>
+<thead>
+<tr>
+<th>API</th>
+<th>Required for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Compute Engine</strong></td>
+<td>All instance, image, network, and firewall operations</td>
+</tr>
+<tr>
+<td><strong>Cloud DNS</strong></td>
+<td>Creating and removing DNS records</td>
+</tr>
+<tr>
+<td><strong>Cloud Run</strong></td>
+<td>Remote scheduling backend</td>
+</tr>
+<tr>
+<td><strong>Cloud Build</strong></td>
+<td>Copying the container image during deploy</td>
+</tr>
+<tr>
+<td><strong>Cloud Scheduler</strong></td>
+<td>Triggering scheduled jobs</td>
+</tr>
+<tr>
+<td><strong>Firestore</strong></td>
+<td>Storing schedules and job run history</td>
+</tr>
+<tr>
+<td><strong>Cloud Resource Manager</strong></td>
+<td>Project health check itself; project IAM management</td>
+</tr>
+</tbody>
+</table>
+<p>Disabled APIs are highlighted in red. Click the <strong>Enable</strong> button next to a disabled API to enable it directly from the app — no need to open the GCP Console. The widget refreshes automatically once the operation completes.</p>
 <p>Send a message to a Microsoft Teams channel when a scheduled job completes or fails.</p>
 <h3 id="setting-up-a-teams-workflow-webhook">Setting up a Teams Workflow webhook</h3>
 <p>Microsoft deprecated the old Incoming Webhook connector. Use a <strong>Power Automate Workflow</strong> instead:</p>
@@ -1341,6 +1515,7 @@
 <li>Enable required GCP APIs (Cloud Run, Firestore, Cloud Scheduler, Cloud Build)</li>
 <li>Create the <code>fabricstudio-gcp-manager</code> Firestore database in Native mode</li>
 <li>Create the <code>fs-gcpbackend-to-instances</code> firewall rule (allows the remote Fabric Studio GCP Manager to reach instances over internal IPs)</li>
+<li>Grant the default compute service account access to the Cloud Build logs bucket</li>
 <li>Copy the container image to your project via Cloud Build (this step takes a few minutes)</li>
 <li>Deploy the <code>fabricstudio-scheduler</code> Cloud Run service connected to your VPC</li>
 <li>Inject required environment variables into the running service</li>

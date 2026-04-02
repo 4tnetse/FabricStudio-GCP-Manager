@@ -1770,7 +1770,7 @@ gcloud run deploy fabricstudio-scheduler \
 <p>To create a license server, build an instance using the <a href="../screens/build/">Build</a> page and then configure it using the <a href="../screens/configure/">Configure</a> page.</p>
 <ul>
 <li>Enter the <strong>registration token</strong> <code>secret</code> to automatically register the Fabric Studio instance.</li>
-<li>Select <strong>This will be a new license server</strong>. This will convert the instance into a license server as part of the configure operation, and configure a firewall rule allowing traffic from your instances to your license server.</li>
+<li>Select <strong>This will be a new license server</strong>. This will convert the instance into a license server as part of the configure operation, and configure a firewall rule allowing traffic from your instances to your license server. It will also make its internal IP address static.</li>
 <li>Set the <strong>hostname</strong> to <code>License Server</code>.</li>
 </ul>
 <p>Note that the conversion will also set the following labels:</p>
@@ -1779,7 +1779,7 @@ gcloud run deploy fabricstudio-scheduler \
 <li><code>delete=no</code> (this will prevent accidental deletion)</li>
 <li><code>purpose=licenseserver</code></li>
 </ul>
-<p>The license server does not need a public DNS name, so when the instance has been converted, stop it and rename it to <code>srv-...</code>. Instances with a name that starts with <code>srv</code> will not get a DNS A record. After renaming is done, start the instance again.</p>
+<p>The conversion automatically stops the instance, renames it to <code>srv-{prepend}-{product}-001</code> (incrementing if already taken), and restarts it. Instances with a name starting with <code>srv</code> do not get a DNS A record, so the license server will not be assigned a public DNS name.</p>
 
 
 

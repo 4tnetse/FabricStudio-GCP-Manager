@@ -26,6 +26,11 @@ def _get_service() -> GCPComputeService:
     return GCPComputeService(creds, cfg.settings.active_project_id)
 
 
+def _active_network() -> str:
+    project_id = cfg.settings.active_project_id or ""
+    return cfg.get_project_config(cfg.settings, project_id).get("default_network") or "default"
+
+
 async def _detect_caller_ip() -> str:
     async with httpx.AsyncClient() as client:
         resp = await client.get("https://api.ipify.org", timeout=10.0)
@@ -76,7 +81,7 @@ async def add_acl_entry(body: IpAclRequest):
                 priority = 1001
             await svc.create_firewall_rule(
                 name=ACL_RULE_NAME,
-                network="default",
+                network=_active_network(),
                 priority=priority,
                 allowed_tcp=_ACL_TCP_PORTS,
                 allowed_udp=_ACL_UDP_PORTS,
@@ -146,7 +151,7 @@ async def set_global_access(body: GlobalAccessRequest):
             try:
                 await svc.create_firewall_rule(
                     name=GLOBAL_RULE_NAME,
-                    network="default",
+                    network=_active_network(),
                     priority=priority,
                     allowed_tcp=["22", "80", "443", "8000", "8080", "8888", "10000-20000", "20808", "20909", "22222"],
                     allowed_udp=["53", "514", "1812", "1813"],
@@ -167,8 +172,10 @@ async def set_global_access(body: GlobalAccessRequest):
 @router.get("/rules")
 async def list_firewall_rules():
     svc = _get_service()
+    network = _active_network()
     try:
         rules = await svc.list_firewall_rules()
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to list firewall rules: {exc}")
-    return [r.model_dump() for r in sorted(rules, key=lambda r: r.priority)]
+    filtered = [r for r in rules if r.network == network]
+    return [r.model_dump() for r in sorted(filtered, key=lambda r: r.priority)]

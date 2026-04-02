@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 class FirewallRule(BaseModel):
     name: str
+    network: str = ""
     direction: str
     priority: int
     source_ranges: list[str]
