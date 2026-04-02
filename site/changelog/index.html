@@ -371,6 +371,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#40" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#39" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1723,6 +1734,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#40" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#39" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2469,6 +2491,9 @@
 
 
 <h1 id="changelog">Changelog</h1>
+<h2 id="40">4.0</h2>
+<p>Instance rename and license server conversion now also rename the boot disk so the disk name always matches the instance name. GCP has no disk rename API, so this is done as: create snapshot → create new disk from snapshot → detach old disk → attach new disk → delete old disk → delete snapshot. A message in the output panel warns that the step may take a few minutes.</p>
+<p>Previously, renaming left the old disk name behind. This caused Build jobs to fail with a <code>400 — disk already in use</code> error when trying to create a new instance with the same name as the renamed one.</p>
 <h2 id="39">3.9</h2>
 <p>Dashboard widgets are now draggable — hover any widget to reveal a grip handle in the top-right corner and drag to reorder. The layout is saved in the browser and persists across refreshes.</p>
 <p>Additional fixes and improvements:</p>

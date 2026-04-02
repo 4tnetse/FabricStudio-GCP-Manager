@@ -34,16 +34,18 @@ All fields are optional — only fill in what you want to change. Operations are
 
 ### Converting an instance into a license server
 
-Selecting **This will be a new license server** from the License Server dropdown runs an 8-step conversion on each selected instance:
+Selecting **This will be a new license server** from the License Server dropdown runs the following conversion steps on each selected instance:
 
-1. Uninstall the Fabric Runtime
-2. Delete all Fabrics
-3. Clear the remote license server setting
-4. Enable the built-in license service
-5. Power down the instance and wait until stopped
-6. Rename the instance to `srv-{prepend}-{product}-001` (increments if already taken)
-7. In parallel: reserve a static internal IP, update GCP labels (`group=production`, `purpose=licenseserver`, `delete=no`), swap the firewall network tag from `fabric-studio` to `license-server`, and create the `license-server` firewall rule if it does not exist
-8. Power up the instance (conversion is complete — boot continues in the background)
+- Uninstall the Fabric Runtime
+- Delete all Fabrics
+- Clear the remote license server setting
+- Enable the built-in license service
+- Remove the DNS A record for the instance
+- Power down the instance and wait until stopped
+- Rename the boot disk to match the new instance name (snapshot → new disk → detach → attach → delete old)
+- Rename the instance to `srv-{prepend}-{product}-001` (increments if already taken)
+- In parallel: reserve a static internal IP, update GCP labels (`group=production`, `purpose=licenseserver`, `delete=no`), swap the firewall network tag from `fabric-studio` to `license-server`, and create the `license-server` firewall rule if it does not exist
+- Power up the instance (conversion is complete — boot continues in the background)
 
 The reserved IP address is automatically released when the instance is deleted from the app.
 

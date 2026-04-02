@@ -637,6 +637,92 @@ class GCPComputeService:
         await self._run(_copy)
         await self._run(_delete)
 
+    async def rename_boot_disk(self, zone: str, instance_name: str, new_disk_name: str) -> None:
+        """Rename the boot disk of a stopped instance.
+
+        GCP has no disk rename API, so the flow is:
+        snapshot → new disk from snapshot → detach old → attach new → delete old → delete snapshot.
+        The instance must be stopped before calling this.
+        """
+        import uuid
+        snap_name = f"snap-{instance_name[:40]}-{uuid.uuid4().hex[:8]}"
+        project = self._project_id
+
+        disks_client = compute_v1.DisksClient(credentials=self._credentials)
+        snapshots_client = compute_v1.SnapshotsClient(credentials=self._credentials)
+        instances_client = compute_v1.InstancesClient(credentials=self._credentials)
+
+        def _get_boot_disk_info():
+            inst = instances_client.get(project=project, zone=zone, instance=instance_name)
+            for disk in inst.disks:
+                if disk.boot:
+                    # source is a full URL like .../disks/<name>
+                    disk_name = disk.source.split("/")[-1]
+                    device_name = disk.device_name
+                    # get disk type
+                    d = disks_client.get(project=project, zone=zone, disk=disk_name)
+                    disk_type_url = d.type_  # full URL
+                    return disk_name, device_name, disk_type_url
+            raise ValueError(f"No boot disk found on instance {instance_name}")
+
+        def _create_snapshot(disk_name):
+            op = disks_client.create_snapshot(
+                project=project,
+                zone=zone,
+                disk=disk_name,
+                snapshot_resource=compute_v1.Snapshot(name=snap_name),
+            )
+            _wait_for_op(op)
+
+        def _create_new_disk(disk_type_url):
+            snap_url = f"projects/{project}/global/snapshots/{snap_name}"
+            op = disks_client.insert(
+                project=project,
+                zone=zone,
+                disk_resource=compute_v1.Disk(
+                    name=new_disk_name,
+                    source_snapshot=snap_url,
+                    type_=disk_type_url,
+                ),
+            )
+            _wait_for_op(op)
+
+        def _detach_disk(device_name):
+            op = instances_client.detach_disk(
+                project=project, zone=zone, instance=instance_name, device_name=device_name
+            )
+            _wait_for_op(op)
+
+        def _attach_new_disk():
+            new_disk_url = f"projects/{project}/zones/{zone}/disks/{new_disk_name}"
+            op = instances_client.attach_disk(
+                project=project,
+                zone=zone,
+                instance=instance_name,
+                attached_disk_resource=compute_v1.AttachedDisk(
+                    source=new_disk_url,
+                    boot=True,
+                    auto_delete=True,
+                ),
+            )
+            _wait_for_op(op)
+
+        def _delete_old_disk(disk_name):
+            op = disks_client.delete(project=project, zone=zone, disk=disk_name)
+            _wait_for_op(op)
+
+        def _delete_snapshot():
+            op = snapshots_client.delete(project=project, snapshot=snap_name)
+            _wait_for_op(op)
+
+        old_disk_name, device_name, disk_type_url = await self._run(_get_boot_disk_info)
+        await self._run(_create_snapshot, old_disk_name)
+        await self._run(_create_new_disk, disk_type_url)
+        await self._run(_detach_disk, device_name)
+        await self._run(_attach_new_disk)
+        await self._run(_delete_old_disk, old_disk_name)
+        await self._run(_delete_snapshot)
+
     async def import_image(self, name: str, gcs_uri: str, family: str = "", description: str = "") -> None:
         """Create a GCP image from a raw disk tar.gz in GCS (no OS adaptation)."""
         client = compute_v1.ImagesClient(credentials=self._credentials)

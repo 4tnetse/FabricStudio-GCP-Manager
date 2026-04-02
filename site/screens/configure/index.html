@@ -1313,17 +1313,19 @@
 </tbody>
 </table>
 <h3 id="converting-an-instance-into-a-license-server">Converting an instance into a license server</h3>
-<p>Selecting <strong>This will be a new license server</strong> from the License Server dropdown runs an 8-step conversion on each selected instance:</p>
-<ol>
+<p>Selecting <strong>This will be a new license server</strong> from the License Server dropdown runs the following conversion steps on each selected instance:</p>
+<ul>
 <li>Uninstall the Fabric Runtime</li>
 <li>Delete all Fabrics</li>
 <li>Clear the remote license server setting</li>
 <li>Enable the built-in license service</li>
+<li>Remove the DNS A record for the instance</li>
 <li>Power down the instance and wait until stopped</li>
+<li>Rename the boot disk to match the new instance name (snapshot → new disk → detach → attach → delete old)</li>
 <li>Rename the instance to <code>srv-{prepend}-{product}-001</code> (increments if already taken)</li>
 <li>In parallel: reserve a static internal IP, update GCP labels (<code>group=production</code>, <code>purpose=licenseserver</code>, <code>delete=no</code>), swap the firewall network tag from <code>fabric-studio</code> to <code>license-server</code>, and create the <code>license-server</code> firewall rule if it does not exist</li>
 <li>Power up the instance (conversion is complete — boot continues in the background)</li>
-</ol>
+</ul>
 <p>The reserved IP address is automatically released when the instance is deleted from the app.</p>
 <h2 id="fabric-workspace-section">Fabric Workspace section</h2>
 <p>Configure Fabric Workspace templates from a source instance.</p>

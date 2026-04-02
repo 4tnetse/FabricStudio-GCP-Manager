@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.0
+
+Instance rename and license server conversion now also rename the boot disk so the disk name always matches the instance name. GCP has no disk rename API, so this is done as: create snapshot → create new disk from snapshot → detach old disk → attach new disk → delete old disk → delete snapshot. A message in the output panel warns that the step may take a few minutes.
+
+Previously, renaming left the old disk name behind. This caused Build jobs to fail with a `400 — disk already in use` error when trying to create a new instance with the same name as the renamed one.
+
 ## 3.9
 
 Dashboard widgets are now draggable — hover any widget to reveal a grip handle in the top-right corner and drag to reorder. The layout is saved in the browser and persists across refreshes.

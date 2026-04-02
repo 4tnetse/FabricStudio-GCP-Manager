@@ -182,6 +182,7 @@ async def set_machine_type(zone: str, name: str, body: MachineTypeRequest):
 async def rename_instance(zone: str, name: str, body: RenameRequest):
     svc = _get_service()
     try:
+        await svc.rename_boot_disk(zone=zone, instance_name=name, new_disk_name=body.new_name)
         await svc.rename_instance(zone=zone, name=name, new_name=body.new_name)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to rename instance: {exc}")
