@@ -129,6 +129,15 @@ export default function SettingsPage() {
   const { data: subnets, isLoading: subnetsLoading, isError: subnetsError, error: subnetsErrorObj } = useCloudRunSubnets(region, showDeployPanel)
   const allPermsOk = permsData?.groups.every((g) => g.passed) ?? false
 
+  const defaultNetwork = (form.default_network as string) ?? ''
+  const filteredSubnets = subnets?.filter((s) => !defaultNetwork || s.network === defaultNetwork || s.network.endsWith(`/networks/${defaultNetwork}`)) ?? []
+
+  useEffect(() => {
+    if (filteredSubnets.length > 0 && !selectedSubnet) {
+      setSelectedSubnet(filteredSubnets[0].name)
+    }
+  }, [filteredSubnets.length])
+
   const { lines: deployLines, isStreaming: deployStreaming, failed: deployFailed, error: deployError } = deploy
   const { lines: undeployLines, isStreaming: undeployStreaming, failed: undeployFailed, error: undeployError } = undeploy
 
@@ -176,6 +185,9 @@ export default function SettingsPage() {
     }
   }, [settings])
 
+  const networkDropdownRef = useRef<HTMLDivElement>(null)
+  const [openNetworkDropdown, setOpenNetworkDropdown] = useState(false)
+
   useEffect(() => {
     if (networksData && !form.default_network) {
       const networks = networksData.networks
@@ -184,6 +196,9 @@ export default function SettingsPage() {
       } else if (networks.length > 0) {
         setField('default_network', networks[0])
       }
+      networkDropdownRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setOpenNetworkDropdown(true)
+      setTimeout(() => setOpenNetworkDropdown(false), 0)
     }
   }, [networksData])
 
@@ -446,7 +461,7 @@ export default function SettingsPage() {
               searchable
             />
           </div>
-          <div>
+          <div ref={networkDropdownRef}>
             <label className={labelClass}>Default network (GCP VPC)</label>
             <CustomSelect
               className={inputClass}
@@ -456,6 +471,7 @@ export default function SettingsPage() {
                 { value: '__create_new__', label: 'Create new VPC', disabled: true },
                 ...(networksData?.networks ?? []).map((n) => ({ value: n, label: n })),
               ]}
+              autoOpen={openNetworkDropdown}
             />
           </div>
         </div>
@@ -814,7 +830,7 @@ export default function SettingsPage() {
                     {/* Subnet selector */}
                     {!deployStreamUrl && (
                       <div>
-                        <label className={labelClass}>Subnet</label>
+                        <label className={labelClass}>Subnet {defaultNetwork && <span className="text-slate-600 font-normal">({defaultNetwork})</span>}</label>
                         {subnetsLoading && (
                           <div className="flex items-center gap-2 text-xs text-slate-500">
                             <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading subnets...
@@ -823,22 +839,16 @@ export default function SettingsPage() {
                         {subnetsError && (
                           <p className="text-xs text-red-400"><ErrorWithLink message={subnetsErrorObj instanceof Error ? subnetsErrorObj.message : 'Failed to load subnets'} /></p>
                         )}
-                        {subnets && subnets.length === 0 && (
-                          <p className="text-xs text-slate-500">No subnets found in {region}.</p>
+                        {subnets && filteredSubnets.length === 0 && (
+                          <p className="text-xs text-slate-500">No subnets found for network <span className="font-mono">{defaultNetwork || 'default'}</span> in {region}.</p>
                         )}
-                        {subnets && subnets.length > 0 && (
-                          <select
+                        {filteredSubnets.length > 0 && (
+                          <CustomSelect
                             className={inputClass}
                             value={selectedSubnet}
-                            onChange={(e) => setSelectedSubnet(e.target.value)}
-                          >
-                            <option value="">Select subnet...</option>
-                            {subnets.map((s) => (
-                              <option key={s.name} value={s.name}>
-                                {s.name} ({s.network} · {s.cidr})
-                              </option>
-                            ))}
-                          </select>
+                            onChange={(v) => setSelectedSubnet(v)}
+                            options={filteredSubnets.map((s) => ({ value: s.name, label: `${s.name} (${s.cidr})` }))}
+                          />
                         )}
                       </div>
                     )}

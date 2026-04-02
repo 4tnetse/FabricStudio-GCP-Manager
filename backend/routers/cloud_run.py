@@ -255,26 +255,34 @@ async def _run_deploy(deploy_id: str, q: asyncio.Queue, project_id: str, region:
         except Exception as exc:
             await log(f"⚠  Firewall rule: {exc}")
 
-        # Step 5 — Copy image from ghcr.io to gcr.io via Cloud Build
+        # Step 5 — Ensure compute SA has access to the Cloud Build logs bucket
+        await log("Ensuring Cloud Build logs bucket access...")
+        try:
+            await loop.run_in_executor(None, _ensure_cloudbuild_bucket_access, credentials, project_id, project_number, service_account)
+            await log("✓ Cloud Build logs bucket access ready")
+        except Exception as exc:
+            await log(f"⚠  Cloud Build logs bucket: {exc}")
+
+        # Step 6 — Copy image from ghcr.io to gcr.io via Cloud Build
         await log(f"Copying container image to gcr.io/{project_id} (v{local_version}) via Cloud Build (this may take a few minutes)...")
         image = await loop.run_in_executor(None, _copy_image_to_gcr, credentials, project_id, local_version)
         await log(f"✓ Image ready: {image}")
 
-        # Step 6 — Deploy or update Cloud Run service
+        # Step 7 — Deploy or update Cloud Run service
         await log(f"Deploying Cloud Run service '{SERVICE_NAME}' to {region}...")
         url = await loop.run_in_executor(
             None, _deploy_cloud_run_service, credentials, project_id, region, subnet, service_account, image
         )
         await log(f"✓ Deployed: {url}")
 
-        # Step 6b — Inject BACKEND_URL + CLOUD_RUN_REGION so Cloud Run can create Cloud Scheduler jobs
+        # Step 7b — Inject BACKEND_URL + CLOUD_RUN_REGION so Cloud Run can create Cloud Scheduler jobs
         await log("Configuring Cloud Run environment variables...")
         await loop.run_in_executor(
             None, _set_cloud_run_env, credentials, project_id, region, url
         )
         await log("✓ Environment variables set")
 
-        # Step 7 — Persist settings
+        # Step 8 — Persist settings
         await loop.run_in_executor(None, _update_settings, url, region, project_id)
         await log("✓ Settings saved")
 
@@ -388,6 +396,88 @@ def _ensure_firewall_rule(credentials, project_id: str) -> None:
     )
     op = client.insert(project=project_id, firewall_resource=firewall)
     op.result()
+
+
+def _ensure_cloudbuild_bucket_access(credentials, project_id: str, project_number: str, service_account: str) -> None:
+    """Ensure the compute SA can write Cloud Build logs (idempotent).
+
+    Tries bucket-level IAM first; falls back to granting roles/cloudbuild.builds.builder
+    at the project level if the service account key lacks storage.buckets.setIamPolicy.
+    """
+    import requests as _req
+    from google.auth.transport.requests import Request as _AuthRequest
+
+    if not getattr(credentials, "valid", True):
+        try:
+            credentials.refresh(_AuthRequest())
+        except Exception:
+            pass
+    token = getattr(credentials, "token", None)
+    if not token:
+        credentials.refresh(_AuthRequest())
+        token = credentials.token
+
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    member = f"serviceAccount:{service_account}"
+
+    # --- Attempt 1: bucket-level IAM ---
+    bucket = f"{project_number}.cloudbuild-logs.googleusercontent.com"
+    iam_url = f"https://storage.googleapis.com/storage/v1/b/{bucket}/iam"
+    r = _req.get(iam_url, headers=headers, timeout=15)
+    if r.ok:
+        policy = r.json()
+        bindings = policy.get("bindings", [])
+        role = "roles/storage.objectAdmin"
+        for binding in bindings:
+            if binding.get("role") == role and member in binding.get("members", []):
+                return  # Already has access
+        found = False
+        for binding in bindings:
+            if binding.get("role") == role:
+                binding["members"].append(member)
+                found = True
+                break
+        if not found:
+            bindings.append({"role": role, "members": [member]})
+        policy["bindings"] = bindings
+        resp = _req.put(iam_url, headers=headers, json=policy, timeout=15)
+        if resp.ok:
+            return
+        # fall through to project-level grant
+
+    # --- Attempt 2: project-level IAM (roles/cloudbuild.builds.builder) ---
+    # This role includes the storage permissions needed for Cloud Build log writes.
+    crm_base = f"https://cloudresourcemanager.googleapis.com/v1/projects/{project_id}"
+    r2 = _req.post(f"{crm_base}:getIamPolicy", headers=headers, json={}, timeout=15)
+    if not r2.ok:
+        raise RuntimeError(
+            f"Could not read project IAM policy (HTTP {r2.status_code}): {r2.text[:200]}"
+        )
+    policy2 = r2.json()
+    bindings2 = policy2.get("bindings", [])
+    role2 = "roles/cloudbuild.builds.builder"
+    for binding in bindings2:
+        if binding.get("role") == role2 and member in binding.get("members", []):
+            return  # Already has the role
+    found2 = False
+    for binding in bindings2:
+        if binding.get("role") == role2:
+            binding["members"].append(member)
+            found2 = True
+            break
+    if not found2:
+        bindings2.append({"role": role2, "members": [member]})
+    policy2["bindings"] = bindings2
+    resp2 = _req.post(
+        f"{crm_base}:setIamPolicy",
+        headers=headers,
+        json={"policy": policy2},
+        timeout=15,
+    )
+    if not resp2.ok:
+        raise RuntimeError(
+            f"Could not grant Cloud Build role on project (HTTP {resp2.status_code}): {resp2.text[:200]}"
+        )
 
 
 def _copy_image_to_gcr(credentials, project_id: str, version: str) -> str:

@@ -16,10 +16,15 @@ interface CustomSelectProps {
   disabled?: boolean
   placeholder?: string
   searchable?: boolean
+  autoOpen?: boolean
 }
 
-export function CustomSelect({ value, onChange, options, className, disabled, placeholder, searchable }: CustomSelectProps) {
+export function CustomSelect({ value, onChange, options, className, disabled, placeholder, searchable, autoOpen }: CustomSelectProps) {
   const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (autoOpen) setOpen(true)
+  }, [autoOpen])
   const [search, setSearch] = useState('')
   const ref = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)

@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.2
+Cloud Run deploy automatically grants the compute service account access to the Cloud Build logs bucket as a new deploy step. Bucket-level IAM (`roles/storage.objectAdmin`) is tried first; if the service account key lacks the necessary permission, the step falls back to granting `roles/cloudbuild.builds.builder` at the project level via the Cloud Resource Manager API. Both paths are idempotent.
+
 ## 3.1
 VPC network dropdown now refetches correctly after uploading or deleting a service account key, and after switching projects. A toast is shown when the service account does not have the `compute.networks.list` permission. Network query key includes the active project ID so switching projects always loads the correct VPC list.
 
