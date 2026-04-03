@@ -1,7 +1,8 @@
-3.10
+3.11
 
 # Version history
 # ---------------
+# 3.11    Costs page: running instance costs (hourly/daily/monthly per instance + totals), cost per workshop group (start time, running duration, cost so far, scheduled deletion, projected total), projected monthly cost (accrued + remaining + scheduled workshops); billing account notice softened; Cost Estimate dashboard widget updated to show hourly/daily/monthly totals
 # 3.10    Boot disk rename on instance rename and license server conversion: snapshot → new disk → detach → attach → delete old; fixes Build 400 "disk already in use" error after rename; patience message added during disk rename step
 # 3.9    Dashboard widgets draggable (grip handle, order saved in browser); Project Health widget redesigned as summary (shield icon + passing count); Instance Groups widget fixed to read `group` label; Schedules widget job type badges equal width; auto-delete schedule names no longer include date/time; schedule preview shows instance list for delete jobs; auto-delete output log lists instance names; fix auto-delete Cloud Scheduler job creation (was using "auto-delete" string as SA email); Settings VPC dropdown no longer auto-opens on page load
 # 3.8    Auto-delete: schedule instance deletion at a chosen date/time from Clone page (on clone success), Configure page (on configure success), and Instances bulk bar (immediate schedule); delete=no label respected at deletion time; delete schedule shown in Schedules with red badge and full run history; output panel confirms auto-delete schedule creation
