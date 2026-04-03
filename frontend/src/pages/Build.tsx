@@ -83,7 +83,7 @@ export default function Build() {
     if (!prepend || !product || !zone || !image || !machineType) {
       const missing = [
         !prepend && 'Initials',
-        !product && 'Workshop name',
+        !product && 'Name',
         !zone && 'Zone',
         !image && 'Image',
         !machineType && 'Machine type',
@@ -168,7 +168,7 @@ export default function Build() {
               />
             </div>
             <div>
-              <label className={labelClass}>Workshop name</label>
+              <label className={labelClass}>Name</label>
               <input
                 className={inputClass}
                 value={product}

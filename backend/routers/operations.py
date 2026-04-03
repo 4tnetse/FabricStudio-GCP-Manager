@@ -338,6 +338,8 @@ async def _clone_job(job_id: str, clone_req: CloneRequest) -> None:
                 labels = {"delete": "yes"}
                 if clone_req.purpose:
                     labels["purpose"] = clone_req.purpose
+                if clone_req.group:
+                    labels["group"] = clone_req.group
                 await svc.add_labels(zone=target_zone, name=inst_name, labels=labels)
                 await q.put(f"Instance {inst_name} created")
 
