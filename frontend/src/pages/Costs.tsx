@@ -59,9 +59,9 @@ function InstanceCostsSection() {
                   <th className="text-left pb-2 font-medium">Instance</th>
                   <th className="text-left pb-2 font-medium">Group</th>
                   <th className="text-left pb-2 font-medium">Machine type</th>
-                  <th className="text-right pb-2 font-medium">Hourly</th>
-                  <th className="text-right pb-2 font-medium">Daily</th>
-                  <th className="text-right pb-2 font-medium">Monthly</th>
+                  <th className="text-center pb-2 font-medium pr-3">Hourly</th>
+                  <th className="text-center pb-2 font-medium pr-3">Daily</th>
+                  <th className="text-center pb-2 font-medium">Monthly</th>
                 </tr>
               </thead>
               <tbody>
@@ -70,9 +70,9 @@ function InstanceCostsSection() {
                     <td className="py-1.5 pr-3 text-slate-200 font-mono">{inst.name}</td>
                     <td className="py-1.5 pr-3 text-slate-400">{inst.group || '—'}</td>
                     <td className="py-1.5 pr-3 text-slate-400">{inst.machine_type}</td>
-                    <td className="py-1.5 pr-3 text-right text-slate-300">{usd(inst.hourly_usd, 4)}</td>
-                    <td className="py-1.5 pr-3 text-right text-slate-300">{usd(inst.daily_usd)}</td>
-                    <td className="py-1.5 text-right text-slate-300">{usd(inst.monthly_usd)}</td>
+                    <td className="py-1.5 pr-3 text-center text-slate-300">{usd(inst.hourly_usd, 4)}</td>
+                    <td className="py-1.5 pr-3 text-center text-slate-300">{usd(inst.daily_usd)}</td>
+                    <td className="py-1.5 text-center text-slate-300">{usd(inst.monthly_usd)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -81,9 +81,9 @@ function InstanceCostsSection() {
                   <td className="pt-2 pr-3" colSpan={3}>
                     Total ({data.totals.count} instance{data.totals.count !== 1 ? 's' : ''})
                   </td>
-                  <td className="pt-2 pr-3 text-right">{usd(data.totals.hourly_usd, 4)}</td>
-                  <td className="pt-2 pr-3 text-right">{usd(data.totals.daily_usd)}</td>
-                  <td className="pt-2 text-right">{usd(data.totals.monthly_usd)}</td>
+                  <td className="pt-2 pr-3 text-center">{usd(data.totals.hourly_usd, 4)}</td>
+                  <td className="pt-2 pr-3 text-center">{usd(data.totals.daily_usd)}</td>
+                  <td className="pt-2 text-center">{usd(data.totals.monthly_usd)}</td>
                 </tr>
               </tfoot>
             </table>
@@ -110,10 +110,10 @@ function WorkshopCostsSection() {
             <thead>
               <tr className="text-slate-500 border-b border-slate-700">
                 <th className="text-left pb-2 font-medium">Workshop (group)</th>
-                <th className="text-right pb-2 font-medium">Instances</th>
+                <th className="text-center pb-2 font-medium pr-6">Instances</th>
                 <th className="text-left pb-2 font-medium">Started</th>
                 <th className="text-right pb-2 font-medium">Running</th>
-                <th className="text-right pb-2 font-medium">Cost so far</th>
+                <th className="text-center pb-2 font-medium pr-6">Cost so far</th>
                 <th className="text-left pb-2 font-medium">Scheduled deletion</th>
                 <th className="text-right pb-2 font-medium">Projected total</th>
               </tr>
@@ -122,10 +122,10 @@ function WorkshopCostsSection() {
               {data.workshops.map((ws) => (
                 <tr key={ws.group} className="border-b border-slate-800 hover:bg-slate-800/40">
                   <td className="py-1.5 pr-3 text-slate-200 font-mono">{ws.group}</td>
-                  <td className="py-1.5 pr-3 text-right text-slate-400">{ws.instance_count}</td>
+                  <td className="py-1.5 pr-6 text-center text-slate-400">{ws.instance_count}</td>
                   <td className="py-1.5 pr-3 text-slate-400">{formatDate(ws.start_time)}</td>
                   <td className="py-1.5 pr-3 text-right text-slate-400">{formatHours(ws.hours_running)}</td>
-                  <td className="py-1.5 pr-3 text-right text-slate-300 font-medium">{usd(ws.cost_so_far_usd)}</td>
+                  <td className="py-1.5 pr-6 text-center text-slate-300 font-medium">{usd(ws.cost_so_far_usd)}</td>
                   <td className="py-1.5 pr-3 text-slate-400">
                     {ws.delete_time ? formatDate(ws.delete_time) : <span className="text-slate-600">not scheduled</span>}
                   </td>
@@ -173,9 +173,9 @@ function ProjectedCostSection() {
               <p className="text-lg font-semibold text-slate-100">{usd(data.scheduled_workshops_usd)}</p>
               <p className="text-xs text-slate-600">Future clone+delete pairs</p>
             </div>
-            <div className="rounded-lg bg-blue-900/30 border border-blue-800/40 p-3 space-y-1">
-              <p className="text-xs text-blue-400">Projected total</p>
-              <p className="text-lg font-semibold text-blue-300">{usd(data.projected_total_usd)}</p>
+            <div className="rounded-lg bg-slate-800/60 p-3 space-y-1">
+              <p className="text-xs text-slate-500">Projected total</p>
+              <p className="text-lg font-semibold text-slate-100">{usd(data.projected_total_usd)}</p>
               <p className="text-xs text-slate-600">Accrued + remaining + scheduled</p>
             </div>
           </div>
@@ -221,14 +221,11 @@ export default function Costs() {
       )}
 
       {summaryData?.billing_enabled === null && summaryData.costs_error === 'permission_denied' && (
-        <div className="rounded-xl border border-yellow-800 bg-yellow-900/10 p-5 space-y-2">
-          <div className="flex items-center gap-2 text-yellow-400 text-sm font-medium">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-            Billing access not available
-          </div>
+        <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-4 flex items-start gap-2.5">
+          <AlertTriangle className="w-4 h-4 shrink-0 text-slate-500 mt-0.5" />
           <p className="text-sm text-slate-400">
-            The service account does not have permission to read billing data.
-            You can view cost information directly in the{' '}
+            Billing account info is unavailable (the service account lacks billing read access) —
+            cost estimates below are still accurate. You can view billing details in the{' '}
             <a href="https://console.cloud.google.com/billing" target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">
               GCP Billing Console
             </a>.
@@ -274,8 +271,9 @@ export default function Costs() {
         </>
       )}
 
-      {/* Show cost sections even without billing account info (in case billing check fails but pricing API works) */}
-      {!summaryData && !summaryLoading && !summaryError && (
+      {/* Show cost sections even without billing account access (pricing API works independently) */}
+      {((!summaryData && !summaryLoading && !summaryError) ||
+        (summaryData?.billing_enabled === null && summaryData?.costs_error === 'permission_denied')) && (
         <>
           <InstanceCostsSection />
           <WorkshopCostsSection />
