@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.11
+
+The Costs page now shows detailed cost estimates based on the GCP Cloud Billing Catalog API — no BigQuery or billing account permissions required.
+
+- **Running Instance Costs**: table of all running instances with hourly, daily, and monthly on-demand estimates, plus a totals row.
+- **Cost per Workshop**: groups instances by their `group` label, showing instance count, start time, running duration, cost so far, scheduled deletion date, and projected total cost.
+- **Projected Monthly Cost**: four summary cards — accrued this month, remaining in month, scheduled workshops, and projected total.
+- **Billing account notice**: if the service account lacks billing read access, a soft notice is shown and cost estimates are still displayed.
+- **Cost Estimate widget** (Dashboard): updated to show total hourly, daily, and monthly cost across all running instances.
+
 ## 3.10
 
 Instance rename and license server conversion now also rename the boot disk so the disk name always matches the instance name. GCP has no disk rename API, so this is done as: create snapshot → create new disk from snapshot → detach old disk → attach new disk → delete old disk → delete snapshot. A message in the output panel warns that the step may take a few minutes.

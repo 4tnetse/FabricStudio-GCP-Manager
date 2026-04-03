@@ -371,6 +371,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#311" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.11
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#310" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1734,6 +1745,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#311" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.11
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#310" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2491,6 +2513,15 @@
 
 
 <h1 id="changelog">Changelog</h1>
+<h2 id="311">3.11</h2>
+<p>The Costs page now shows detailed cost estimates based on the GCP Cloud Billing Catalog API — no BigQuery or billing account permissions required.</p>
+<ul>
+<li><strong>Running Instance Costs</strong>: table of all running instances with hourly, daily, and monthly on-demand estimates, plus a totals row.</li>
+<li><strong>Cost per Workshop</strong>: groups instances by their <code>group</code> label, showing instance count, start time, running duration, cost so far, scheduled deletion date, and projected total cost.</li>
+<li><strong>Projected Monthly Cost</strong>: four summary cards — accrued this month, remaining in month, scheduled workshops, and projected total.</li>
+<li><strong>Billing account notice</strong>: if the service account lacks billing read access, a soft notice is shown and cost estimates are still displayed.</li>
+<li><strong>Cost Estimate widget</strong> (Dashboard): updated to show total hourly, daily, and monthly cost across all running instances.</li>
+</ul>
 <h2 id="310">3.10</h2>
 <p>Instance rename and license server conversion now also rename the boot disk so the disk name always matches the instance name. GCP has no disk rename API, so this is done as: create snapshot → create new disk from snapshot → detach old disk → attach new disk → delete old disk → delete snapshot. A message in the output panel warns that the step may take a few minutes.</p>
 <p>Previously, renaming left the old disk name behind. This caused Build jobs to fail with a <code>400 — disk already in use</code> error when trying to create a new instance with the same name as the renamed one.</p>
