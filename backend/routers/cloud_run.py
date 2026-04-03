@@ -271,7 +271,8 @@ async def _run_deploy(deploy_id: str, q: asyncio.Queue, project_id: str, region:
             await log(f"⚠  Cloud Build logs bucket: {exc}")
 
         # Step 6 — Copy image from ghcr.io to gcr.io via Cloud Build
-        await log(f"Copying container image to gcr.io/{project_id} (v{local_version}) via Cloud Build (this may take a few minutes)...")
+        await log(f"Copying container image to gcr.io/{project_id} (v{local_version})")
+        await log("via Cloud Build (this may take a few minutes)...")
         image = await loop.run_in_executor(None, _copy_image_to_gcr, credentials, project_id, local_version)
         await log(f"✓ Image ready: {image}")
 

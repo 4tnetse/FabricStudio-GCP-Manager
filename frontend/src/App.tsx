@@ -83,7 +83,7 @@ function SidebarLink({
     return (
       <div className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm opacity-30 cursor-not-allowed select-none">
         <Icon className="w-4 h-4 shrink-0 text-slate-500" />
-        <span className="text-slate-500">{label}</span>
+        <span className="text-slate-500 whitespace-nowrap">{label}</span>
       </div>
     )
   }
@@ -100,8 +100,8 @@ function SidebarLink({
       )}
     >
       <Icon className={cn('w-4 h-4 shrink-0', isActive ? (isSF ? 'text-white' : 'text-blue-400') : (isSF ? 'text-slate-400 group-hover:text-white' : 'text-slate-500 group-hover:text-slate-400'))} />
-      <span>{label}</span>
-      {isActive ? <ChevronRight className={cn('w-3.5 h-3.5 ml-auto', isSF ? 'text-white/60' : 'text-slate-500')} /> : null}
+      <span className="whitespace-nowrap">{label}</span>
+      {isActive ? <ChevronRight className={cn('w-3.5 h-3.5 ml-auto shrink-0', isSF ? 'text-white/60' : 'text-slate-500')} /> : null}
     </NavLink>
   )
 }
@@ -184,7 +184,7 @@ export default function App() {
     function onMouseMove(e: MouseEvent) {
       if (!dragging.current) return
       const maxWidth = window.innerWidth / 4
-      const newWidth = Math.min(Math.max(e.clientX, 160), maxWidth)
+      const newWidth = Math.min(Math.max(e.clientX, 240), maxWidth)
       setSidebarWidth(newWidth)
     }
 

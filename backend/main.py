@@ -356,7 +356,8 @@ async def _run_upgrade(upgrade_id: str, q: asyncio.Queue, project_id: str, regio
         await log("✓ APIs ready")
 
         # Step 2 — Copy image to GCR via Cloud Build (same as deploy)
-        await log(f"Copying container image to gcr.io/{project_id} (v{version}) via Cloud Build (this may take a few minutes)...")
+        await log(f"Copying container image to gcr.io/{project_id} (v{version})")
+        await log("via Cloud Build (this may take a few minutes)...")
         from routers.cloud_run import _copy_image_to_gcr
         image = await loop.run_in_executor(None, _copy_image_to_gcr, credentials, project_id, version)
         await log(f"✓ Image ready: {image}")
