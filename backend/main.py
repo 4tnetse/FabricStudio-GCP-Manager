@@ -29,6 +29,7 @@ from routers import (
     settings,
     ssh,
     tags,
+    workshops,
 )
 
 
@@ -114,6 +115,7 @@ app.include_router(images.router, prefix="/api")
 app.include_router(configs.router, prefix="/api")
 app.include_router(costs.router, prefix="/api")
 app.include_router(schedules.router, prefix="/api")
+app.include_router(workshops.router, prefix="/api")
 app.include_router(cloud_run.router)
 
 
