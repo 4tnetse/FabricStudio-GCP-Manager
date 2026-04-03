@@ -97,7 +97,12 @@ async def create_workshop(body: WorkshopCreate):
         "portal_url": None,
         "current_activity": None,
     }
-    return await fs.create_workshop(data)
+    workshop = await fs.create_workshop(data)
+    if workshop.get("start_time") or workshop.get("end_time"):
+        job_names = await _create_workshop_scheduler_jobs(workshop)
+        if job_names:
+            workshop = await fs.update_workshop(workshop["id"], job_names) or workshop
+    return workshop
 
 
 @router.get("/{workshop_id}")
@@ -113,15 +118,37 @@ async def get_workshop(workshop_id: str):
 async def update_workshop(workshop_id: str, body: WorkshopUpdate):
     _require_project()
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
+
+    # Check if times are changing so we can recreate scheduler jobs
+    existing = await fs.get_workshop(workshop_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="Workshop not found.")
+    times_changed = (
+        "start_time" in updates and updates["start_time"] != existing.get("start_time")
+    ) or (
+        "end_time" in updates and updates["end_time"] != existing.get("end_time")
+    )
+
     result = await fs.update_workshop(workshop_id, updates)
     if result is None:
         raise HTTPException(status_code=404, detail="Workshop not found.")
+
+    if times_changed:
+        await _delete_workshop_scheduler_jobs(existing)
+        job_names = await _create_workshop_scheduler_jobs(result)
+        if job_names:
+            result = await fs.update_workshop(workshop_id, job_names) or result
+
     return result
 
 
 @router.delete("/{workshop_id}", status_code=204)
 async def delete_workshop(workshop_id: str):
     _require_project()
+    workshop = await fs.get_workshop(workshop_id)
+    if workshop is None:
+        raise HTTPException(status_code=404, detail="Workshop not found.")
+    await _delete_workshop_scheduler_jobs(workshop)
     deleted = await fs.delete_workshop(workshop_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Workshop not found.")
@@ -407,6 +434,271 @@ async def _workshop_teardown_job(job_id: str, workshop_id: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Cloud Scheduler helpers for workshop start / stop
+# ---------------------------------------------------------------------------
+
+
+def _workshop_scheduler_job_name(project_id: str, region: str, workshop_id: str, action: str) -> str:
+    return f"projects/{project_id}/locations/{region}/jobs/fabricstudio-workshop-{workshop_id[:8]}-{action}"
+
+
+async def _create_workshop_scheduler_jobs(workshop: dict) -> dict[str, str]:
+    """Create Cloud Scheduler jobs for workshop start/stop times.
+
+    Only runs when a Cloud Run backend URL is configured.  Returns a dict of
+    field names → job resource names (e.g. ``{"start_scheduler_job": "..."}``).
+    """
+    project_id = workshop.get("project_id") or cfg.settings.active_project_id
+    pc = cfg.get_project_config(cfg.settings, project_id)
+    region = pc.get("cloud_run_region", "")
+    backend_url = pc.get("remote_backend_url", "")
+    if not region or not backend_url:
+        return {}
+
+    # Service account email from key store
+    sa_email = ""
+    try:
+        from services.key_store import load_keys
+        key_id = cfg.settings.active_key_id or ""
+        key_meta = next((k for k in load_keys() if k.id == key_id), None)
+        if key_meta:
+            sa_email = key_meta.client_email
+    except Exception:
+        pass
+    if not sa_email:
+        return {}
+
+    workshop_id = workshop["id"]
+    loop = asyncio.get_event_loop()
+
+    def _make_cron_utc(iso_time: str) -> str:
+        from datetime import datetime
+        dt = datetime.fromisoformat(iso_time.replace("Z", "+00:00"))
+        return f"{dt.minute} {dt.hour} {dt.day} {dt.month} *"
+
+    def _create() -> dict[str, str]:
+        from google.cloud import scheduler_v1
+        from services.cloud_scheduler import _get_client
+        client = _get_client()
+        location = f"projects/{project_id}/locations/{region}"
+        result: dict[str, str] = {}
+
+        for action in ("start", "stop"):
+            time_field = "start_time" if action == "start" else "end_time"
+            iso_time = workshop.get(time_field)
+            if not iso_time:
+                continue
+            try:
+                cron = _make_cron_utc(iso_time)
+            except Exception:
+                continue
+
+            full_name = _workshop_scheduler_job_name(project_id, region, workshop_id, action)
+            trigger_url = f"{backend_url.rstrip('/')}/api/workshops/{workshop_id}/{action}"
+
+            job = scheduler_v1.Job(
+                name=full_name,
+                schedule=cron,
+                time_zone="UTC",
+                http_target=scheduler_v1.HttpTarget(
+                    uri=trigger_url,
+                    http_method=scheduler_v1.HttpMethod.POST,
+                    headers={"Content-Type": "application/json"},
+                    body=b"{}",
+                    oidc_token=scheduler_v1.OidcToken(
+                        service_account_email=sa_email,
+                        audience=backend_url,
+                    ),
+                ),
+            )
+            try:
+                # Delete existing first (idempotent)
+                try:
+                    client.delete_job(name=full_name)
+                except Exception:
+                    pass
+                created = client.create_job(parent=location, job=job)
+                result[f"{action}_scheduler_job"] = created.name
+                logger.info("Created workshop scheduler job: %s", created.name)
+            except Exception as exc:
+                logger.warning("Failed to create workshop scheduler job (%s): %s", action, exc)
+
+        return result
+
+    return await loop.run_in_executor(None, _create)
+
+
+async def _delete_workshop_scheduler_jobs(workshop: dict) -> None:
+    """Delete any Cloud Scheduler jobs attached to a workshop."""
+    job_names = [
+        workshop.get("start_scheduler_job"),
+        workshop.get("stop_scheduler_job"),
+    ]
+    job_names = [j for j in job_names if j]
+    if not job_names:
+        return
+
+    loop = asyncio.get_event_loop()
+
+    def _delete() -> None:
+        from services.cloud_scheduler import _get_client
+        client = _get_client()
+        for name in job_names:
+            try:
+                client.delete_job(name=name)
+                logger.info("Deleted workshop scheduler job: %s", name)
+            except Exception:
+                pass
+
+    await loop.run_in_executor(None, _delete)
+
+
+# ---------------------------------------------------------------------------
+# Portal domain mapping helpers
+# ---------------------------------------------------------------------------
+
+
+def _get_auth_headers(credentials) -> dict[str, str]:
+    """Refresh credentials and return Authorization + Content-Type headers."""
+    import requests as _req
+    from google.auth.transport.requests import Request as _AuthRequest
+    if not getattr(credentials, "valid", True):
+        try:
+            credentials.refresh(_AuthRequest())
+        except Exception:
+            pass
+    token = getattr(credentials, "token", None)
+    if not token:
+        credentials.refresh(_AuthRequest())
+        token = credentials.token
+    return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+
+def _create_domain_mapping_sync(credentials, project_id: str, region: str, service_name: str, domain: str) -> dict:
+    """Create a Cloud Run v1 domain mapping. Returns the mapping resource."""
+    import requests as _req
+    headers = _get_auth_headers(credentials)
+    base = f"https://run.googleapis.com/v1/projects/{project_id}/locations/{region}/domainmappings"
+    body = {
+        "metadata": {"name": domain, "namespace": project_id},
+        "spec": {"routeName": service_name, "certificateMode": "AUTOMATIC"},
+    }
+    r = _req.post(base, headers=headers, json=body, timeout=30)
+    if not r.ok:
+        if r.status_code == 409:
+            r2 = _req.get(f"{base}/{domain}", headers=headers, timeout=10)
+            if r2.ok:
+                return r2.json()
+        r.raise_for_status()
+    return r.json()
+
+
+def _get_domain_mapping_sync(credentials, project_id: str, region: str, domain: str) -> dict:
+    """Fetch a Cloud Run v1 domain mapping."""
+    import requests as _req
+    headers = _get_auth_headers(credentials)
+    url = f"https://run.googleapis.com/v1/projects/{project_id}/locations/{region}/domainmappings/{domain}"
+    r = _req.get(url, headers=headers, timeout=10)
+    r.raise_for_status()
+    return r.json()
+
+
+def _delete_domain_mapping_sync(credentials, project_id: str, region: str, domain: str) -> None:
+    """Delete a Cloud Run v1 domain mapping (best-effort)."""
+    import requests as _req
+    headers = _get_auth_headers(credentials)
+    url = f"https://run.googleapis.com/v1/projects/{project_id}/locations/{region}/domainmappings/{domain}"
+    _req.delete(url, headers=headers, timeout=30)
+
+
+async def _portal_setup_custom_domain(
+    credentials,
+    project_id: str,
+    region: str,
+    service_name: str,
+    dns_domain: str,
+    activity,
+    loop,
+) -> str | None:
+    """Create domain mapping + DNS CNAME for login.<dns_domain>.
+
+    Returns the custom portal URL on success, None on failure (caller should use run.app URL).
+    """
+    import time as _time
+    portal_domain = f"login.{dns_domain}"
+
+    await activity(f"Creating domain mapping for {portal_domain}…")
+    try:
+        mapping = await loop.run_in_executor(
+            None, _create_domain_mapping_sync, credentials, project_id, region, service_name, portal_domain
+        )
+    except Exception as exc:
+        await activity(f"WARNING: Domain mapping failed ({exc}). Using run.app URL.")
+        return None
+
+    # Extract CNAME target from resourceRecords
+    resource_records = mapping.get("status", {}).get("resourceRecords", [])
+    cname_target = next(
+        (rec["rrdata"] for rec in resource_records if rec.get("type") == "CNAME"),
+        "ghs.googlehosted.com.",
+    )
+
+    # Create CNAME record in Cloud DNS
+    pc = cfg.get_project_config(cfg.settings, project_id)
+    zone_name = pc.get("dns_zone_name", "")
+    if zone_name:
+        try:
+            from services.gcp_dns import GCPDnsService
+            dns_svc = GCPDnsService(credentials, project_id)
+            await dns_svc.upsert_cname_record(
+                zone_name=zone_name,
+                fqdn=f"{portal_domain}.",
+                cname_target=cname_target,
+            )
+            await activity(f"DNS CNAME created: {portal_domain} → {cname_target.rstrip('.')}")
+        except Exception as exc:
+            await activity(f"WARNING: DNS CNAME creation failed ({exc}).")
+    else:
+        await activity(f"DNS zone not configured — add CNAME manually: {portal_domain} → {cname_target.rstrip('.')}")
+
+    # Set the URL immediately; SSL will provision in the background
+    custom_url = f"https://{portal_domain}"
+    await activity("Domain mapping created. SSL certificate will provision within a few minutes.")
+    return custom_url
+
+
+async def _portal_teardown_custom_domain(
+    credentials,
+    project_id: str,
+    region: str,
+    dns_domain: str,
+    activity,
+    loop,
+) -> None:
+    """Delete domain mapping and CNAME record for login.<dns_domain>."""
+    portal_domain = f"login.{dns_domain}"
+    pc = cfg.get_project_config(cfg.settings, project_id)
+    zone_name = pc.get("dns_zone_name", "")
+
+    if zone_name:
+        try:
+            from services.gcp_dns import GCPDnsService
+            dns_svc = GCPDnsService(credentials, project_id)
+            await dns_svc.delete_cname_record(zone_name=zone_name, fqdn=f"{portal_domain}.")
+            await activity(f"DNS CNAME deleted: {portal_domain}")
+        except Exception as exc:
+            await activity(f"WARNING: Failed to delete DNS CNAME ({exc}).")
+
+    try:
+        await loop.run_in_executor(
+            None, _delete_domain_mapping_sync, credentials, project_id, region, portal_domain
+        )
+        await activity(f"Domain mapping deleted: {portal_domain}")
+    except Exception as exc:
+        await activity(f"WARNING: Failed to delete domain mapping ({exc}).")
+
+
+# ---------------------------------------------------------------------------
 # Portal helpers
 # ---------------------------------------------------------------------------
 
@@ -653,13 +945,25 @@ async def _portal_deploy_job(job_id: str, workshop_id: str) -> None:
         # Deploy Cloud Run service
         await activity("Deploying portal Cloud Run service…")
         try:
-            portal_url = await loop.run_in_executor(
+            run_app_url = await loop.run_in_executor(
                 None, _deploy_portal_service, credentials, project_id, region, service_name, workshop_id
             )
         except Exception as exc:
             await activity(f"ERROR deploying portal: {exc}")
             await job_manager.mark_done(job_id, failed=True)
             return
+
+        portal_url = run_app_url
+
+        # Attempt custom domain mapping for login.<dns_domain>
+        workshop_fresh = await fs.get_workshop(workshop_id)
+        dns_domain = workshop_fresh.get("dns_domain", "") if workshop_fresh else ""
+        if dns_domain:
+            custom_url = await _portal_setup_custom_domain(
+                credentials, project_id, region, service_name, dns_domain, activity, loop
+            )
+            if custom_url:
+                portal_url = custom_url
 
         await fs.update_workshop(workshop_id, {
             "portal_enabled": True,
@@ -701,6 +1005,13 @@ async def _portal_teardown_job(job_id: str, workshop_id: str) -> None:
             return
 
         service_name = _portal_service_name(workshop["name"])
+        dns_domain = workshop.get("dns_domain", "")
+
+        # Tear down domain mapping + DNS CNAME first
+        if dns_domain:
+            await _portal_teardown_custom_domain(
+                credentials, project_id, region, dns_domain, activity, loop
+            )
 
         await activity("Tearing down portal Cloud Run service…")
         await loop.run_in_executor(None, _delete_portal_service, credentials, project_id, region, service_name)
