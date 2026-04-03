@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.12
+
+New **Workshops** page for end-to-end workshop management.
+
+- **Workshop list**: cards showing status, attendee count (registered/total), start/end times, current activity, and portal URL.
+- **Deployment**: clicking **Start** clones the source image in batches of 5, sets group/delete/purpose labels, creates DNS records, then configures each instance in parallel (guest password, hostname, Fabric Workspace). Live activity line updates throughout.
+- **Teardown**: **Stop** deletes all workshop instances and DNS records.
+- **Registration portal**: a branded Cloud Run service (Security Fabric dark theme, Fortinet red) deployed per workshop. Two-step registration: name/email/company/passphrase → FQDN link, guest credentials, and documentation link. First-come first-served instance assignment. Five wrong passphrase attempts trigger a 15-minute browser session lockout.
+- **Custom portal domain**: portal served at `login.<DNS Domain>` via Cloud Run domain mapping; CNAME record created automatically in Cloud DNS. Falls back to `*.run.app` URL if domain mapping fails.
+- **Portal toggle**: enable or disable the portal independently of the workshop schedule.
+- **Attendees panel**: all instance slots shown (claimed and empty), with Remove button, CSV export, and PDF print.
+- **Scheduled start/stop**: setting Start time or End time creates Cloud Scheduler jobs that automatically start or stop the workshop. Requires remote scheduling to be configured.
+- **Multiple concurrent workshops**: each workshop has its own instance group, portal service, and attendee collection.
+
 ## 3.11
 
 The Costs page now shows detailed cost estimates based on the GCP Cloud Billing Catalog API — no BigQuery or billing account permissions required.

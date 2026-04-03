@@ -1,7 +1,8 @@
-3.11
+3.12
 
 # Version history
 # ---------------
+# 3.12    Workshops page: end-to-end workshop management (clone → configure → portal → attendees); registration portal on Cloud Run (Security Fabric theme, 2-step registration, passphrase lockout, first-come-first-served, CSV/PDF export); custom portal domain login.<DNS Domain> via Cloud Run domain mapping + Cloud DNS CNAME; scheduled start/stop via Cloud Scheduler; multiple concurrent workshops supported
 # 3.11    Costs page: running instance costs (hourly/daily/monthly per instance + totals), cost per workshop group (start time, running duration, cost so far, scheduled deletion, projected total), projected monthly cost (accrued + remaining + scheduled workshops); billing account notice softened; Cost Estimate dashboard widget updated to show hourly/daily/monthly totals
 # 3.10    Boot disk rename on instance rename and license server conversion: snapshot → new disk → detach → attach → delete old; fixes Build 400 "disk already in use" error after rename; patience message added during disk rename step
 # 3.9    Dashboard widgets draggable (grip handle, order saved in browser); Project Health widget redesigned as summary (shield icon + passing count); Instance Groups widget fixed to read `group` label; Schedules widget job type badges equal width; auto-delete schedule names no longer include date/time; schedule preview shows instance list for delete jobs; auto-delete output log lists instance names; fix auto-delete Cloud Scheduler job creation (was using "auto-delete" string as SA email); Settings VPC dropdown no longer auto-opens on page load

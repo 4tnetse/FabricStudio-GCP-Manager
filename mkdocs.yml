@@ -43,6 +43,7 @@ nav:
       - Images: screens/images.md
       - Costs: screens/costs.md
       - Schedules: screens/schedules.md
+      - Workshops: screens/workshops.md
       - Settings: screens/settings.md
   - Developer:
       - Application Design: dev/app-design.md
