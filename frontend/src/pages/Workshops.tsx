@@ -21,6 +21,7 @@ import {
   useRemoveAttendee,
   useStartWorkshop,
   useStopWorkshop,
+  useTogglePortal,
   type Workshop,
   type WorkshopCreate,
 } from '@/api/workshops'
@@ -299,19 +300,22 @@ function DetailView({ workshopId, onBack }: DetailViewProps) {
   const removeAttendee = useRemoveAttendee()
   const startWorkshop = useStartWorkshop()
   const stopWorkshop = useStopWorkshop()
+  const togglePortal = useTogglePortal()
 
-  // Poll workshop every 5s while deploying to show live current_activity
+  // Poll workshop every 5s while deploying or when portal activity is in progress
   // Poll attendees every 10s while running
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   useEffect(() => {
     if (pollRef.current) clearInterval(pollRef.current)
-    if (workshop?.status === 'deploying') {
+    const portalBusy = workshop?.status === 'running' &&
+      (workshop?.current_activity?.toLowerCase().includes('portal') ?? false)
+    if (workshop?.status === 'deploying' || portalBusy) {
       pollRef.current = setInterval(() => refetchWorkshop(), 5_000)
     } else if (workshop?.status === 'running') {
       pollRef.current = setInterval(() => refetchAttendees(), 10_000)
     }
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, [workshop?.status])
+  }, [workshop?.status, workshop?.current_activity])
 
   // Form state (settings)
   const [name, setName] = useState('')
@@ -401,13 +405,15 @@ function DetailView({ workshopId, onBack }: DetailViewProps) {
   async function handleTogglePortal() {
     if (!workshop) return
     try {
-      await updateWorkshop.mutateAsync({
-        id: workshop.id,
-        data: { portal_enabled: !workshop.portal_enabled },
-      })
-      toast.success(workshop.portal_enabled ? 'Portal disabled.' : 'Portal enabled.')
+      const result = await togglePortal.mutateAsync(workshop.id)
+      if (result.action === 'deploy') {
+        toast.success('Portal deployment started.')
+      } else {
+        toast.success('Portal teardown started.')
+      }
+      refetchWorkshop()
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update portal.')
+      toast.error(err instanceof Error ? err.message : 'Failed to toggle portal.')
     }
   }
 
@@ -508,12 +514,14 @@ function DetailView({ workshopId, onBack }: DetailViewProps) {
           {/* Portal toggle */}
           <button
             onClick={handleTogglePortal}
-            className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${
+            disabled={togglePortal.isPending}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors disabled:opacity-50 ${
               workshop.portal_enabled
                 ? 'bg-green-900/50 text-green-300 hover:bg-green-900/70 border border-green-700/50'
                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
             }`}
           >
+            {togglePortal.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
             Portal {workshop.portal_enabled ? 'on' : 'off'}
           </button>
         </div>

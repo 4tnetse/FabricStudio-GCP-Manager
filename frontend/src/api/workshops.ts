@@ -148,3 +148,14 @@ export function useStopWorkshop() {
     },
   })
 }
+
+export function useTogglePortal() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => apiPost<{ job_id: string; action: string }>(`/workshops/${id}/toggle-portal`, {}),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['workshops', id] })
+      queryClient.invalidateQueries({ queryKey: ['workshops'] })
+    },
+  })
+}

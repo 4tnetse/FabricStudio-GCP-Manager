@@ -205,6 +205,13 @@ async def _workshop_deploy_job(job_id: str, workshop_id: str) -> None:
         except Exception:
             base_name = name
 
+        # Write instance_base_name and dns_domain to workshop doc for portal use
+        dns_domain = cfg.get_project_config(cfg.settings, project_id).get("dns_domain", "")
+        await fs.update_workshop(workshop_id, {
+            "instance_base_name": base_name,
+            "dns_domain": dns_domain,
+        })
+
         numbers = list(range(count_start, count_end + 1))
         total = len(numbers)
         instance_names = [f"{base_name}-{n:03d}" for n in numbers]
@@ -400,6 +407,318 @@ async def _workshop_teardown_job(job_id: str, workshop_id: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Portal helpers
+# ---------------------------------------------------------------------------
+
+
+def _portal_service_name(workshop_name: str) -> str:
+    """Derive Cloud Run service name from workshop name (max 49 chars, lowercase, alphanumeric + hyphens)."""
+    safe = workshop_name.lower().replace('_', '-')[:35]
+    return f"fsgcpm-portal-{safe}"
+
+
+async def _get_cloud_run_region() -> str:
+    """Get the configured Cloud Run region from settings."""
+    sched = cfg.get_project_scheduling(cfg.settings, cfg.settings.active_project_id)
+    region = sched.get("cloud_run_region") or ""
+    if not region:
+        raise RuntimeError("No Cloud Run region configured. Deploy the scheduling backend first.")
+    return region
+
+
+def _deploy_portal_service(credentials, project_id: str, region: str, service_name: str, workshop_id: str) -> str:
+    """Deploy Cloud Run portal service. Returns the service URL."""
+    from google.cloud import run_v2
+
+    image = f"gcr.io/{project_id}/fsgcpm-portal:latest"
+
+    import os as _os
+    firestore_db_id = _os.environ.get("FIRESTORE_DATABASE_ID", "fabricstudio-gcp-manager")
+
+    client = run_v2.ServicesClient(credentials=credentials)
+    parent = f"projects/{project_id}/locations/{region}"
+    full_service_name = f"{parent}/services/{service_name}"
+
+    env_vars = [
+        run_v2.EnvVar(name="WORKSHOP_ID", value=workshop_id),
+        run_v2.EnvVar(name="FIRESTORE_PROJECT_ID", value=project_id),
+        run_v2.EnvVar(name="FIRESTORE_DATABASE_ID", value=firestore_db_id),
+    ]
+
+    template = run_v2.RevisionTemplate(
+        containers=[
+            run_v2.Container(
+                image=image,
+                env=env_vars,
+            )
+        ],
+        scaling=run_v2.ServiceScaling(min_instance_count=0, max_instance_count=5),
+    )
+
+    import google.protobuf.field_mask_pb2 as _mask
+
+    try:
+        existing = client.get_service(name=full_service_name)
+        existing.template = template
+        op = client.update_service(
+            service=existing,
+            update_mask=_mask.FieldMask(paths=["template"]),
+        )
+        return op.result(timeout=300).uri
+    except Exception:
+        pass
+
+    service = run_v2.Service(
+        template=template,
+        ingress=run_v2.IngressTraffic.INGRESS_TRAFFIC_ALL,
+    )
+    op = client.create_service(parent=parent, service=service, service_id=service_name)
+    svc = op.result(timeout=300)
+
+    _set_portal_public(credentials, project_id, region, service_name)
+
+    return svc.uri
+
+
+def _set_portal_public(credentials, project_id: str, region: str, service_name: str) -> None:
+    """Grant allUsers invoker role on the portal Cloud Run service."""
+    import requests as _req
+    from google.auth.transport.requests import Request as _AuthRequest
+
+    if not getattr(credentials, "valid", True):
+        try:
+            credentials.refresh(_AuthRequest())
+        except Exception:
+            pass
+    token = getattr(credentials, "token", None)
+    if not token:
+        credentials.refresh(_AuthRequest())
+        token = credentials.token
+
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    url = f"https://run.googleapis.com/v2/projects/{project_id}/locations/{region}/services/{service_name}:setIamPolicy"
+    body = {
+        "policy": {
+            "bindings": [{"role": "roles/run.invoker", "members": ["allUsers"]}]
+        }
+    }
+    _req.post(url, headers=headers, json=body, timeout=30)
+
+
+def _delete_portal_service(credentials, project_id: str, region: str, service_name: str) -> None:
+    """Delete Cloud Run portal service."""
+    from google.cloud import run_v2
+    client = run_v2.ServicesClient(credentials=credentials)
+    full_name = f"projects/{project_id}/locations/{region}/services/{service_name}"
+    try:
+        op = client.delete_service(name=full_name)
+        op.result(timeout=120)
+    except Exception:
+        pass  # Already gone
+
+
+def _upload_source_and_build(headers: dict, project_id: str, portal_dir, target: str) -> None:
+    """Upload portal source to GCS staging bucket and trigger Cloud Build."""
+    import requests as _req
+    import time as _time
+    import tarfile as _tar
+    import io as _io
+
+    # Create tarball
+    buf = _io.BytesIO()
+    with _tar.open(fileobj=buf, mode="w:gz") as tf:
+        tf.add(portal_dir, arcname=".")
+    buf.seek(0)
+    tar_bytes = buf.read()
+
+    # Upload to GCS staging bucket
+    bucket = f"{project_id}_cloudbuild"
+    object_name = f"portal-source-{int(_time.time())}.tar.gz"
+
+    upload_url = f"https://storage.googleapis.com/upload/storage/v1/b/{bucket}/o?uploadType=media&name={object_name}"
+    upload_headers = {**headers, "Content-Type": "application/gzip"}
+    r = _req.post(upload_url, headers=upload_headers, data=tar_bytes, timeout=60)
+    if not r.ok:
+        # Try to create bucket first
+        _req.post(
+            f"https://storage.googleapis.com/storage/v1/b?project={project_id}",
+            headers=headers,
+            json={"name": bucket},
+            timeout=30,
+        )
+        r = _req.post(upload_url, headers=upload_headers, data=tar_bytes, timeout=60)
+        r.raise_for_status()
+
+    # Trigger Cloud Build
+    build_body = {
+        "steps": [
+            {"name": "gcr.io/cloud-builders/docker", "args": ["build", "-t", target, "."]},
+            {"name": "gcr.io/cloud-builders/docker", "args": ["push", target]},
+        ],
+        "images": [target],
+        "source": {
+            "storageSource": {
+                "bucket": bucket,
+                "object": object_name,
+            }
+        },
+        "timeout": "600s",
+    }
+
+    resp = _req.post(
+        f"https://cloudbuild.googleapis.com/v1/projects/{project_id}/builds",
+        headers=headers,
+        json=build_body,
+        timeout=30,
+    )
+    resp.raise_for_status()
+    op_name = resp.json()["name"]
+
+    # Poll until done
+    for _ in range(120):
+        _time.sleep(5)
+        r = _req.get(f"https://cloudbuild.googleapis.com/v1/{op_name}", headers=headers, timeout=10)
+        if r.ok:
+            data = r.json()
+            if data.get("done"):
+                if data.get("error"):
+                    raise RuntimeError(f"Cloud Build failed: {data['error'].get('message')}")
+                status = data.get("metadata", {}).get("build", {}).get("status", "")
+                if status == "SUCCESS":
+                    return
+                if status in ("FAILURE", "CANCELLED", "TIMEOUT"):
+                    raise RuntimeError(f"Cloud Build failed: {status}")
+    raise RuntimeError("Cloud Build timed out")
+
+
+def _build_portal_image(credentials, project_id: str) -> None:
+    """Build the portal Docker image via Cloud Build from the portal/ source directory."""
+    import requests as _req
+    from pathlib import Path as _Path
+    from google.auth.transport.requests import Request as _AuthRequest
+
+    if not getattr(credentials, "valid", True):
+        try:
+            credentials.refresh(_AuthRequest())
+        except Exception:
+            pass
+    token = getattr(credentials, "token", None)
+    if not token:
+        credentials.refresh(_AuthRequest())
+        token = credentials.token
+
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    target = f"gcr.io/{project_id}/fsgcpm-portal:latest"
+    portal_dir = _Path(__file__).parent.parent.parent / "portal"
+    _upload_source_and_build(headers, project_id, portal_dir, target)
+
+
+async def _portal_deploy_job(job_id: str, workshop_id: str) -> None:
+    """Deploy portal Cloud Run service for a workshop."""
+    q = job_manager.jobs[job_id]
+
+    async def activity(msg: str) -> None:
+        await q.put(msg)
+        await fs.update_workshop(workshop_id, {"current_activity": msg})
+
+    try:
+        workshop = await fs.get_workshop(workshop_id)
+        if not workshop:
+            await job_manager.mark_done(job_id, failed=True)
+            return
+
+        project_id = cfg.settings.active_project_id
+        credentials = get_credentials()
+        loop = asyncio.get_event_loop()
+
+        try:
+            region = await _get_cloud_run_region()
+        except RuntimeError as exc:
+            await activity(f"ERROR: {exc}")
+            await job_manager.mark_done(job_id, failed=True)
+            return
+
+        service_name = _portal_service_name(workshop["name"])
+
+        # Build portal image
+        await activity("Building portal Docker image…")
+        try:
+            await loop.run_in_executor(None, _build_portal_image, credentials, project_id)
+            await activity("Portal image built.")
+        except Exception as exc:
+            await activity(f"ERROR building portal image: {exc}")
+            await job_manager.mark_done(job_id, failed=True)
+            return
+
+        # Deploy Cloud Run service
+        await activity("Deploying portal Cloud Run service…")
+        try:
+            portal_url = await loop.run_in_executor(
+                None, _deploy_portal_service, credentials, project_id, region, service_name, workshop_id
+            )
+        except Exception as exc:
+            await activity(f"ERROR deploying portal: {exc}")
+            await job_manager.mark_done(job_id, failed=True)
+            return
+
+        await fs.update_workshop(workshop_id, {
+            "portal_enabled": True,
+            "portal_url": portal_url,
+            "current_activity": "Portal is live.",
+        })
+        await q.put(f"Portal live at {portal_url}")
+        await job_manager.mark_done(job_id)
+
+    except Exception as exc:
+        await q.put(f"ERROR: {exc}")
+        await fs.update_workshop(workshop_id, {"portal_enabled": False, "current_activity": f"Portal deploy failed: {exc}"})
+        await job_manager.mark_done(job_id, failed=True)
+
+
+async def _portal_teardown_job(job_id: str, workshop_id: str) -> None:
+    """Tear down portal Cloud Run service for a workshop."""
+    q = job_manager.jobs[job_id]
+
+    async def activity(msg: str) -> None:
+        await q.put(msg)
+        await fs.update_workshop(workshop_id, {"current_activity": msg})
+
+    try:
+        workshop = await fs.get_workshop(workshop_id)
+        if not workshop:
+            await job_manager.mark_done(job_id, failed=True)
+            return
+
+        project_id = cfg.settings.active_project_id
+        credentials = get_credentials()
+        loop = asyncio.get_event_loop()
+
+        try:
+            region = await _get_cloud_run_region()
+        except RuntimeError as exc:
+            await activity(f"ERROR: {exc}")
+            await job_manager.mark_done(job_id, failed=True)
+            return
+
+        service_name = _portal_service_name(workshop["name"])
+
+        await activity("Tearing down portal Cloud Run service…")
+        await loop.run_in_executor(None, _delete_portal_service, credentials, project_id, region, service_name)
+
+        await fs.update_workshop(workshop_id, {
+            "portal_enabled": False,
+            "portal_url": None,
+            "current_activity": "Portal offline.",
+        })
+        await q.put("Portal offline.")
+        await job_manager.mark_done(job_id)
+
+    except Exception as exc:
+        await q.put(f"ERROR: {exc}")
+        await job_manager.mark_done(job_id, failed=True)
+
+
+# ---------------------------------------------------------------------------
 # Start / Stop endpoints
 # ---------------------------------------------------------------------------
 
@@ -433,3 +752,24 @@ async def stop_workshop(workshop_id: str, background_tasks: BackgroundTasks):
     job_manager.create_job(job_id)
     background_tasks.add_task(_workshop_teardown_job, job_id, workshop_id)
     return {"job_id": job_id}
+
+
+@router.post("/{workshop_id}/toggle-portal")
+async def toggle_portal(workshop_id: str, background_tasks: BackgroundTasks):
+    """Deploy or tear down the registration portal for a workshop."""
+    _require_project()
+    workshop = await fs.get_workshop(workshop_id)
+    if workshop is None:
+        raise HTTPException(status_code=404, detail="Workshop not found.")
+
+    job_id = str(uuid.uuid4())
+    job_manager.create_job(job_id)
+
+    if workshop.get("portal_enabled"):
+        background_tasks.add_task(_portal_teardown_job, job_id, workshop_id)
+        return {"job_id": job_id, "action": "teardown"}
+    else:
+        if workshop["status"] not in ("running",):
+            raise HTTPException(status_code=400, detail="Portal can only be enabled when the workshop is running.")
+        background_tasks.add_task(_portal_deploy_job, job_id, workshop_id)
+        return {"job_id": job_id, "action": "deploy"}
