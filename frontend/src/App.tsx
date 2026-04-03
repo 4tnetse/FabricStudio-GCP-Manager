@@ -50,6 +50,7 @@ import Workshops from '@/pages/Workshops'
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/workshops', label: 'Workshops', icon: Users },
   { to: '/', label: 'Instances', icon: Monitor, exact: true },
   { to: '/build', label: 'Build', icon: Hammer },
   { to: '/configure', label: 'Configure', icon: Wrench },
@@ -59,7 +60,6 @@ const NAV_ITEMS = [
   { to: '/ssh', label: 'SSH', icon: Terminal },
   { to: '/configurations', label: 'SSH Configurations', icon: FileCode },
   { to: '/schedules', label: 'Schedules', icon: CalendarClock },
-  { to: '/workshops', label: 'Workshops', icon: Users },
   { to: '/images', label: 'Images', icon: HardDrive },
   { to: '/costs', label: 'Costs', icon: Receipt },
 ]
