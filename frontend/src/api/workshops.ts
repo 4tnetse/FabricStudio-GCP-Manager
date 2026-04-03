@@ -126,3 +126,25 @@ export function useRemoveAttendee() {
     },
   })
 }
+
+export function useStartWorkshop() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => apiPost<{ job_id: string }>(`/workshops/${id}/start`, {}),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['workshops', id] })
+      queryClient.invalidateQueries({ queryKey: ['workshops'] })
+    },
+  })
+}
+
+export function useStopWorkshop() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => apiPost<{ job_id: string }>(`/workshops/${id}/stop`, {}),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['workshops', id] })
+      queryClient.invalidateQueries({ queryKey: ['workshops'] })
+    },
+  })
+}

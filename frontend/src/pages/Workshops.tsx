@@ -19,6 +19,8 @@ import {
   useUpdateWorkshop,
   useDeleteWorkshop,
   useRemoveAttendee,
+  useStartWorkshop,
+  useStopWorkshop,
   type Workshop,
   type WorkshopCreate,
 } from '@/api/workshops'
@@ -291,18 +293,24 @@ interface DetailViewProps {
 }
 
 function DetailView({ workshopId, onBack }: DetailViewProps) {
-  const { data: workshop, isLoading } = useWorkshop(workshopId)
+  const { data: workshop, isLoading, refetch: refetchWorkshop } = useWorkshop(workshopId)
   const updateWorkshop = useUpdateWorkshop()
   const { data: attendees = [], refetch: refetchAttendees } = useAttendees(workshopId)
   const removeAttendee = useRemoveAttendee()
+  const startWorkshop = useStartWorkshop()
+  const stopWorkshop = useStopWorkshop()
 
-  // Auto-refetch attendees every 10s when running
-  const refetchRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Poll workshop every 5s while deploying to show live current_activity
+  // Poll attendees every 10s while running
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   useEffect(() => {
-    if (workshop?.status === 'running') {
-      refetchRef.current = setInterval(() => refetchAttendees(), 10_000)
+    if (pollRef.current) clearInterval(pollRef.current)
+    if (workshop?.status === 'deploying') {
+      pollRef.current = setInterval(() => refetchWorkshop(), 5_000)
+    } else if (workshop?.status === 'running') {
+      pollRef.current = setInterval(() => refetchAttendees(), 10_000)
     }
-    return () => { if (refetchRef.current) clearInterval(refetchRef.current) }
+    return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [workshop?.status])
 
   // Form state (settings)
@@ -365,6 +373,28 @@ function DetailView({ workshopId, onBack }: DetailViewProps) {
       toast.error(err instanceof Error ? err.message : 'Failed to save.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleStart() {
+    if (!workshop) return
+    try {
+      await startWorkshop.mutateAsync(workshop.id)
+      toast.success('Deployment started.')
+      refetchWorkshop()
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to start workshop.')
+    }
+  }
+
+  async function handleStop() {
+    if (!workshop) return
+    try {
+      await stopWorkshop.mutateAsync(workshop.id)
+      toast.success('Teardown started.')
+      refetchWorkshop()
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to stop workshop.')
     }
   }
 
@@ -448,6 +478,34 @@ function DetailView({ workshopId, onBack }: DetailViewProps) {
           <StatusBadge status={workshop.status} />
         </div>
         <div className="flex items-center gap-2">
+          {/* Start/Stop */}
+          {(workshop.status === 'draft' || workshop.status === 'ended') && (
+            <button
+              onClick={handleStart}
+              disabled={startWorkshop.isPending}
+              className="px-3 py-1.5 rounded-lg text-xs bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white transition-colors flex items-center gap-1.5"
+            >
+              {startWorkshop.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
+              Start
+            </button>
+          )}
+          {workshop.status === 'deploying' && (
+            <div className="flex items-center gap-1.5 text-xs text-amber-400">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Deploying…
+            </div>
+          )}
+          {(workshop.status === 'running' || workshop.status === 'deploying') && (
+            <button
+              onClick={handleStop}
+              disabled={stopWorkshop.isPending}
+              className="px-3 py-1.5 rounded-lg text-xs bg-red-800/60 hover:bg-red-700/60 disabled:opacity-50 text-red-300 border border-red-700/40 transition-colors flex items-center gap-1.5"
+            >
+              {stopWorkshop.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
+              Stop
+            </button>
+          )}
+          {/* Portal toggle */}
           <button
             onClick={handleTogglePortal}
             className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${
@@ -479,6 +537,16 @@ function DetailView({ workshopId, onBack }: DetailViewProps) {
           >
             <Copy className="w-3.5 h-3.5" />
           </button>
+        </div>
+      )}
+
+      {/* Current activity panel */}
+      {workshop.status === 'deploying' && (
+        <div className="rounded-xl border border-amber-700/40 bg-amber-900/10 px-4 py-3 flex items-center gap-3 text-sm">
+          <Loader2 className="w-4 h-4 animate-spin text-amber-400 shrink-0" />
+          <span className="text-amber-300 font-mono text-xs truncate">
+            {workshop.current_activity ?? 'Starting deployment…'}
+          </span>
         </div>
       )}
 
